@@ -25,7 +25,7 @@ const CourseSettings = ({ isEmbedded = false }) => {
         isMarketplace: false,
         price: 0,
         originalPrice: 0,
-        currency: 'INR',
+        currency: 'SLR',
         category: '',
         level: '',
         tags: [],
@@ -84,7 +84,7 @@ const CourseSettings = ({ isEmbedded = false }) => {
                 isMarketplace: res.data.isMarketplace || false,
                 price: res.data.price || 0,
                 originalPrice: res.data.originalPrice || 0,
-                currency: res.data.currency || 'INR',
+                currency: res.data.currency || 'SLR',
                 category: res.data.category || '',
                 level: res.data.level || '',
                 tags: res.data.tags || [],
@@ -352,7 +352,7 @@ const CourseSettings = ({ isEmbedded = false }) => {
                                                         value={formData.currency}
                                                         onChange={(e) => setFormData({ ...formData, currency: e.target.value })}
                                                     >
-                                                        <option value="INR">₹ INR (Indian Rupee)</option>
+                                                        <option value="SLR">SLR (Rs)</option>
                                                         <option value="USD">$ USD (US Dollar)</option>
                                                     </select>
                                                     <div className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none text-xs">▼</div>
@@ -362,7 +362,7 @@ const CourseSettings = ({ isEmbedded = false }) => {
                                                 <label className="text-xs font-semibold text-slate-500 dark:text-slate-400">Selling Price</label>
                                                 <div className="relative">
                                                     <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-medium">
-                                                        {formData.currency === 'INR' ? '₹' : '$'}
+                                                        {formData.currency === 'SLR' ? 'Rs' : '$'}
                                                     </span>
                                                     <input
                                                         type="number"
@@ -378,7 +378,7 @@ const CourseSettings = ({ isEmbedded = false }) => {
                                                 <label className="text-xs font-semibold text-slate-500 dark:text-slate-400">Original Price <span className="text-[10px] font-normal opacity-70">(Strike-through)</span></label>
                                                 <div className="relative">
                                                     <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-medium opacity-70">
-                                                        {formData.currency === 'INR' ? '₹' : '$'}
+                                                        {formData.currency === 'SLR' ? 'Rs' : '$'}
                                                     </span>
                                                     <input
                                                         type="number"

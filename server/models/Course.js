@@ -83,8 +83,8 @@ const courseSchema = new mongoose.Schema({
     },
     currency: {
         type: String,
-        enum: ['INR', 'USD'],
-        default: 'INR'
+        enum: ['SLR', 'USD'],
+        default: 'SLR'
     },
     originalPrice: {
         type: Number,

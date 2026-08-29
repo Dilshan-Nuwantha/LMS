@@ -19,7 +19,7 @@ const CreateMarketplaceCourse = () => {
         language: 'English',
         price: '',
         originalPrice: '',
-        currency: 'INR',
+        currency: 'SLR',
         thumbnail: '',
         previewVideo: '',
         requirements: [''],
@@ -282,7 +282,7 @@ const CreateMarketplaceCourse = () => {
                                         Price *
                                     </label>
                                     <div className="relative">
-                                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500">₹</span>
+                                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500">Rs</span>
                                         <input
                                             type="number"
                                             name="price"
@@ -321,7 +321,7 @@ const CreateMarketplaceCourse = () => {
                                         onChange={handleChange}
                                         className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg focus:outline-none focus:border-indigo-500"
                                     >
-                                        <option value="INR">INR (₹)</option>
+                                        <option value="SLR">SLR (Rs)</option>
                                         <option value="USD">USD ($)</option>
                                     </select>
                                 </div>

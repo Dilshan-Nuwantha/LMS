@@ -1,6 +1,6 @@
 const PDFDocument = require('pdfkit');
 
-const CURRENCY_SYMBOLS = { INR: '₹', USD: '$' };
+const CURRENCY_SYMBOLS = { SLR: 'Rs', USD: '$' };
 
 /**
  * Generate a professional PDF invoice and pipe it to the response stream.
@@ -10,7 +10,7 @@ const CURRENCY_SYMBOLS = { INR: '₹', USD: '$' };
 const generateInvoicePDF = (purchase, res) => {
     const doc = new PDFDocument({ size: 'A4', margin: 50 });
 
-    const currency = CURRENCY_SYMBOLS[purchase.currency] || '₹';
+    const currency = CURRENCY_SYMBOLS[purchase.currency] || 'Rs';
     const isPaid = purchase.invoiceStatus === 'paid';
 
     // Set response headers
@@ -135,7 +135,7 @@ const generateInvoicePDF = (purchase, res) => {
 };
 
 function formatDate(date) {
-    return new Date(date).toLocaleDateString('en-IN', {
+    return new Date(date).toLocaleDateString('en-LK', {
         year: 'numeric',
         month: 'long',
         day: 'numeric'

@@ -1,7 +1,7 @@
-const PriceDisplay = ({ price, originalPrice, currency = 'INR', size = 'md' }) => {
+const PriceDisplay = ({ price, originalPrice, currency = 'SLR', size = 'md' }) => {
     const formatPrice = (amount) => {
-        if (currency === 'INR') {
-            return `₹${amount.toLocaleString('en-IN')}`;
+        if (currency === 'SLR') {
+            return `₹${amount.toLocaleString('en-SL')}`;
         }
         return `$${amount.toLocaleString('en-US')}`;
     };

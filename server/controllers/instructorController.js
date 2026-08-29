@@ -135,7 +135,7 @@ const createMarketplaceCourse = asyncHandler(async (req, res) => {
         description,
         price,
         originalPrice: originalPrice || price,
-        currency: currency || 'INR',
+        currency: currency || 'SLR',
         thumbnail: thumbnail || '',
         previewVideo: previewVideo || '',
         category: category || '',

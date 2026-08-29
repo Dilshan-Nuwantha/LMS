@@ -137,7 +137,7 @@ skill-path/
 │       │       ├── FloatingAIChatButton.jsx    # Floating AI chat button
 │       │       ├── Modal.jsx                   # Reusable modal
 │       │       ├── Pagination.jsx              # Reusable pagination
-│       │       ├── PriceDisplay.jsx            # Price formatting (INR/USD)
+│       │       ├── PriceDisplay.jsx            # Price formatting (SLR/USD)
 │       │       ├── StarRating.jsx              # Star rating input
 │       │       └── StatusSelector.jsx          # Lecture status dropdown
 │       │
