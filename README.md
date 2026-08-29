@@ -590,12 +590,3 @@ App runs at `http://localhost:5173`
 - **Frontend** — Deploy `client/` as a Static Site. Build command: `npm run build`. Publish dir: `dist`.
 - **Stripe Webhook** — Set webhook endpoint to `https://your-backend.onrender.com/api/purchase/webhook` in Stripe dashboard. Copy the webhook signing secret to `STRIPE_WEBHOOK_SECRET`.
 
----
-
-## License
-
-Educational project. All rights reserved.
-
----
-
-Built by **the team** · [GitHub](https://github.com/tenze)
