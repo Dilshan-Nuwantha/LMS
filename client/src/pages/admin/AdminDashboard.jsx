@@ -15,7 +15,7 @@ import { showSuccess, showError } from '../../utils/toast';
 /* ─────────────────────────────────────────────────────────────────────────────
    Shared helpers
 ───────────────────────────────────────────────────────────────────────────── */
-const formatCurrency = (amount) => `₹${(amount || 0).toLocaleString('en-IN')}`;
+const formatCurrency = (amount) => `Rs.${(amount || 0).toLocaleString('en-SL')}`;
 
 const Avatar = ({ name, color = 'indigo', size = 9, blocked = false }) => {
     const palette = {
