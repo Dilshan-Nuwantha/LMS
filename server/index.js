@@ -142,42 +142,62 @@ const checkDueDateReminders = async () => {
     }
 };
 
-app.listen(port, () => {
-    console.log(`Server started on port ${port}`);
-
-    // Run due date check on startup and every hour
-    checkDueDateReminders();
-    setInterval(checkDueDateReminders, 60 * 60 * 1000);
-
-    // Keep-alive: self-ping at random intervals (30s - 120s) between 6:00 PM and 2:00 AM IST
-    const RENDER_URL = process.env.RENDER_EXTERNAL_URL;
-    if (RENDER_URL && process.env.KEEP_ALIVE === 'true') {
-        const pingServer = () => {
-            const delay = Math.floor(Math.random() * (120000 - 30000 + 1)) + 30000;
-            setTimeout(() => {
-                // Get current IST hour safely
-                const utcMs = new Date().getTime();
-                const istMs = utcMs + (5.5 * 60 * 60 * 1000); // UTC +5:30
-                const currentHour = new Date(istMs).getUTCHours();
-                
-                // Active hours: 6 PM (18) to 2 AM (2)
-                const isActiveHour = currentHour >= 18 || currentHour < 2;
-
-                if (isActiveHour) {
-                    const url = `${RENDER_URL}/api/health`;
-                    const client = url.startsWith('https') ? https : http;
-                    client.get(url, (res) => {
-                        console.log(`[Keep-Alive] Pinged ${url} — Status: ${res.statusCode} (next in ${Math.round(delay / 1000)}s)`);
-                    }).on('error', (err) => {
-                        console.error(`[Keep-Alive] Ping failed:`, err.message);
-                    });
-                } else {
-                    console.log(`[Keep-Alive] Skipped ping. Current IST hour: ${currentHour} is outside active hours (18 - 1). Next check in ${Math.round(delay / 1000)}s`);
-                }
-                pingServer();
-            }, delay);
-        };
-        pingServer();
-        console.log('[Keep-Alive] Self-ping enabled for Render (Active: 6 PM - 2 AM IST)');
+// Endpoint for Vercel Cron Job to trigger hourly reminders
+app.get('/api/cron/due-reminders', async (req, res) => {
+    const authHeader = req.headers.authorization;
+    if (process.env.NODE_ENV === 'production') {
+        if (!process.env.CRON_SECRET || authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+            return res.status(401).json({ error: 'Unauthorized' });
+        }
+    }
+    try {
+        await checkDueDateReminders();
+        res.status(200).json({ success: true, message: 'Checked due date reminders successfully' });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
     }
 });
+
+if (require.main === module) {
+    app.listen(port, () => {
+        console.log(`Server started on port ${port}`);
+
+        // Run due date check on startup and every hour
+        checkDueDateReminders();
+        setInterval(checkDueDateReminders, 60 * 60 * 1000);
+
+        // Keep-alive: self-ping at random intervals (30s - 120s) between 6:00 PM and 2:00 AM IST
+        const RENDER_URL = process.env.RENDER_EXTERNAL_URL;
+        if (RENDER_URL && process.env.KEEP_ALIVE === 'true') {
+            const pingServer = () => {
+                const delay = Math.floor(Math.random() * (120000 - 30000 + 1)) + 30000;
+                setTimeout(() => {
+                    // Get current IST hour safely
+                    const utcMs = new Date().getTime();
+                    const istMs = utcMs + (5.5 * 60 * 60 * 1000); // UTC +5:30
+                    const currentHour = new Date(istMs).getUTCHours();
+                    
+                    // Active hours: 6 PM (18) to 2 AM (2)
+                    const isActiveHour = currentHour >= 18 || currentHour < 2;
+
+                    if (isActiveHour) {
+                        const url = `${RENDER_URL}/api/health`;
+                        const client = url.startsWith('https') ? https : http;
+                        client.get(url, (res) => {
+                            console.log(`[Keep-Alive] Pinged ${url} — Status: ${res.statusCode} (next in ${Math.round(delay / 1000)}s)`);
+                        }).on('error', (err) => {
+                            console.error(`[Keep-Alive] Ping failed:`, err.message);
+                        });
+                    } else {
+                        console.log(`[Keep-Alive] Skipped ping. Current IST hour: ${currentHour} is outside active hours (18 - 1). Next check in ${Math.round(delay / 1000)}s`);
+                    }
+                    pingServer();
+                }, delay);
+            };
+            pingServer();
+            console.log('[Keep-Alive] Self-ping enabled for Render (Active: 6 PM - 2 AM IST)');
+        }
+    });
+}
+
+module.exports = app;
