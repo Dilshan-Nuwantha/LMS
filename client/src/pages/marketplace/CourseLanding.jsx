@@ -325,7 +325,7 @@ const CourseLanding = () => {
                                                 <span className="font-medium">Coupon applied!</span>
                                             </div>
                                             <p className="text-sm text-green-600 dark:text-green-400 mt-1">
-                                                You save ₹{couponApplied.discountAmount}
+                                                You save {course.currency === 'USD' ? '$' : 'LKR '}{couponApplied.discountAmount}
                                             </p>
                                         </div>
                                     )}

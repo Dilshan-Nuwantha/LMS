@@ -2,7 +2,7 @@ import { useState, useEffect, useContext } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
     FaUsers, FaChalkboardTeacher, FaGraduationCap, FaBook,
-    FaRupeeSign, FaChartLine, FaMoneyCheckAlt, FaHistory,
+    FaChartLine, FaMoneyCheckAlt, FaHistory,
     FaArrowRight, FaExclamationCircle, FaCheckCircle, FaSearch,
     FaBan, FaUnlock, FaExclamationTriangle, FaTimes, FaEdit,
     FaChevronDown, FaChevronUp, FaShieldAlt, FaChevronLeft, FaChevronRight,
@@ -12,10 +12,14 @@ import AuthContext from '../../context/AuthContext';
 import api from '../../api/axios';
 import { showSuccess, showError } from '../../utils/toast';
 
+const LkrIcon = ({ className }) => (
+    <span className={`font-bold text-[14px] leading-none tracking-tight select-none ${className || ''}`}>Rs</span>
+);
+
 /* ─────────────────────────────────────────────────────────────────────────────
    Shared helpers
 ───────────────────────────────────────────────────────────────────────────── */
-const formatCurrency = (amount) => `Rs.${(amount || 0).toLocaleString('en-SL')}`;
+const formatCurrency = (amount) => `LKR ${(amount || 0).toLocaleString('en-LK')}`;
 
 const Avatar = ({ name, color = 'indigo', size = 9, blocked = false }) => {
     const palette = {
@@ -1031,7 +1035,7 @@ const AdminDashboard = () => {
                         {/* Revenue */}
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                             {[
-                                { icon: FaRupeeSign, label: 'Total Revenue', value: formatCurrency(stats.totalRevenue), sub: `${stats.totalSales ?? 0} sales`, bg: 'bg-emerald-500', light: 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-100 dark:border-emerald-900/30' },
+                                { icon: LkrIcon, label: 'Total Revenue', value: formatCurrency(stats.totalRevenue), sub: `${stats.totalSales ?? 0} sales`, bg: 'bg-emerald-500', light: 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-100 dark:border-emerald-900/30' },
                                 { icon: FaMoneyCheckAlt, label: 'Total Paid Out', value: formatCurrency(stats.totalPaidOut), sub: 'To instructors', bg: 'bg-indigo-500', light: 'bg-indigo-50 dark:bg-indigo-900/20 border-indigo-100 dark:border-indigo-900/30' },
                                 { icon: FaExclamationCircle, label: 'Pending Payout', value: formatCurrency(stats.pendingPayout), sub: 'Owed to instructors', bg: 'bg-amber-500', light: 'bg-amber-50 dark:bg-amber-900/20 border-amber-100 dark:border-amber-900/30' },
                             ].map(r => (
@@ -1227,7 +1231,7 @@ const AdminDashboard = () => {
                         </div>
                         <form onSubmit={handlePayout} className="p-5 space-y-4">
                             <div>
-                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Amount (₹)</label>
+                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Amount (LKR)</label>
                                 <input
                                     type="number"
                                     value={payoutForm.amount}

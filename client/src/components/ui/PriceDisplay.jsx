@@ -1,7 +1,7 @@
 const PriceDisplay = ({ price, originalPrice, currency = 'SLR', size = 'md' }) => {
     const formatPrice = (amount) => {
         if (currency === 'SLR') {
-            return `₹${amount.toLocaleString('en-SL')}`;
+            return `LKR ${amount.toLocaleString('en-LK')}`;
         }
         return `$${amount.toLocaleString('en-US')}`;
     };
