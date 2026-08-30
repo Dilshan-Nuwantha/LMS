@@ -7,19 +7,19 @@ const Footer = () => {
             <div className="container mx-auto px-4 lg:px-8">
                 {/* Top 5 Column Grid */}
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-8 mb-12">
-                    
+
                     {/* Column 1: Brand & Socials */}
                     <div className="lg:col-span-1">
                         <Link to="/" className="flex items-center gap-2 mb-4 group">
                             <div className="w-9 h-9 rounded-xl bg-primary flex items-center justify-center text-white font-extrabold text-lg shadow-sm">
-                                E
+                                TZ
                             </div>
                             <span className="text-xl font-black text-slate-900 dark:text-white">
-                                edu<span className="text-primary">port</span>
+                                TEN<span className="text-primary">ZE</span>
                             </span>
                         </Link>
                         <p className="text-xs leading-relaxed mb-4 text-slate-500 dark:text-slate-400">
-                            Eduport provides flexible online education & courses tailored for students, teachers, and professionals worldwide.
+                            TENZE provides flexible online education & courses tailored for students, teachers, and professionals worldwide.
                         </p>
                         {/* Social Buttons */}
                         <div className="flex items-center gap-2">
@@ -91,11 +91,11 @@ const Footer = () => {
                                 <FaPhoneAlt className="text-primary text-xs" /> +123 456 7890
                             </p>
                             <p className="flex items-center gap-2 text-slate-700 dark:text-slate-300">
-                                <FaEnvelope className="text-danger text-xs" /> support@eduport.com
+                                <FaEnvelope className="text-danger text-xs" /> support@tenze.com
                             </p>
                         </div>
                         {/* App Download Buttons */}
-                        <div className="flex flex-col gap-2">
+                        {/* <div className="flex flex-col gap-2">
                             <div className="p-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl flex items-center gap-3 cursor-pointer hover:border-primary transition-colors">
                                 <div className="text-xl text-primary font-bold">▶</div>
                                 <div className="text-left">
@@ -110,15 +110,14 @@ const Footer = () => {
                                     <span className="block text-xs font-bold text-slate-900 dark:text-white">App Store</span>
                                 </div>
                             </div>
-                        </div>
+                        </div> */}
                     </div>
-
                 </div>
 
                 {/* Bottom Legal Bar */}
                 <div className="border-t border-slate-200 dark:border-slate-800 pt-6 flex flex-col md:flex-row items-center justify-between gap-4 text-xs">
                     <p className="text-slate-500 dark:text-slate-400">
-                        Copyrights ©2026 <span className="font-bold text-slate-900 dark:text-white">Eduport</span>. All rights reserved.
+                        Copyrights ©2026 <span className="font-bold text-slate-900 dark:text-white">TENZE</span>. All rights reserved.
                     </p>
                     <div className="flex items-center gap-6">
                         <div className="flex items-center gap-1 text-slate-600 dark:text-slate-300 font-medium">

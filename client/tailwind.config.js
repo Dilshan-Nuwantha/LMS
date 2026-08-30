@@ -48,9 +48,9 @@ export default {
         accent: '#0cbd68',
       },
       boxShadow: {
-        'eduport': '0 0.5rem 1rem rgba(0, 0, 0, 0.08)',
-        'eduport-lg': '0 1rem 3rem rgba(0, 0, 0, 0.12)',
-        'eduport-sm': '0 0.125rem 0.25rem rgba(0, 0, 0, 0.075)',
+        'TENZE': '0 0.5rem 1rem rgba(0, 0, 0, 0.08)',
+        'TENZE-lg': '0 1rem 3rem rgba(0, 0, 0, 0.12)',
+        'TENZE-sm': '0 0.125rem 0.25rem rgba(0, 0, 0, 0.075)',
       }
     },
   },

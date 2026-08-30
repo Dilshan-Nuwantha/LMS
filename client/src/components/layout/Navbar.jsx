@@ -103,17 +103,17 @@ const Navbar = () => {
         <header className="bg-white dark:bg-slate-900 border-b border-slate-200/80 dark:border-slate-800 sticky top-0 z-50 transition-colors duration-200">
             <div className="container mx-auto px-4 lg:px-8">
                 <div className="flex items-center justify-between h-20">
-                    
+
                     {/* Left Brand & Category Pill */}
                     <div className="flex items-center gap-6">
                         {/* Brand Logo */}
                         <Link to="/" className="flex items-center gap-2 group">
                             <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center text-white font-extrabold text-xl shadow-md shadow-primary/20 group-hover:scale-105 transition-transform">
-                                E
+                                TZ
                             </div>
                             <div className="flex flex-col">
                                 <span className="text-2xl font-black tracking-tight text-slate-900 dark:text-white flex items-center gap-1">
-                                    edu<span className="text-primary">port</span>
+                                    TEN<span className="text-primary">ZE</span>
                                 </span>
                             </div>
                         </Link>
@@ -133,7 +133,7 @@ const Navbar = () => {
 
                                 {/* Category Dropdown Menu */}
                                 {isCategoryOpen && (
-                                    <div className="absolute top-full left-0 mt-2 w-56 bg-white dark:bg-slate-900 rounded-2xl shadow-eduport-lg border border-slate-200/80 dark:border-slate-800 py-2 z-50 animate-fadeIn">
+                                    <div className="absolute top-full left-0 mt-2 w-56 bg-white dark:bg-slate-900 rounded-2xl shadow-TENZE-lg border border-slate-200/80 dark:border-slate-800 py-2 z-50 animate-fadeIn">
                                         {categories.map((cat) => (
                                             <Link
                                                 key={cat._id || cat.name}
@@ -214,7 +214,7 @@ const Navbar = () => {
 
                             {/* Search Results Popover */}
                             {isSearchFocused && searchResults.length > 0 && (
-                                <div className="absolute top-full right-0 left-0 mt-2 bg-white dark:bg-slate-900 rounded-2xl shadow-eduport-lg border border-slate-200/80 dark:border-slate-800 max-h-80 overflow-y-auto z-50 py-2">
+                                <div className="absolute top-full right-0 left-0 mt-2 bg-white dark:bg-slate-900 rounded-2xl shadow-TENZE-lg border border-slate-200/80 dark:border-slate-800 max-h-80 overflow-y-auto z-50 py-2">
                                     {searchResults.map((course) => (
                                         <div
                                             key={course._id}
@@ -274,7 +274,7 @@ const Navbar = () => {
 
                                 {/* Profile Dropdown Menu */}
                                 {isProfileOpen && (
-                                    <div className="absolute right-0 top-full mt-3 w-64 bg-white dark:bg-slate-900 rounded-2xl shadow-eduport-lg border border-slate-200/80 dark:border-slate-800 py-3 z-50 animate-fadeIn">
+                                    <div className="absolute right-0 top-full mt-3 w-64 bg-white dark:bg-slate-900 rounded-2xl shadow-TENZE-lg border border-slate-200/80 dark:border-slate-800 py-3 z-50 animate-fadeIn">
                                         <div className="px-4 py-3 border-b border-slate-100 dark:border-slate-800 flex items-center gap-3">
                                             <div className="w-9 h-9 rounded-full bg-primary-light text-primary flex items-center justify-center font-bold text-sm">
                                                 {user.name ? user.name.charAt(0).toUpperCase() : 'U'}

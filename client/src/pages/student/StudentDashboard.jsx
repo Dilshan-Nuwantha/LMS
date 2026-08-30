@@ -121,12 +121,12 @@ const StudentDashboard = ({ defaultTab }) => {
 
     return (
         <div className="min-h-screen bg-slate-50 dark:bg-slate-950 pb-16 transition-colors duration-200">
-            
+
             {/* 1. COVER BANNER HEADER */}
             <div className="bg-gradient-to-r from-slate-900 via-primary-700 to-slate-900 text-white pt-10 pb-20 px-4 lg:px-8">
                 <div className="container mx-auto">
                     <div className="flex flex-col md:flex-row items-center justify-between gap-6">
-                        
+
                         {/* Profile Info Left */}
                         <div className="flex items-center gap-5">
                             <div className="relative">
@@ -134,10 +134,10 @@ const StudentDashboard = ({ defaultTab }) => {
                                     <img
                                         src={user.profilePicture}
                                         alt={user.name}
-                                        className="w-20 h-20 rounded-full object-cover border-4 border-white dark:border-slate-800 shadow-eduport"
+                                        className="w-20 h-20 rounded-full object-cover border-4 border-white dark:border-slate-800 shadow-TENZE"
                                     />
                                 ) : (
-                                    <div className="w-20 h-20 rounded-full bg-primary text-white flex items-center justify-center font-black text-2xl border-4 border-white dark:border-slate-800 shadow-eduport">
+                                    <div className="w-20 h-20 rounded-full bg-primary text-white flex items-center justify-center font-black text-2xl border-4 border-white dark:border-slate-800 shadow-TENZE">
                                         {user?.name ? user.name.charAt(0).toUpperCase() : <FaUser />}
                                     </div>
                                 )}
@@ -180,9 +180,9 @@ const StudentDashboard = ({ defaultTab }) => {
             {/* 2. REAL METRICS OVERLAP */}
             <div className="container mx-auto px-4 lg:px-8 -mt-10">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-8 max-w-2xl">
-                    
+
                     {/* Metric 1: Enrolled Courses */}
-                    <div className="bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-200/80 dark:border-slate-800 shadow-eduport flex items-center gap-4">
+                    <div className="bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-200/80 dark:border-slate-800 shadow-TENZE flex items-center gap-4">
                         <div className="w-12 h-12 rounded-xl bg-primary-light text-primary flex items-center justify-center text-xl font-bold">
                             <FaGraduationCap />
                         </div>
@@ -195,7 +195,7 @@ const StudentDashboard = ({ defaultTab }) => {
                     </div>
 
                     {/* Metric 2: Created Courses */}
-                    <div className="bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-200/80 dark:border-slate-800 shadow-eduport flex items-center gap-4">
+                    <div className="bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-200/80 dark:border-slate-800 shadow-TENZE flex items-center gap-4">
                         <div className="w-12 h-12 rounded-xl bg-purple-light text-purple flex items-center justify-center text-xl font-bold">
                             <FaChalkboardTeacher />
                         </div>
@@ -210,30 +210,28 @@ const StudentDashboard = ({ defaultTab }) => {
                 </div>
 
                 {/* 3. MAIN DASHBOARD CONTENT */}
-                <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/80 dark:border-slate-800 p-6 sm:p-8 shadow-eduport">
-                    
+                <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/80 dark:border-slate-800 p-6 sm:p-8 shadow-TENZE">
+
                     {/* Header Controls */}
                     <div className="flex flex-col sm:flex-row items-center justify-between gap-4 border-b border-slate-100 dark:border-slate-800 pb-6 mb-6">
-                        
+
                         {/* Tabs */}
                         <div className="flex items-center gap-2">
                             <button
                                 onClick={() => setActiveTab('enrolled')}
-                                className={`px-5 py-2.5 rounded-xl font-bold text-xs transition-all ${
-                                    activeTab === 'enrolled'
+                                className={`px-5 py-2.5 rounded-xl font-bold text-xs transition-all ${activeTab === 'enrolled'
                                         ? 'bg-primary text-white shadow-sm'
                                         : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:text-primary'
-                                }`}
+                                    }`}
                             >
                                 My Learning ({enrolledCourses.length})
                             </button>
                             <button
                                 onClick={() => setActiveTab('created')}
-                                className={`px-5 py-2.5 rounded-xl font-bold text-xs transition-all ${
-                                    activeTab === 'created'
+                                className={`px-5 py-2.5 rounded-xl font-bold text-xs transition-all ${activeTab === 'created'
                                         ? 'bg-primary text-white shadow-sm'
                                         : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:text-primary'
-                                }`}
+                                    }`}
                             >
                                 Created Courses ({createdCourses.length})
                             </button>
@@ -386,7 +384,7 @@ const StudentDashboard = ({ defaultTab }) => {
             {/* CREATE COURSE MODAL */}
             {showCreateModal && (
                 <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-                    <div className="bg-white dark:bg-slate-900 rounded-3xl max-w-md w-full p-6 shadow-eduport-lg border border-slate-200 dark:border-slate-800">
+                    <div className="bg-white dark:bg-slate-900 rounded-3xl max-w-md w-full p-6 shadow-TENZE-lg border border-slate-200 dark:border-slate-800">
                         <h3 className="text-base font-black text-slate-900 dark:text-white mb-4">Create New Course</h3>
                         <form onSubmit={handleCreateCourse} className="space-y-4">
                             <div>
@@ -435,7 +433,7 @@ const StudentDashboard = ({ defaultTab }) => {
             {/* DELETE COURSE MODAL */}
             {showDeleteModal && (
                 <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-                    <div className="bg-white dark:bg-slate-900 rounded-3xl max-w-sm w-full p-6 shadow-eduport-lg border border-slate-200 dark:border-slate-800 text-center">
+                    <div className="bg-white dark:bg-slate-900 rounded-3xl max-w-sm w-full p-6 shadow-TENZE-lg border border-slate-200 dark:border-slate-800 text-center">
                         <h3 className="text-base font-black text-slate-900 dark:text-white mb-2">Delete Course?</h3>
                         <p className="text-xs text-slate-500 mb-6">
                             Are you sure you want to delete <span className="font-bold text-slate-900 dark:text-white">"{courseToDelete?.title}"</span>? This action cannot be undone.

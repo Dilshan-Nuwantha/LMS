@@ -154,7 +154,7 @@ const InstructorPaymentSettings = () => {
                                         value={form.bankName}
                                         onChange={e => handleChange('bankName', e.target.value)}
                                         className="w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                                        placeholder="e.g. State Bank of India"
+                                        placeholder="e.g. Bank of Ceylon"
                                     />
                                 </div>
                                 <div>

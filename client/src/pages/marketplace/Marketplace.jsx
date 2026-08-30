@@ -12,7 +12,7 @@ import { showError } from '../../utils/toast';
 const Marketplace = () => {
     const { user } = useContext(AuthContext);
     const [searchParams, setSearchParams] = useSearchParams();
-    
+
     const [courses, setCourses] = useState([]);
     const [loading, setLoading] = useState(true);
     const [categories, setCategories] = useState([]);
@@ -136,12 +136,12 @@ const Marketplace = () => {
 
     return (
         <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white transition-colors duration-200">
-            
-            {/* 1. EDUPORT HERO BANNER */}
+
+            {/* 1. TENZE HERO BANNER */}
             <section className="relative overflow-hidden pt-10 pb-16 bg-gradient-to-b from-primary-light/30 via-white to-slate-50 dark:from-slate-900 dark:via-slate-950 dark:to-slate-950">
                 <div className="container mx-auto px-4 lg:px-8">
                     <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
-                        
+
                         {/* Hero Text Left */}
                         <div className="lg:col-span-7 space-y-5">
                             <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-danger-light text-danger text-xs font-bold uppercase tracking-wide">
@@ -162,20 +162,20 @@ const Marketplace = () => {
                                     <FaCheckCircle className="text-primary" />
                                     <span>Learn with experts</span>
                                 </div>
-                                <div className="flex items-center gap-1.5">
+                                {/* <div className="flex items-center gap-1.5">
                                     <FaCheckCircle className="text-primary" />
                                     <span>Get certificate</span>
-                                </div>
-                                <div className="flex items-center gap-1.5">
+                                </div> */}
+                                {/* <div className="flex items-center gap-1.5">
                                     <FaCheckCircle className="text-primary" />
                                     <span>Flexible schedule</span>
-                                </div>
+                                </div> */}
                             </div>
                         </div>
 
                         {/* Search Card Right */}
                         <div className="lg:col-span-5">
-                            <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-200/80 dark:border-slate-800 shadow-eduport-lg space-y-4">
+                            <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-200/80 dark:border-slate-800 shadow-TENZE-lg space-y-4">
                                 <h3 className="text-lg font-black text-slate-900 dark:text-white">
                                     Search & Filter Courses
                                 </h3>
@@ -293,7 +293,7 @@ const Marketplace = () => {
             {/* 3. COURSES MARKETPLACE GRID */}
             <section className="py-12">
                 <div className="container mx-auto px-4 lg:px-8">
-                    
+
                     {/* Results Count & Subtitle */}
                     <div className="flex items-center justify-between mb-8">
                         <div>
@@ -409,11 +409,10 @@ const Marketplace = () => {
                                         newParams.set('page', String(i + 1));
                                         setSearchParams(newParams);
                                     }}
-                                    className={`w-10 h-10 rounded-xl font-bold text-xs transition-all ${
-                                        pagination.page === i + 1
+                                    className={`w-10 h-10 rounded-xl font-bold text-xs transition-all ${pagination.page === i + 1
                                             ? 'bg-primary text-white shadow-sm'
                                             : 'bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-800 hover:border-primary'
-                                    }`}
+                                        }`}
                                 >
                                     {i + 1}
                                 </button>
@@ -427,7 +426,7 @@ const Marketplace = () => {
             {/* 4. BECOME AN INSTRUCTOR CTA BANNER */}
             <section className="py-12">
                 <div className="container mx-auto px-4 lg:px-8">
-                    <div className="relative rounded-3xl overflow-hidden bg-gradient-to-r from-slate-900 via-primary-700 to-slate-900 text-white p-8 sm:p-12 shadow-eduport-lg">
+                    <div className="relative rounded-3xl overflow-hidden bg-gradient-to-r from-slate-900 via-primary-700 to-slate-900 text-white p-8 sm:p-12 shadow-TENZE-lg">
                         <div className="relative z-10 max-w-2xl space-y-3">
                             <span className="bg-white/20 backdrop-blur-md px-3 py-1 rounded-full text-[10px] font-extrabold uppercase tracking-wider">
                                 Teach on LMS
