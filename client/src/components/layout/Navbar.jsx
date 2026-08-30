@@ -1,8 +1,12 @@
 import { useContext, useState, useRef, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import AuthContext from '../../context/AuthContext';
 import ThemeContext from '../../context/ThemeContext';
-import { FaMoon, FaSun, FaUserCircle, FaSignOutAlt, FaGraduationCap, FaSearch, FaTimes, FaChevronDown, FaArrowLeft, FaStore, FaShoppingBag, FaChalkboardTeacher, FaRobot, FaChartLine, FaUserSecret, FaHistory } from 'react-icons/fa';
+import {
+    FaMoon, FaSun, FaUserCircle, FaSignOutAlt, FaGraduationCap,
+    FaSearch, FaChevronDown, FaThLarge,
+    FaStore, FaChalkboardTeacher, FaRobot, FaShieldAlt, FaUser
+} from 'react-icons/fa';
 import NotificationBell from './NotificationBell';
 import api from '../../api/axios';
 
@@ -10,73 +14,72 @@ const Navbar = () => {
     const { user, logout } = useContext(AuthContext);
     const { theme, toggleTheme } = useContext(ThemeContext);
     const navigate = useNavigate();
-    const [isMenuOpen, setIsMenuOpen] = useState(false);
-    const menuRef = useRef(null);
+    const location = useLocation();
+
+    const [isCategoryOpen, setIsCategoryOpen] = useState(false);
+    const [isProfileOpen, setIsProfileOpen] = useState(false);
+    const [categories, setCategories] = useState([]);
 
     // Search state
     const [searchQuery, setSearchQuery] = useState('');
-    const [searchFilter, setSearchFilter] = useState('all'); // all, enrolled, created
     const [searchResults, setSearchResults] = useState([]);
     const [isSearchFocused, setIsSearchFocused] = useState(false);
     const [isSearching, setIsSearching] = useState(false);
-    const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false);
-    const [isFilterDropdownOpen, setIsFilterDropdownOpen] = useState(false);
-    const searchRef = useRef(null);
-    const mobileInputRef = useRef(null);
-    const filterDropdownRef = useRef(null);
 
-    const filterOptions = [
-        { value: 'all', label: 'All' },
-        { value: 'enrolled', label: 'Enrolled' },
-        { value: 'created', label: 'Created' }
-    ];
+    const categoryRef = useRef(null);
+    const profileRef = useRef(null);
+    const searchRef = useRef(null);
 
     const onLogout = () => {
         logout();
         navigate('/login');
-        setIsMenuOpen(false);
+        setIsProfileOpen(false);
     };
 
-    // Close menu when clicking outside
+    // Fetch real categories from API
+    useEffect(() => {
+        const fetchCategories = async () => {
+            try {
+                const res = await api.get('/marketplace/categories');
+                setCategories(res.data || []);
+            } catch (error) {
+                console.error('Error fetching navbar categories:', error);
+            }
+        };
+        fetchCategories();
+    }, []);
+
+    // Close dropdowns when clicking outside
     useEffect(() => {
         const handleClickOutside = (event) => {
-            if (menuRef.current && !menuRef.current.contains(event.target)) {
-                setIsMenuOpen(false);
+            if (categoryRef.current && !categoryRef.current.contains(event.target)) {
+                setIsCategoryOpen(false);
+            }
+            if (profileRef.current && !profileRef.current.contains(event.target)) {
+                setIsProfileOpen(false);
             }
             if (searchRef.current && !searchRef.current.contains(event.target)) {
                 setIsSearchFocused(false);
             }
-            if (filterDropdownRef.current && !filterDropdownRef.current.contains(event.target)) {
-                setIsFilterDropdownOpen(false);
-            }
         };
-        document.addEventListener("mousedown", handleClickOutside);
-        return () => {
-            document.removeEventListener("mousedown", handleClickOutside);
-        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
 
-    // Focus mobile input when opened
-    useEffect(() => {
-        if (isMobileSearchOpen && mobileInputRef.current) {
-            mobileInputRef.current.focus();
-        }
-    }, [isMobileSearchOpen]);
-
-    // Search courses when query changes
+    // Search courses on input change
     useEffect(() => {
         const searchCourses = async () => {
-            if (!searchQuery.trim() || !user) {
+            if (!searchQuery.trim()) {
                 setSearchResults([]);
                 return;
             }
 
             setIsSearching(true);
             try {
-                const res = await api.get('/courses/search', {
-                    params: { q: searchQuery, filter: searchFilter }
+                const res = await api.get('/marketplace/search', {
+                    params: { q: searchQuery }
                 });
-                setSearchResults(res.data);
+                setSearchResults(res.data.courses || []);
             } catch (error) {
                 console.error('Search error:', error);
                 setSearchResults([]);
@@ -87,311 +90,259 @@ const Navbar = () => {
 
         const debounce = setTimeout(searchCourses, 300);
         return () => clearTimeout(debounce);
-    }, [searchQuery, searchFilter, user]);
+    }, [searchQuery]);
 
-    const handleResultClick = (result) => {
+    const handleResultClick = (courseId) => {
         setSearchQuery('');
         setSearchResults([]);
         setIsSearchFocused(false);
-        setIsMobileSearchOpen(false);
-        if (result.type === 'enrolled') {
-            navigate(`/course/${result._id}`);
-        } else {
-            navigate(`/admin/course/${result._id}`);
-        }
-    };
-
-    const closeMobileSearch = () => {
-        setIsMobileSearchOpen(false);
-        setSearchQuery('');
-        setSearchResults([]);
-    };
-
-    // Search results component (reused for desktop and mobile)
-    const SearchResults = () => (
-        <>
-            {isSearching ? (
-                <div className="px-4 py-6 text-sm text-slate-500 dark:text-slate-400 text-center">
-                    <div className="inline-block w-5 h-5 border-2 border-slate-300 dark:border-slate-600 border-t-blue-500 rounded-full animate-spin"></div>
-                    <p className="mt-2">Searching...</p>
-                </div>
-            ) : searchResults.length > 0 ? (
-                <div className="py-2">
-                    {searchResults.map((result) => (
-                        <button
-                            key={`${result.type}-${result._id}`}
-                            onClick={() => handleResultClick(result)}
-                            className="w-full px-4 py-3 text-left hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors flex items-center justify-between gap-3"
-                        >
-                            <span className="text-sm text-slate-900 dark:text-white truncate">{result.title}</span>
-                            <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full shrink-0 ${result.type === 'enrolled'
-                                ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400'
-                                : 'bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400'
-                                }`}>
-                                {result.type === 'enrolled' ? 'Enrolled' : 'Created'}
-                            </span>
-                        </button>
-                    ))}
-                </div>
-            ) : searchQuery.trim() ? (
-                <div className="px-4 py-6 text-sm text-slate-500 dark:text-slate-400 text-center">
-                    No courses found for "{searchQuery}"
-                </div>
-            ) : null}
-        </>
-    );
-
-    const isImpersonating = localStorage.getItem('isImpersonating') === 'true';
-
-    // Toggle CSS class on <html> so all sticky elements adjust via var(--navbar-height)
-    useEffect(() => {
-        if (isImpersonating) {
-            document.documentElement.classList.add('impersonating');
-        } else {
-            document.documentElement.classList.remove('impersonating');
-        }
-    }, [isImpersonating]);
-
-    const handleReturnToAdmin = () => {
-        const adminToken = localStorage.getItem('adminToken');
-        const adminUserCache = localStorage.getItem('adminUserCache');
-        if (adminToken) {
-            localStorage.setItem('token', adminToken);
-            localStorage.setItem('userCache', adminUserCache);
-            localStorage.removeItem('adminToken');
-            localStorage.removeItem('adminUserCache');
-            localStorage.removeItem('isImpersonating');
-            window.location.href = '/admin/dashboard';
-        }
+        navigate(`/marketplace/course/${courseId}`);
     };
 
     return (
-        <>
-            <nav className="sticky top-0 z-50 w-full border-b border-gray-200 dark:border-slate-800 bg-white/80 dark:bg-slate-950/80 backdrop-blur-md transition-colors duration-300">
-                {isImpersonating && (
-                    <div className="bg-amber-500 text-white text-center py-1.5 px-4 text-xs font-medium flex items-center justify-center gap-2">
-                        <FaUserSecret className="text-[10px]" />
-                        <span>Viewing as <strong>{user?.name}</strong> ({user?.email})</span>
-                        <button
-                            onClick={handleReturnToAdmin}
-                            className="ml-1 px-2.5 py-0.5 bg-white text-amber-600 rounded text-[11px] font-bold hover:bg-amber-50 transition-colors"
-                        >
-                            Return to Admin
-                        </button>
-                    </div>
-                )}
-                <div className="w-full px-4 md:px-8 h-16 flex justify-between items-center">
-                    {/* Logo */}
-                    <Link to="/" className="flex items-center gap-2 group">
-                        <div className="w-8 h-8 rounded-lg bg-slate-900 dark:bg-blue-600 flex items-center justify-center text-white transition-colors duration-300">
-                            <FaGraduationCap size={18} />
-                        </div>
-                        <span className="text-lg font-bold text-slate-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
-                            Tenz Learn
-                        </span>
-                    </Link>
+        <header className="bg-white dark:bg-slate-900 border-b border-slate-200/80 dark:border-slate-800 sticky top-0 z-50 transition-colors duration-200">
+            <div className="container mx-auto px-4 lg:px-8">
+                <div className="flex items-center justify-between h-20">
+                    
+                    {/* Left Brand & Category Pill */}
+                    <div className="flex items-center gap-6">
+                        {/* Brand Logo */}
+                        <Link to="/" className="flex items-center gap-2 group">
+                            <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center text-white font-extrabold text-xl shadow-md shadow-primary/20 group-hover:scale-105 transition-transform">
+                                E
+                            </div>
+                            <div className="flex flex-col">
+                                <span className="text-2xl font-black tracking-tight text-slate-900 dark:text-white flex items-center gap-1">
+                                    edu<span className="text-primary">port</span>
+                                </span>
+                            </div>
+                        </Link>
 
-                    {/* Desktop Search Bar */}
-                    {user && (
-                        <div className="hidden md:flex flex-1 max-w-lg mx-8" ref={searchRef}>
-                            <div className="relative w-full">
-                                <div className="flex items-center bg-gray-100 dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700 focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-transparent transition-all">
-                                    {/* Custom Dropdown Filter */}
-                                    <div className="relative border-r border-gray-200 dark:border-slate-700" ref={filterDropdownRef}>
-                                        <button
-                                            type="button"
-                                            onClick={() => setIsFilterDropdownOpen(!isFilterDropdownOpen)}
-                                            className="flex items-center gap-1.5 bg-transparent text-xs font-medium text-slate-600 dark:text-slate-300 pl-3 pr-2 py-2.5 cursor-pointer focus:outline-none rounded-l-lg hover:text-slate-900 dark:hover:text-white transition-colors"
-                                        >
-                                            {filterOptions.find(o => o.value === searchFilter)?.label}
-                                            <FaChevronDown className={`text-slate-400 text-[10px] transition-transform ${isFilterDropdownOpen ? 'rotate-180' : ''}`} />
-                                        </button>
+                        {/* Category Pill Button */}
+                        {categories.length > 0 && (
+                            <div className="relative hidden md:block" ref={categoryRef}>
+                                <button
+                                    type="button"
+                                    onClick={() => setIsCategoryOpen(!isCategoryOpen)}
+                                    className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-primary-light text-primary font-semibold text-xs hover:bg-primary hover:text-white transition-all duration-200"
+                                >
+                                    <FaThLarge className="text-xs" />
+                                    <span>Category</span>
+                                    <FaChevronDown className={`text-[10px] transition-transform duration-200 ${isCategoryOpen ? 'rotate-180' : ''}`} />
+                                </button>
 
-                                        {/* Custom Dropdown Menu */}
-                                        {isFilterDropdownOpen && (
-                                            <div className="absolute top-full left-0 mt-1 w-28 bg-white dark:bg-slate-800 rounded-lg shadow-lg border border-gray-200 dark:border-slate-700 py-1 z-50">
-                                                {filterOptions.map((option) => (
-                                                    <button
-                                                        key={option.value}
-                                                        onClick={() => {
-                                                            setSearchFilter(option.value);
-                                                            setIsFilterDropdownOpen(false);
-                                                        }}
-                                                        className={`w-full text-left px-3 py-2 text-xs font-medium transition-colors ${searchFilter === option.value
-                                                            ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400'
-                                                            : 'text-slate-600 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-700'
-                                                            }`}
-                                                    >
-                                                        {option.label}
-                                                    </button>
-                                                ))}
-                                            </div>
-                                        )}
-                                    </div>
-
-                                    {/* Search Input */}
-                                    <div className="flex-1 flex items-center">
-                                        <FaSearch className="ml-3 text-slate-400 text-sm" />
-                                        <input
-                                            type="text"
-                                            placeholder="Search courses..."
-                                            value={searchQuery}
-                                            onChange={(e) => setSearchQuery(e.target.value)}
-                                            onFocus={() => setIsSearchFocused(true)}
-                                            className="flex-1 bg-transparent text-sm text-slate-900 dark:text-white placeholder-slate-400 px-3 py-2.5 focus:outline-none"
-                                        />
-                                        {searchQuery && (
-                                            <button
-                                                onClick={() => setSearchQuery('')}
-                                                className="pr-3 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
+                                {/* Category Dropdown Menu */}
+                                {isCategoryOpen && (
+                                    <div className="absolute top-full left-0 mt-2 w-56 bg-white dark:bg-slate-900 rounded-2xl shadow-eduport-lg border border-slate-200/80 dark:border-slate-800 py-2 z-50 animate-fadeIn">
+                                        {categories.map((cat) => (
+                                            <Link
+                                                key={cat._id || cat.name}
+                                                to={`/marketplace?category=${encodeURIComponent(cat.name)}`}
+                                                onClick={() => setIsCategoryOpen(false)}
+                                                className="block px-4 py-2.5 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-primary-light hover:text-primary dark:hover:bg-slate-800 transition-colors"
                                             >
-                                                <FaTimes size={12} />
-                                            </button>
-                                        )}
-                                    </div>
-                                </div>
-
-                                {/* Desktop Search Results Dropdown */}
-                                {isSearchFocused && (searchQuery.trim() || isSearching) && (
-                                    <div className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-slate-900 rounded-xl shadow-xl border border-gray-200 dark:border-slate-700 overflow-hidden z-50 max-h-80 overflow-y-auto">
-                                        <SearchResults />
+                                                {cat.name}
+                                            </Link>
+                                        ))}
                                     </div>
                                 )}
                             </div>
-                        </div>
-                    )}
+                        )}
+                    </div>
 
-                    <div className="flex items-center gap-2 md:gap-4">
-                        {/* Mobile Search Button */}
+                    {/* Navigation Links */}
+                    <nav className="hidden lg:flex items-center gap-6 font-bold text-xs text-slate-700 dark:text-slate-200">
+                        <Link
+                            to="/marketplace"
+                            className={`hover:text-primary transition-colors py-2 ${location.pathname === '/marketplace' || location.pathname === '/' ? 'text-primary' : ''}`}
+                        >
+                            Marketplace
+                        </Link>
+
                         {user && (
-                            <button
-                                onClick={() => setIsMobileSearchOpen(true)}
-                                className="md:hidden p-2 rounded-full text-slate-500 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors"
+                            <Link
+                                to="/my-learning"
+                                className={`hover:text-primary transition-colors py-2 flex items-center gap-1.5 ${location.pathname === '/my-learning' ? 'text-primary' : ''}`}
                             >
-                                <FaSearch size={18} />
-                            </button>
+                                <FaGraduationCap className="text-sm text-primary" />
+                                My Learning
+                            </Link>
                         )}
 
-                        {/* Theme Toggle */}
-                        <button
-                            onClick={toggleTheme}
-                            className="p-2 rounded-full text-slate-500 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors"
-                            title={theme === 'light' ? "Switch to Dark Mode" : "Switch to Light Mode"}
-                        >
-                            {theme === 'light' ? <FaMoon size={18} /> : <FaSun size={18} />}
-                        </button>
+                        {(user?.role === 'instructor' || user?.role === 'admin') && (
+                            <Link
+                                to="/instructor/dashboard"
+                                className={`hover:text-primary transition-colors py-2 flex items-center gap-1.5 ${location.pathname.startsWith('/instructor') ? 'text-primary' : ''}`}
+                            >
+                                <FaChalkboardTeacher className="text-sm text-purple" />
+                                Instructor Center
+                            </Link>
+                        )}
 
-                        {/* Notifications */}
+                        {user?.role === 'admin' && (
+                            <Link
+                                to="/admin/dashboard"
+                                className="hover:text-primary transition-colors py-2 flex items-center gap-1.5 text-danger font-semibold"
+                            >
+                                <FaShieldAlt className="text-sm" />
+                                Admin Panel
+                            </Link>
+                        )}
+                    </nav>
+
+                    {/* Right Search, Theme & Profile */}
+                    <div className="flex items-center gap-3">
+                        {/* Search Bar */}
+                        <div className="relative hidden sm:block w-48 md:w-64" ref={searchRef}>
+                            <div className="relative flex items-center">
+                                <input
+                                    type="text"
+                                    placeholder="Search course..."
+                                    value={searchQuery}
+                                    onChange={(e) => setSearchQuery(e.target.value)}
+                                    onFocus={() => setIsSearchFocused(true)}
+                                    className="w-full bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white placeholder-slate-400 text-xs font-medium rounded-xl pl-4 pr-9 py-2.5 focus:outline-none focus:ring-2 focus:ring-primary/40 border border-transparent transition-all"
+                                />
+                                <div className="absolute right-3 text-slate-400">
+                                    {isSearching ? (
+                                        <div className="w-3.5 h-3.5 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+                                    ) : (
+                                        <FaSearch className="text-xs" />
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* Search Results Popover */}
+                            {isSearchFocused && searchResults.length > 0 && (
+                                <div className="absolute top-full right-0 left-0 mt-2 bg-white dark:bg-slate-900 rounded-2xl shadow-eduport-lg border border-slate-200/80 dark:border-slate-800 max-h-80 overflow-y-auto z-50 py-2">
+                                    {searchResults.map((course) => (
+                                        <div
+                                            key={course._id}
+                                            onClick={() => handleResultClick(course._id)}
+                                            className="px-4 py-3 hover:bg-primary-light/50 dark:hover:bg-slate-800 cursor-pointer flex items-center gap-3 transition-colors border-b border-slate-100 dark:border-slate-800 last:border-0"
+                                        >
+                                            <div className="w-9 h-9 rounded-lg bg-slate-200 dark:bg-slate-700 overflow-hidden flex-shrink-0">
+                                                {course.thumbnail && (
+                                                    <img src={course.thumbnail} alt="" className="w-full h-full object-cover" />
+                                                )}
+                                            </div>
+                                            <div className="truncate">
+                                                <h5 className="text-xs font-bold text-slate-900 dark:text-white truncate">
+                                                    {course.title}
+                                                </h5>
+                                                <span className="text-[10px] text-primary font-semibold">
+                                                    {course.category || 'General'}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Notifications Bell */}
                         {user && <NotificationBell />}
 
+                        {/* Dark/Light Mode Toggle */}
+                        <button
+                            onClick={toggleTheme}
+                            aria-label="Toggle dark mode"
+                            className="p-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:text-primary transition-colors"
+                        >
+                            {theme === 'dark' ? <FaSun className="text-warning text-sm" /> : <FaMoon className="text-sm" />}
+                        </button>
+
+                        {/* User Menu or Auth Buttons */}
                         {user ? (
-                            <div className="relative" ref={menuRef}>
+                            <div className="relative" ref={profileRef}>
                                 <button
-                                    onClick={() => setIsMenuOpen(!isMenuOpen)}
-                                    className="flex items-center gap-3 py-1 px-2 rounded-full hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors border border-transparent focus:border-gray-200 dark:focus:border-slate-700"
+                                    onClick={() => setIsProfileOpen(!isProfileOpen)}
+                                    className="flex items-center gap-2 p-0.5 rounded-full hover:ring-2 hover:ring-primary/40 transition-all"
                                 >
-                                    <span className="hidden md:block text-sm font-medium text-slate-700 dark:text-slate-200">
-                                        {user.name}
-                                    </span>
-                                    <div className="w-8 h-8 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center text-slate-500 dark:text-slate-300 overflow-hidden">
-                                        {user.profileImage ? (
-                                            <img src={user.profileImage} alt={user.name} className="w-full h-full object-cover" />
-                                        ) : user.name ? user.name.charAt(0).toUpperCase() : <FaUserCircle />}
-                                    </div>
+                                    {user.profilePicture ? (
+                                        <img
+                                            src={user.profilePicture}
+                                            alt={user.name}
+                                            className="w-9 h-9 rounded-full object-cover border-2 border-primary"
+                                        />
+                                    ) : (
+                                        <div className="w-9 h-9 rounded-full bg-primary text-white flex items-center justify-center font-bold text-sm shadow-sm">
+                                            {user.name ? user.name.charAt(0).toUpperCase() : <FaUser />}
+                                        </div>
+                                    )}
                                 </button>
 
-                                {/* Dropdown Menu */}
-                                {isMenuOpen && (
-                                    <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-slate-900 rounded-xl shadow-xl border border-gray-100 dark:border-slate-800 py-1 animate-in fade-in slide-in-from-top-2">
-                                        <div className="px-4 py-3 border-b border-gray-100 dark:border-slate-800 md:hidden">
-                                            <p className="text-sm font-medium text-slate-900 dark:text-white truncate">{user.name}</p>
-                                            <p className="text-xs text-slate-500 dark:text-slate-400 truncate">{user.email}</p>
+                                {/* Profile Dropdown Menu */}
+                                {isProfileOpen && (
+                                    <div className="absolute right-0 top-full mt-3 w-64 bg-white dark:bg-slate-900 rounded-2xl shadow-eduport-lg border border-slate-200/80 dark:border-slate-800 py-3 z-50 animate-fadeIn">
+                                        <div className="px-4 py-3 border-b border-slate-100 dark:border-slate-800 flex items-center gap-3">
+                                            <div className="w-9 h-9 rounded-full bg-primary-light text-primary flex items-center justify-center font-bold text-sm">
+                                                {user.name ? user.name.charAt(0).toUpperCase() : 'U'}
+                                            </div>
+                                            <div className="truncate">
+                                                <h4 className="text-xs font-bold text-slate-900 dark:text-white truncate">
+                                                    {user.name}
+                                                </h4>
+                                                <p className="text-[11px] text-slate-500 truncate">{user.email}</p>
+                                                <span className="inline-block mt-1 badge-soft-primary capitalize text-[10px]">
+                                                    {user.role}
+                                                </span>
+                                            </div>
                                         </div>
 
-                                        <Link
-                                            to="/profile"
-                                            className="flex items-center gap-2 px-4 py-2 text-sm text-slate-700 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors"
-                                            onClick={() => setIsMenuOpen(false)}
-                                        >
-                                            <FaUserCircle size={14} />
-                                            My Profile
-                                        </Link>
+                                        <div className="py-2">
+                                            <Link
+                                                to="/profile"
+                                                onClick={() => setIsProfileOpen(false)}
+                                                className="flex items-center gap-3 px-4 py-2 text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-primary-light hover:text-primary dark:hover:bg-slate-800 transition-colors"
+                                            >
+                                                <FaUserCircle className="text-sm" /> Edit Profile
+                                            </Link>
+                                            <Link
+                                                to="/my-learning"
+                                                onClick={() => setIsProfileOpen(false)}
+                                                className="flex items-center gap-3 px-4 py-2 text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-primary-light hover:text-primary dark:hover:bg-slate-800 transition-colors"
+                                            >
+                                                <FaGraduationCap className="text-sm" /> My Enrolled Courses
+                                            </Link>
+                                            <Link
+                                                to="/my-purchases"
+                                                onClick={() => setIsProfileOpen(false)}
+                                                className="flex items-center gap-3 px-4 py-2 text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-primary-light hover:text-primary dark:hover:bg-slate-800 transition-colors"
+                                            >
+                                                <FaStore className="text-sm" /> Purchase History
+                                            </Link>
+                                            <Link
+                                                to="/ai-chat"
+                                                onClick={() => setIsProfileOpen(false)}
+                                                className="flex items-center gap-3 px-4 py-2 text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-primary-light hover:text-primary dark:hover:bg-slate-800 transition-colors"
+                                            >
+                                                <FaRobot className="text-sm text-primary" /> AI Assistant
+                                            </Link>
+                                        </div>
 
-                                        <Link
-                                            to="/my-activity"
-                                            className="flex items-center gap-2 px-4 py-2 text-sm text-slate-700 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors"
-                                            onClick={() => setIsMenuOpen(false)}
-                                        >
-                                            <FaHistory size={14} />
-                                            My Activity
-                                        </Link>
-                                        <Link
-                                            to="/my-purchases"
-                                            className="flex items-center gap-2 px-4 py-2 text-sm text-slate-700 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors"
-                                            onClick={() => setIsMenuOpen(false)}
-                                        >
-                                            <FaShoppingBag size={14} />
-                                            My Purchases
-                                        </Link>
-                                        {(user.role === 'instructor' || user.role === 'admin') && (
-                                            <>
-                                                <Link
-                                                    to="/instructor/dashboard"
-                                                    className="flex items-center gap-2 px-4 py-2 text-sm text-slate-700 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors"
-                                                    onClick={() => setIsMenuOpen(false)}
-                                                >
-                                                    <FaChalkboardTeacher size={14} />
-                                                    Instructor Dashboard
-                                                </Link>
-                                                <Link
-                                                    to="/instructor/ai-settings"
-                                                    className="flex items-center gap-2 px-4 py-2 text-sm text-slate-700 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors"
-                                                    onClick={() => setIsMenuOpen(false)}
-                                                >
-                                                    <FaRobot size={14} />
-                                                    AI Settings
-                                                </Link>
-                                            </>
-                                        )}
-
-                                        {user.role === 'admin' && (
-                                            <>
-                                                <Link
-                                                    to="/admin/dashboard"
-                                                    className="flex items-center gap-2 px-4 py-2 text-sm text-slate-700 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors"
-                                                    onClick={() => setIsMenuOpen(false)}
-                                                >
-                                                    <FaChartLine size={14} />
-                                                    Admin Dashboard
-                                                </Link>
-                                                <Link
-                                                    to="/admin/activities"
-                                                    className="block px-4 py-2 text-sm text-slate-700 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors"
-                                                    onClick={() => setIsMenuOpen(false)}
-                                                >
-                                                    Activity Logs
-                                                </Link>
-                                            </>
-                                        )}
-
-                                        <button
-                                            onClick={onLogout}
-                                            className="w-full text-left px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/10 transition-colors flex items-center gap-2"
-                                        >
-                                            <FaSignOutAlt size={14} />
-                                            Logout
-                                        </button>
+                                        <div className="border-t border-slate-100 dark:border-slate-800 pt-2 px-2">
+                                            <button
+                                                onClick={onLogout}
+                                                className="w-full flex items-center gap-3 px-3 py-2 text-xs font-bold text-danger hover:bg-danger-light rounded-xl transition-colors"
+                                            >
+                                                <FaSignOutAlt className="text-sm" /> Sign Out
+                                            </button>
+                                        </div>
                                     </div>
                                 )}
                             </div>
                         ) : (
-                            <div className="flex items-center gap-4">
-                                <Link to="/login" className="text-sm font-medium text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-colors">
-                                    Login
+                            <div className="flex items-center gap-2">
+                                <Link
+                                    to="/login"
+                                    className="px-3.5 py-2 text-xs font-bold text-slate-700 dark:text-slate-200 hover:text-primary transition-colors"
+                                >
+                                    Sign In
                                 </Link>
                                 <Link
                                     to="/register"
-                                    className="bg-slate-900 dark:bg-blue-600 text-white px-4 py-2 rounded-full text-sm font-bold shadow hover:bg-slate-800 dark:hover:bg-blue-700 transition-all hover:shadow-lg"
+                                    className="px-4 py-2 rounded-xl bg-danger-light text-danger font-bold text-xs hover:bg-danger hover:text-white transition-all shadow-sm"
                                 >
                                     Register
                                 </Link>
@@ -399,74 +350,8 @@ const Navbar = () => {
                         )}
                     </div>
                 </div>
-            </nav>
-
-            {/* Mobile Search Modal - Full Screen */}
-            {isMobileSearchOpen && (
-                <div className="fixed inset-0 z-[100] bg-white dark:bg-slate-950 md:hidden">
-                    {/* Mobile Search Header */}
-                    <div className="flex items-center gap-3 px-4 py-3 border-b border-gray-200 dark:border-slate-800">
-                        <button
-                            onClick={closeMobileSearch}
-                            className="p-2 -ml-2 text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
-                        >
-                            <FaArrowLeft size={18} />
-                        </button>
-                        <div className="flex-1 flex items-center bg-gray-100 dark:bg-slate-800 rounded-lg">
-                            <FaSearch className="ml-3 text-slate-400 text-sm" />
-                            <input
-                                ref={mobileInputRef}
-                                type="text"
-                                placeholder="Search courses..."
-                                value={searchQuery}
-                                onChange={(e) => setSearchQuery(e.target.value)}
-                                className="flex-1 bg-transparent text-sm text-slate-900 dark:text-white placeholder-slate-400 px-3 py-3 focus:outline-none"
-                            />
-                            {searchQuery && (
-                                <button
-                                    onClick={() => setSearchQuery('')}
-                                    className="pr-3 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
-                                >
-                                    <FaTimes size={14} />
-                                </button>
-                            )}
-                        </div>
-                    </div>
-
-                    {/* Mobile Filter Tabs */}
-                    <div className="flex border-b border-gray-200 dark:border-slate-800">
-                        {[
-                            { value: 'all', label: 'All' },
-                            { value: 'enrolled', label: 'Enrolled' },
-                            { value: 'created', label: 'Created' }
-                        ].map((option) => (
-                            <button
-                                key={option.value}
-                                onClick={() => setSearchFilter(option.value)}
-                                className={`flex-1 py-3 text-sm font-medium transition-colors ${searchFilter === option.value
-                                    ? 'text-blue-600 dark:text-blue-400 border-b-2 border-blue-600 dark:border-blue-400'
-                                    : 'text-slate-500 dark:text-slate-400'
-                                    }`}
-                            >
-                                {option.label}
-                            </button>
-                        ))}
-                    </div>
-
-                    {/* Mobile Search Results */}
-                    <div className="overflow-y-auto" style={{ height: 'calc(100vh - 120px)' }}>
-                        {searchQuery.trim() ? (
-                            <SearchResults />
-                        ) : (
-                            <div className="px-4 py-8 text-center text-slate-500 dark:text-slate-400">
-                                <FaSearch className="mx-auto text-3xl mb-3 text-slate-300 dark:text-slate-600" />
-                                <p className="text-sm">Search for your courses</p>
-                            </div>
-                        )}
-                    </div>
-                </div>
-            )}
-        </>
+            </div>
+        </header>
     );
 };
 

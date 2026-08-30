@@ -1,6 +1,5 @@
 import { Link } from 'react-router-dom';
-import { FaUsers, FaClock, FaPlayCircle } from 'react-icons/fa';
-import StarRating from './StarRating';
+import { FaClock, FaHeart, FaStar, FaUser, FaUsers } from 'react-icons/fa';
 import PriceDisplay from './PriceDisplay';
 
 const CourseCard = ({ course }) => {
@@ -21,7 +20,7 @@ const CourseCard = ({ course }) => {
     } = course;
 
     const formatDuration = (minutes) => {
-        if (!minutes) return null;
+        if (!minutes || minutes <= 0) return null;
         const hours = Math.floor(minutes / 60);
         const mins = minutes % 60;
         if (hours > 0) {
@@ -30,82 +29,119 @@ const CourseCard = ({ course }) => {
         return `${mins}m`;
     };
 
+    const formattedDuration = formatDuration(totalDuration);
+
     return (
-        <Link
-            to={`/marketplace/course/${_id}`}
-            className="group bg-white dark:bg-slate-800 rounded-xl shadow-sm hover:shadow-xl transition-all duration-300 overflow-hidden border border-slate-200 dark:border-slate-700 flex flex-col"
-        >
-            {/* Thumbnail */}
-            <div className="relative aspect-video overflow-hidden bg-slate-200 dark:bg-slate-700">
+        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-sm hover:shadow-eduport-lg transition-all duration-300 flex flex-col overflow-hidden group card-hover-lift">
+            {/* Thumbnail Header */}
+            <div className="relative aspect-[16/10] overflow-hidden bg-slate-100 dark:bg-slate-800">
                 {thumbnail ? (
                     <img
                         src={thumbnail}
                         alt={title}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                     />
                 ) : (
-                    <div className="w-full h-full flex items-center justify-center">
-                        <FaPlayCircle className="text-4xl text-slate-400" />
+                    <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary/10 to-primary/30">
+                        <span className="text-3xl font-extrabold text-primary/40 uppercase tracking-widest">LMS</span>
                     </div>
                 )}
-                {category && (
-                    <span className="absolute top-2 left-2 bg-indigo-500/90 text-white text-xs font-medium px-2 py-1 rounded">
-                        {category}
-                    </span>
-                )}
-                {level && (
-                    <span className="absolute top-2 right-2 bg-slate-900/70 text-white text-xs font-medium px-2 py-1 rounded">
-                        {level}
-                    </span>
-                )}
-            </div>
-
-            {/* Content */}
-            <div className="p-4 flex flex-col flex-1">
-                <h3 className="font-semibold text-slate-900 dark:text-white line-clamp-2 mb-1 group-hover:text-indigo-500 transition-colors">
-                    {title}
-                </h3>
-
-                {instructor && (
-                    <p className="text-sm text-slate-500 dark:text-slate-400 mb-2">
-                        {instructor.name}
-                    </p>
-                )}
-
-                {/* Rating */}
-                <div className="flex items-center gap-2 mb-2">
-                    <span className="font-bold text-amber-500">{rating?.average?.toFixed(1) || '0.0'}</span>
-                    <StarRating rating={rating?.average || 0} size="sm" />
-                    <span className="text-xs text-slate-500 dark:text-slate-400">
-                        ({rating?.count || 0})
-                    </span>
-                </div>
-
-                {/* Stats */}
-                <div className="flex items-center gap-3 text-xs text-slate-500 dark:text-slate-400 mb-3">
-                    <span className="flex items-center gap-1">
-                        <FaUsers />
-                        {enrollmentCount || 0} students
-                    </span>
-                    {totalDuration > 0 && (
-                        <span className="flex items-center gap-1">
-                            <FaClock />
-                            {formatDuration(totalDuration)}
+                
+                {/* Badges Overlay */}
+                <div className="absolute top-3 left-3 flex flex-wrap gap-2">
+                    {category && (
+                        <span className="bg-primary/90 backdrop-blur-sm text-white text-[11px] font-semibold px-2.5 py-1 rounded-md">
+                            {category}
+                        </span>
+                    )}
+                    {level && (
+                        <span className="bg-slate-900/80 backdrop-blur-sm text-white text-[11px] font-medium px-2.5 py-1 rounded-md">
+                            {level}
                         </span>
                     )}
                 </div>
+            </div>
 
-                {/* Price - pushed to bottom */}
-                <div className="mt-auto pt-2 border-t border-slate-100 dark:border-slate-700">
-                    <PriceDisplay
-                        price={price}
-                        originalPrice={originalPrice}
-                        currency={currency}
-                        size="sm"
-                    />
+            {/* Main Content Area */}
+            <div className="p-5 flex flex-col flex-1">
+                {/* Rating & Students Row */}
+                <div className="flex items-center justify-between text-xs mb-2">
+                    {rating && rating.average > 0 ? (
+                        <div className="flex items-center gap-1">
+                            <FaStar className="text-warning text-xs" />
+                            <span className="font-bold text-slate-900 dark:text-white">
+                                {rating.average.toFixed(1)}
+                            </span>
+                            <span className="text-slate-400">({rating.count || 0})</span>
+                        </div>
+                    ) : (
+                        <span className="text-slate-400 text-xs">New Course</span>
+                    )}
+
+                    <span className="text-slate-500 dark:text-slate-400 text-xs font-semibold flex items-center gap-1">
+                        <FaUsers className="text-[10px]" />
+                        {enrollmentCount || 0} enrolled
+                    </span>
+                </div>
+
+                {/* Title */}
+                <Link to={`/marketplace/course/${_id}`} className="group-hover:text-primary transition-colors">
+                    <h3 className="font-bold text-slate-900 dark:text-white text-sm leading-snug line-clamp-2 mb-2">
+                        {title}
+                    </h3>
+                </Link>
+
+                {/* Short description */}
+                {description && (
+                    <p className="text-slate-500 dark:text-slate-400 text-xs line-clamp-2 mb-4 leading-relaxed">
+                        {description}
+                    </p>
+                )}
+
+                {/* Duration Metadata */}
+                {formattedDuration && (
+                    <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-500 dark:text-slate-400 mb-4 mt-auto">
+                        <FaClock className="text-danger/80 text-xs" />
+                        <span>{formattedDuration}</span>
+                    </div>
+                )}
+
+                {/* Divider Line */}
+                <div className="border-t border-slate-100 dark:border-slate-800 pt-3 mt-auto flex items-center justify-between">
+                    {/* Instructor Info */}
+                    <div className="flex items-center gap-2">
+                        {instructor?.profilePicture ? (
+                            <img
+                                src={instructor.profilePicture}
+                                alt={instructor.name || ''}
+                                className="w-7 h-7 rounded-full object-cover border border-slate-200 dark:border-slate-700"
+                            />
+                        ) : (
+                            <div className="w-7 h-7 rounded-full bg-primary-light text-primary flex items-center justify-center font-bold text-xs">
+                                {instructor?.name ? instructor.name.charAt(0).toUpperCase() : <FaUser className="text-[10px]" />}
+                            </div>
+                        )}
+                        <span className="text-xs font-semibold text-slate-700 dark:text-slate-300 truncate max-w-[100px]">
+                            {instructor?.name || 'Instructor'}
+                        </span>
+                    </div>
+
+                    {/* Price Display */}
+                    <div>
+                        {price === 0 ? (
+                            <span className="text-success font-extrabold text-sm">Free</span>
+                        ) : (
+                            <PriceDisplay
+                                price={price}
+                                originalPrice={originalPrice}
+                                currency={currency}
+                                size="sm"
+                            />
+                        )}
+                    </div>
                 </div>
             </div>
-        </Link>
+        </div>
     );
 };
 

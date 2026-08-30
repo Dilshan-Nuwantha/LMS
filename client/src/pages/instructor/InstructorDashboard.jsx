@@ -1,9 +1,8 @@
 import { useState, useEffect, useContext } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
-    FaPlus, FaRupeeSign, FaUsers, FaBook, FaChartLine,
-    FaEdit, FaTag, FaEye, FaArrowRight, FaMoneyCheckAlt,
-    FaCheckCircle, FaClock, FaCog
+    FaPlus, FaUsers, FaBook, FaChartLine,
+    FaEdit, FaEye, FaCog, FaRupeeSign, FaUser
 } from 'react-icons/fa';
 import api from '../../api/axios';
 import AuthContext from '../../context/AuthContext';
@@ -13,7 +12,6 @@ const InstructorDashboard = () => {
     const { user } = useContext(AuthContext);
     const navigate = useNavigate();
     const [loading, setLoading] = useState(true);
-    const [activeTab, setActiveTab] = useState('overview');
     const [dashboard, setDashboard] = useState({
         courses: [],
         totalCourses: 0,
@@ -22,39 +20,19 @@ const InstructorDashboard = () => {
         totalStudents: 0,
         recentPurchases: []
     });
-    const [earnings, setEarnings] = useState(null);
-    const [earningsLoading, setEarningsLoading] = useState(false);
 
     useEffect(() => {
         fetchDashboard();
     }, []);
 
-    useEffect(() => {
-        if (activeTab === 'earnings' && !earnings) {
-            fetchEarnings();
-        }
-    }, [activeTab]);
-
     const fetchDashboard = async () => {
         try {
             const res = await api.get('/instructor/dashboard');
-            setDashboard(res.data);
+            setDashboard(res.data || {});
         } catch (error) {
-            showError('Failed to load dashboard');
+            showError('Failed to load instructor dashboard');
         } finally {
             setLoading(false);
-        }
-    };
-
-    const fetchEarnings = async () => {
-        setEarningsLoading(true);
-        try {
-            const res = await api.get('/instructor/earnings');
-            setEarnings(res.data);
-        } catch (error) {
-            showError('Failed to load earnings');
-        } finally {
-            setEarningsLoading(false);
         }
     };
 
@@ -64,323 +42,230 @@ const InstructorDashboard = () => {
 
     if (loading) {
         return (
-            <div className="min-h-screen bg-gray-50 dark:bg-slate-950 flex items-center justify-center">
-                <div className="w-10 h-10 border-3 border-slate-200 dark:border-slate-700 border-t-indigo-500 rounded-full animate-spin"></div>
+            <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex items-center justify-center">
+                <div className="w-10 h-10 border-3 border-slate-200 dark:border-slate-700 border-t-primary rounded-full animate-spin"></div>
             </div>
         );
     }
 
+    const { courses = [], totalCourses = 0, totalRevenue = 0, totalStudents = 0, totalSales = 0 } = dashboard;
+
     return (
-        <div className="min-h-screen bg-gray-50 dark:bg-slate-950 py-8 px-4">
-            <div className="max-w-7xl mx-auto">
-                {/* Header */}
-                <div className="flex items-center justify-between mb-6">
-                    <div>
-                        <h1 className="text-2xl font-bold text-slate-900 dark:text-white">
-                            Instructor Dashboard
-                        </h1>
-                        <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">
-                            Welcome back, {user?.name}
-                        </p>
+        <div className="min-h-screen bg-slate-50 dark:bg-slate-950 pb-16 transition-colors duration-200">
+            
+            {/* 1. EDUPORT INSTRUCTOR COVER BANNER HEADER */}
+            <div className="bg-gradient-to-r from-slate-900 via-primary-700 to-slate-900 text-white pt-10 pb-20 px-4 lg:px-8">
+                <div className="container mx-auto">
+                    <div className="flex flex-col md:flex-row items-center justify-between gap-6">
+                        
+                        {/* Profile Info Left */}
+                        <div className="flex items-center gap-5">
+                            <div className="relative">
+                                {user?.profilePicture ? (
+                                    <img
+                                        src={user.profilePicture}
+                                        alt={user.name}
+                                        className="w-20 h-20 rounded-full object-cover border-4 border-white dark:border-slate-800 shadow-eduport"
+                                    />
+                                ) : (
+                                    <div className="w-20 h-20 rounded-full bg-primary text-white flex items-center justify-center font-black text-2xl border-4 border-white dark:border-slate-800 shadow-eduport">
+                                        {user?.name ? user.name.charAt(0).toUpperCase() : <FaUser />}
+                                    </div>
+                                )}
+                            </div>
+
+                            <div>
+                                <div className="flex items-center gap-2">
+                                    <h1 className="text-2xl font-extrabold text-white">
+                                        {user?.name}
+                                    </h1>
+                                    <span className="badge-soft-success flex items-center gap-1 text-[10px]">
+                                        Instructor
+                                    </span>
+                                </div>
+                                <p className="text-xs text-white/70 mt-0.5">{user?.email}</p>
+                            </div>
+                        </div>
+
+                        {/* Right Actions */}
+                        <div className="flex items-center gap-3">
+                            <Link
+                                to="/instructor/payment-settings"
+                                className="px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-white font-bold text-xs flex items-center gap-2 backdrop-blur-md transition-all"
+                            >
+                                <FaCog />
+                                <span>Payment Settings</span>
+                            </Link>
+                            <Link
+                                to="/instructor/create-course"
+                                className="px-5 py-2.5 rounded-xl bg-success text-white font-bold text-xs hover:bg-emerald-600 transition-all shadow-sm flex items-center gap-2"
+                            >
+                                <FaPlus className="text-xs" />
+                                <span>Create Course</span>
+                            </Link>
+                        </div>
+
                     </div>
-                    <div className="flex items-center gap-2">
-                        <Link
-                            to="/instructor/payment-settings"
-                            className="flex items-center gap-2 px-3 py-2 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 rounded-lg text-sm hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
-                        >
-                            <FaCog className="text-xs" />
-                            Payment Settings
-                        </Link>
+                </div>
+            </div>
+
+            {/* 2. REAL METRICS OVERLAP */}
+            <div className="container mx-auto px-4 lg:px-8 -mt-10">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                    
+                    {/* Total Courses */}
+                    <div className="bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-200/80 dark:border-slate-800 shadow-eduport flex items-center gap-4">
+                        <div className="w-12 h-12 rounded-xl bg-amber-500/10 text-amber-600 flex items-center justify-center text-xl font-bold">
+                            <FaBook />
+                        </div>
+                        <div>
+                            <span className="text-2xl font-black text-slate-900 dark:text-white block">
+                                {totalCourses}
+                            </span>
+                            <span className="text-xs font-semibold text-slate-500">Total Courses</span>
+                        </div>
+                    </div>
+
+                    {/* Total Students */}
+                    <div className="bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-200/80 dark:border-slate-800 shadow-eduport flex items-center gap-4">
+                        <div className="w-12 h-12 rounded-xl bg-purple-light text-purple flex items-center justify-center text-xl font-bold">
+                            <FaUsers />
+                        </div>
+                        <div>
+                            <span className="text-2xl font-black text-slate-900 dark:text-white block">
+                                {totalStudents}
+                            </span>
+                            <span className="text-xs font-semibold text-slate-500">Total Students</span>
+                        </div>
+                    </div>
+
+                    {/* Total Revenue */}
+                    <div className="bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-200/80 dark:border-slate-800 shadow-eduport flex items-center gap-4">
+                        <div className="w-12 h-12 rounded-xl bg-success-light text-success flex items-center justify-center text-xl font-bold">
+                            <FaRupeeSign />
+                        </div>
+                        <div>
+                            <span className="text-2xl font-black text-slate-900 dark:text-white block">
+                                {formatCurrency(totalRevenue)}
+                            </span>
+                            <span className="text-xs font-semibold text-slate-500">Total Earnings</span>
+                        </div>
+                    </div>
+
+                    {/* Total Sales */}
+                    <div className="bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-200/80 dark:border-slate-800 shadow-eduport flex items-center gap-4">
+                        <div className="w-12 h-12 rounded-xl bg-primary-light text-primary flex items-center justify-center text-xl font-bold">
+                            <FaChartLine />
+                        </div>
+                        <div>
+                            <span className="text-2xl font-black text-slate-900 dark:text-white block">
+                                {totalSales}
+                            </span>
+                            <span className="text-xs font-semibold text-slate-500">Total Sales</span>
+                        </div>
+                    </div>
+
+                </div>
+
+                {/* 3. COURSES TABLE */}
+                <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/80 dark:border-slate-800 p-6 sm:p-8 shadow-eduport">
+                    <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-6 mb-6">
+                        <div>
+                            <h3 className="font-extrabold text-base text-slate-900 dark:text-white">
+                                Your Created Courses
+                            </h3>
+                            <p className="text-xs text-slate-500 mt-0.5">Manage and edit your course contents</p>
+                        </div>
                         <Link
                             to="/instructor/create-course"
-                            className="flex items-center gap-2 px-4 py-2 bg-indigo-500 hover:bg-indigo-600 text-white rounded-lg text-sm transition-colors"
+                            className="px-4 py-2.5 rounded-xl bg-primary text-white font-bold text-xs hover:bg-primary-hover transition-all flex items-center gap-2"
                         >
-                            <FaPlus className="text-xs" />
-                            Create Course
+                            <FaPlus className="text-xs" /> Create Course
                         </Link>
                     </div>
-                </div>
 
-                {/* Tabs */}
-                <div className="flex gap-1 mb-6 border-b border-slate-200 dark:border-slate-800">
-                    {[
-                        { id: 'overview', label: 'Overview' },
-                        { id: 'courses', label: 'Courses' },
-                        { id: 'earnings', label: 'Earnings' }
-                    ].map(tab => (
-                        <button
-                            key={tab.id}
-                            onClick={() => setActiveTab(tab.id)}
-                            className={`px-4 py-2.5 text-sm font-medium border-b-2 transition-colors ${
-                                activeTab === tab.id
-                                    ? 'border-indigo-500 text-indigo-600 dark:text-indigo-400'
-                                    : 'border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300'
-                            }`}
-                        >
-                            {tab.label}
-                        </button>
-                    ))}
-                </div>
-
-                {/* Overview Tab */}
-                {activeTab === 'overview' && (
-                    <>
-                        {/* Stats */}
-                        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-                            <StatCard icon={FaRupeeSign} label="Total Revenue" value={formatCurrency(dashboard.totalRevenue)} color="green" />
-                            <StatCard icon={FaChartLine} label="Total Sales" value={dashboard.totalSales} color="blue" />
-                            <StatCard icon={FaUsers} label="Total Students" value={dashboard.totalStudents} color="purple" />
-                            <StatCard icon={FaBook} label="Courses" value={dashboard.totalCourses} color="orange" />
+                    {courses.length === 0 ? (
+                        <div className="text-center py-16">
+                            <div className="w-16 h-16 rounded-full bg-primary-light text-primary flex items-center justify-center text-3xl mx-auto mb-3">
+                                <FaBook />
+                            </div>
+                            <h4 className="text-base font-bold text-slate-900 dark:text-white mb-1">
+                                No Courses Published Yet
+                            </h4>
+                            <p className="text-xs text-slate-500 mb-6">
+                                Start creating your course to share your knowledge with students.
+                            </p>
+                            <Link
+                                to="/instructor/create-course"
+                                className="px-5 py-2.5 rounded-xl bg-primary text-white font-bold text-xs"
+                            >
+                                Create First Course
+                            </Link>
                         </div>
-
-                        {/* Grid */}
-                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                            {/* Courses */}
-                            <div className="lg:col-span-2">
-                                <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700">
-                                    <div className="p-5 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between">
-                                        <h2 className="font-semibold text-slate-900 dark:text-white">Your Courses</h2>
-                                        <button onClick={() => setActiveTab('courses')} className="text-xs text-indigo-500 hover:text-indigo-600 flex items-center gap-1">
-                                            View all <FaArrowRight className="text-[10px]" />
-                                        </button>
-                                    </div>
-                                    {dashboard.courses.length === 0 ? (
-                                        <div className="p-12 text-center">
-                                            <div className="w-14 h-14 bg-indigo-100 dark:bg-indigo-900/30 rounded-full flex items-center justify-center mx-auto mb-3">
-                                                <FaBook className="text-xl text-indigo-500" />
-                                            </div>
-                                            <h3 className="font-medium text-slate-900 dark:text-white mb-1">No courses yet</h3>
-                                            <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">Create your first course and start earning!</p>
-                                            <Link
-                                                to="/instructor/create-course"
-                                                className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-500 hover:bg-indigo-600 text-white text-sm rounded-lg transition-colors"
-                                            >
-                                                <FaPlus /> Create Course
-                                            </Link>
-                                        </div>
-                                    ) : (
-                                        <div className="divide-y divide-slate-100 dark:divide-slate-700">
-                                            {dashboard.courses.slice(0, 5).map(course => (
-                                                <div key={course._id} className="px-5 py-3 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors">
-                                                    <div className="flex-1 min-w-0">
-                                                        <p className="font-medium text-sm text-slate-900 dark:text-white truncate">{course.title}</p>
-                                                        <div className="flex items-center gap-3 mt-1 text-xs text-slate-500 dark:text-slate-400">
-                                                            <span className="flex items-center gap-1"><FaUsers className="text-[10px]" /> {course.enrollmentCount}</span>
-                                                            <span>{formatCurrency(course.price)}</span>
-                                                            <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${
-                                                                course.status === 'Published'
-                                                                    ? 'bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400'
-                                                                    : 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-600 dark:text-yellow-400'
-                                                            }`}>{course.status}</span>
-                                                        </div>
+                    ) : (
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-left border-collapse">
+                                <thead>
+                                    <tr className="border-b border-slate-200 dark:border-slate-800 text-xs text-slate-400 font-bold uppercase tracking-wider">
+                                        <th className="py-3 px-4">Course</th>
+                                        <th className="py-3 px-4">Enrolled Learners</th>
+                                        <th className="py-3 px-4">Price</th>
+                                        <th className="py-3 px-4 text-right">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-xs font-medium">
+                                    {courses.map((course) => (
+                                        <tr key={course._id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/50 transition-colors">
+                                            <td className="py-4 px-4">
+                                                <div className="flex items-center gap-3">
+                                                    <div className="w-12 h-10 rounded-lg bg-slate-200 dark:bg-slate-700 overflow-hidden flex-shrink-0">
+                                                        {course.thumbnail && (
+                                                            <img src={course.thumbnail} alt="" className="w-full h-full object-cover" />
+                                                        )}
                                                     </div>
-                                                    <div className="flex items-center gap-1">
-                                                        <button onClick={() => navigate(`/instructor/course/${course._id}/edit`)} className="p-2 text-slate-400 hover:text-indigo-500" title="Edit"><FaEdit className="text-sm" /></button>
-                                                        <button onClick={() => navigate(`/marketplace/course/${course._id}`)} className="p-2 text-slate-400 hover:text-blue-500" title="Preview"><FaEye className="text-sm" /></button>
+                                                    <div>
+                                                        <h5 className="font-extrabold text-slate-900 dark:text-white line-clamp-1">
+                                                            {course.title}
+                                                        </h5>
+                                                        <span className="text-[11px] text-slate-400">
+                                                            Category: {course.category || 'General'}
+                                                        </span>
                                                     </div>
                                                 </div>
-                                            ))}
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
-
-                            {/* Recent Sales */}
-                            <div>
-                                <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700">
-                                    <div className="p-5 border-b border-slate-200 dark:border-slate-700">
-                                        <h2 className="font-semibold text-slate-900 dark:text-white">Recent Sales</h2>
-                                    </div>
-                                    {dashboard.recentPurchases.length === 0 ? (
-                                        <p className="p-8 text-center text-sm text-slate-500 dark:text-slate-400">No sales yet</p>
-                                    ) : (
-                                        <div className="divide-y divide-slate-100 dark:divide-slate-700">
-                                            {dashboard.recentPurchases.slice(0, 5).map(purchase => (
-                                                <div key={purchase._id} className="px-5 py-3 flex items-center gap-3">
-                                                    <div className="w-8 h-8 rounded-full bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center text-sm font-medium text-indigo-600 dark:text-indigo-400">
-                                                        {purchase.user?.name?.charAt(0).toUpperCase() || '?'}
-                                                    </div>
-                                                    <div className="flex-1 min-w-0">
-                                                        <p className="text-sm font-medium text-slate-900 dark:text-white truncate">{purchase.user?.name || 'Unknown'}</p>
-                                                        <p className="text-xs text-slate-500 dark:text-slate-400 truncate">{purchase.course?.title}</p>
-                                                    </div>
-                                                    <span className="text-sm font-medium text-green-600 dark:text-green-400">+{formatCurrency(purchase.amount)}</span>
+                                            </td>
+                                            <td className="py-4 px-4 font-bold text-slate-700 dark:text-slate-200">
+                                                {course.enrollmentCount || 0} Students
+                                            </td>
+                                            <td className="py-4 px-4 font-bold text-success text-sm">
+                                                {course.price === 0 ? 'Free' : `₹${course.price}`}
+                                            </td>
+                                            <td className="py-4 px-4 text-right">
+                                                <div className="flex items-center justify-end gap-2">
+                                                    <Link
+                                                        to={`/instructor/course/${course._id}/edit`}
+                                                        className="p-2 rounded-lg bg-primary-light text-primary hover:bg-primary hover:text-white transition-colors"
+                                                        title="Edit Course"
+                                                    >
+                                                        <FaEdit className="text-xs" />
+                                                    </Link>
+                                                    <Link
+                                                        to={`/admin/course/${course._id}`}
+                                                        className="p-2 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:text-primary transition-colors"
+                                                        title="Manage"
+                                                    >
+                                                        <FaEye className="text-xs" />
+                                                    </Link>
                                                 </div>
-                                            ))}
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
                         </div>
-                    </>
-                )}
-
-                {/* Courses Tab */}
-                {activeTab === 'courses' && (
-                    <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700">
-                        {dashboard.courses.length === 0 ? (
-                            <div className="p-12 text-center">
-                                <div className="w-14 h-14 bg-indigo-100 dark:bg-indigo-900/30 rounded-full flex items-center justify-center mx-auto mb-3">
-                                    <FaBook className="text-xl text-indigo-500" />
-                                </div>
-                                <h3 className="font-medium text-slate-900 dark:text-white mb-1">No courses yet</h3>
-                                <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">Start by creating your first course</p>
-                                <Link to="/instructor/create-course" className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-500 hover:bg-indigo-600 text-white text-sm rounded-lg transition-colors">
-                                    <FaPlus /> Create Course
-                                </Link>
-                            </div>
-                        ) : (
-                            <div className="divide-y divide-slate-100 dark:divide-slate-700">
-                                {dashboard.courses.map(course => (
-                                    <div key={course._id} className="p-5 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors">
-                                        <div className="flex-1 min-w-0">
-                                            <h3 className="font-medium text-slate-900 dark:text-white mb-1">{course.title}</h3>
-                                            <div className="flex items-center gap-4 text-sm text-slate-500 dark:text-slate-400">
-                                                <span className="flex items-center gap-1"><FaUsers className="text-xs" /> {course.enrollmentCount} students</span>
-                                                <span>{formatCurrency(course.price)}</span>
-                                                <span className={`px-2 py-0.5 rounded text-xs font-medium ${
-                                                    course.status === 'Published'
-                                                        ? 'bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400'
-                                                        : 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-600 dark:text-yellow-400'
-                                                }`}>{course.status}</span>
-                                            </div>
-                                        </div>
-                                        <div className="flex items-center gap-2">
-                                            <button onClick={() => navigate(`/instructor/course/${course._id}/edit`)} className="p-2 text-slate-500 hover:text-indigo-500 transition-colors" title="Edit"><FaEdit /></button>
-                                            <button onClick={() => navigate(`/instructor/course/${course._id}/coupons`)} className="p-2 text-slate-500 hover:text-green-500 transition-colors" title="Coupons"><FaTag /></button>
-                                            <button onClick={() => navigate(`/marketplace/course/${course._id}`)} className="p-2 text-slate-500 hover:text-blue-500 transition-colors" title="Preview"><FaEye /></button>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        )}
-                    </div>
-                )}
-
-                {/* Earnings Tab */}
-                {activeTab === 'earnings' && (
-                    <div>
-                        {earningsLoading ? (
-                            <div className="text-center py-12 text-slate-500 dark:text-slate-400">Loading earnings...</div>
-                        ) : earnings ? (
-                            <>
-                                {/* Earnings Stats */}
-                                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-                                    <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-5">
-                                        <p className="text-xs text-slate-500 dark:text-slate-400">Total Earned</p>
-                                        <p className="text-xl font-bold text-slate-900 dark:text-white mt-1">{formatCurrency(earnings.totalEarnings)}</p>
-                                    </div>
-                                    <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-5">
-                                        <p className="text-xs text-slate-500 dark:text-slate-400">Paid Out</p>
-                                        <p className="text-xl font-bold text-green-600 dark:text-green-400 mt-1">{formatCurrency(earnings.totalPaidOut)}</p>
-                                    </div>
-                                    <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-5">
-                                        <p className="text-xs text-slate-500 dark:text-slate-400">Pending</p>
-                                        <p className="text-xl font-bold text-amber-600 dark:text-amber-400 mt-1">{formatCurrency(earnings.pendingAmount)}</p>
-                                    </div>
-                                    <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-5">
-                                        <p className="text-xs text-slate-500 dark:text-slate-400">Total Sales</p>
-                                        <p className="text-xl font-bold text-slate-900 dark:text-white mt-1">{earnings.totalSales}</p>
-                                    </div>
-                                </div>
-
-                                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                                    {/* Monthly Earnings */}
-                                    <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700">
-                                        <div className="p-5 border-b border-slate-200 dark:border-slate-700">
-                                            <h2 className="font-semibold text-slate-900 dark:text-white">Monthly Earnings</h2>
-                                        </div>
-                                        {earnings.monthlyEarnings.length === 0 ? (
-                                            <p className="p-8 text-center text-sm text-slate-500 dark:text-slate-400">No earnings data</p>
-                                        ) : (
-                                            <div className="p-5 space-y-3">
-                                                {earnings.monthlyEarnings.map(m => {
-                                                    const maxAmount = Math.max(...earnings.monthlyEarnings.map(e => e.total));
-                                                    const width = maxAmount > 0 ? (m.total / maxAmount) * 100 : 0;
-                                                    return (
-                                                        <div key={m._id}>
-                                                            <div className="flex items-center justify-between text-sm mb-1">
-                                                                <span className="text-slate-600 dark:text-slate-400">{m._id}</span>
-                                                                <span className="font-medium text-slate-900 dark:text-white">{formatCurrency(m.total)} ({m.count} sales)</span>
-                                                            </div>
-                                                            <div className="w-full h-2 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden">
-                                                                <div className="h-full bg-indigo-500 rounded-full transition-all" style={{ width: `${width}%` }}></div>
-                                                            </div>
-                                                        </div>
-                                                    );
-                                                })}
-                                            </div>
-                                        )}
-                                    </div>
-
-                                    {/* Payout History */}
-                                    <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700">
-                                        <div className="p-5 border-b border-slate-200 dark:border-slate-700">
-                                            <h2 className="font-semibold text-slate-900 dark:text-white">Payout History</h2>
-                                        </div>
-                                        {earnings.payouts.length === 0 ? (
-                                            <div className="p-8 text-center">
-                                                <FaMoneyCheckAlt className="text-2xl text-slate-300 dark:text-slate-600 mx-auto mb-2" />
-                                                <p className="text-sm text-slate-500 dark:text-slate-400">No payouts yet</p>
-                                                <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">Payouts will appear here once the admin processes your payments</p>
-                                            </div>
-                                        ) : (
-                                            <div className="divide-y divide-slate-100 dark:divide-slate-700">
-                                                {earnings.payouts.map(p => (
-                                                    <div key={p._id} className="px-5 py-3 flex items-center gap-3">
-                                                        <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                                                            p.status === 'completed'
-                                                                ? 'bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400'
-                                                                : 'bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400'
-                                                        }`}>
-                                                            {p.status === 'completed' ? <FaCheckCircle className="text-sm" /> : <FaClock className="text-sm" />}
-                                                        </div>
-                                                        <div className="flex-1 min-w-0">
-                                                            <p className="text-sm font-medium text-slate-900 dark:text-white">{formatCurrency(p.amount)}</p>
-                                                            <p className="text-xs text-slate-500 dark:text-slate-400">
-                                                                {p.method.replace('_', ' ')} &middot; {new Date(p.createdAt).toLocaleDateString()}
-                                                                {p.transactionId && ` · ${p.transactionId}`}
-                                                            </p>
-                                                        </div>
-                                                        <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${
-                                                            p.status === 'completed'
-                                                                ? 'bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400'
-                                                                : 'bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400'
-                                                        }`}>{p.status}</span>
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        )}
-                                    </div>
-                                </div>
-                            </>
-                        ) : null}
-                    </div>
-                )}
-            </div>
-        </div>
-    );
-};
-
-const StatCard = ({ icon: Icon, label, value, color }) => {
-    const colors = {
-        green: 'bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400',
-        blue: 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400',
-        purple: 'bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400',
-        orange: 'bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400',
-    };
-
-    return (
-        <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-5">
-            <div className="flex items-center gap-3">
-                <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${colors[color]}`}>
-                    <Icon />
-                </div>
-                <div>
-                    <p className="text-xs text-slate-500 dark:text-slate-400">{label}</p>
-                    <p className="text-xl font-bold text-slate-900 dark:text-white">{value}</p>
+                    )}
                 </div>
             </div>
+
         </div>
     );
 };

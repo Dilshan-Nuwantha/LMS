@@ -203,3 +203,68 @@
 .scrollbar-hide::-webkit-scrollbar {
     display: none;
 }
+
+/* Eduport Signature Utilities */
+.btn-primary-soft {
+    @apply bg-primary-light text-primary hover:bg-primary hover:text-white transition-all duration-200 font-medium;
+}
+
+.btn-danger-soft {
+    @apply bg-danger-light text-danger hover:bg-danger hover:text-white transition-all duration-200 font-medium;
+}
+
+.btn-success-soft {
+    @apply bg-success-light text-success hover:bg-success hover:text-white transition-all duration-200 font-medium;
+}
+
+.btn-purple-soft {
+    @apply bg-purple-light text-purple hover:bg-purple hover:text-white transition-all duration-200 font-medium;
+}
+
+.badge-soft-primary {
+    @apply bg-primary-light text-primary font-medium px-2.5 py-1 rounded-md text-xs;
+}
+
+.badge-soft-danger {
+    @apply bg-danger-light text-danger font-medium px-2.5 py-1 rounded-md text-xs;
+}
+
+.badge-soft-success {
+    @apply bg-success-light text-success font-medium px-2.5 py-1 rounded-md text-xs;
+}
+
+.badge-soft-warning {
+    @apply bg-warning-light text-warning font-medium px-2.5 py-1 rounded-md text-xs;
+}
+
+.badge-soft-purple {
+    @apply bg-purple-light text-purple font-medium px-2.5 py-1 rounded-md text-xs;
+}
+
+.hero-underline {
+    position: relative;
+    display: inline-block;
+}
+
+.hero-underline::after {
+    content: '';
+    position: absolute;
+    bottom: -4px;
+    left: 0;
+    width: 100%;
+    height: 12px;
+    background-color: #f7c32e;
+    z-index: -1;
+    border-radius: 6px;
+    opacity: 0.85;
+    transform: rotate(-1deg);
+}
+
+.card-hover-lift {
+    transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.card-hover-lift:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 1rem 2.5rem rgba(0, 0, 0, 0.1);
+}
