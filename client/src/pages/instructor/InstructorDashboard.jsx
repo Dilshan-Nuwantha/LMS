@@ -1,13 +1,17 @@
 import { useState, useEffect, useContext } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
-    FaPlus, FaRupeeSign, FaUsers, FaBook, FaChartLine,
+    FaPlus, FaUsers, FaBook, FaChartLine,
     FaEdit, FaTag, FaEye, FaArrowRight, FaMoneyCheckAlt,
     FaCheckCircle, FaClock, FaCog
 } from 'react-icons/fa';
 import api from '../../api/axios';
 import AuthContext from '../../context/AuthContext';
 import { showError } from '../../utils/toast';
+
+const LkrIcon = () => (
+    <span className="font-bold text-[14px] leading-none tracking-tight select-none">Rs</span>
+);
 
 const InstructorDashboard = () => {
     const { user } = useContext(AuthContext);
@@ -59,7 +63,7 @@ const InstructorDashboard = () => {
     };
 
     const formatCurrency = (amount) => {
-        return `₹${(amount || 0).toLocaleString('en-LK')}`;
+        return `LKR ${(amount || 0).toLocaleString('en-LK')}`;
     };
 
     if (loading) {
@@ -127,7 +131,7 @@ const InstructorDashboard = () => {
                     <>
                         {/* Stats */}
                         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-                            <StatCard icon={FaRupeeSign} label="Total Revenue" value={formatCurrency(dashboard.totalRevenue)} color="green" />
+                            <StatCard icon={LkrIcon} label="Total Revenue" value={formatCurrency(dashboard.totalRevenue)} color="green" />
                             <StatCard icon={FaChartLine} label="Total Sales" value={dashboard.totalSales} color="blue" />
                             <StatCard icon={FaUsers} label="Total Students" value={dashboard.totalStudents} color="purple" />
                             <StatCard icon={FaBook} label="Courses" value={dashboard.totalCourses} color="orange" />
