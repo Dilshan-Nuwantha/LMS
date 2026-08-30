@@ -53,7 +53,7 @@ const InvoicePage = () => {
     };
 
     const formatDate = (date) => {
-        return new Date(date).toLocaleDateString('en-IN', {
+        return new Date(date).toLocaleDateString('en-LK', {
             year: 'numeric',
             month: 'long',
             day: 'numeric'

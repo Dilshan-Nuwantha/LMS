@@ -213,7 +213,7 @@ const Profile = () => {
     };
 
     const memberSince = user?.createdAt
-        ? new Date(user.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })
+        ? new Date(user.createdAt).toLocaleDateString('en-LK', { day: 'numeric', month: 'long', year: 'numeric' })
         : null;
 
     const previewImage = editingProfile ? profileForm.profileImage : user?.profileImage;
@@ -595,7 +595,7 @@ const Profile = () => {
                                             <span className="w-5 h-5 rounded-full bg-amber-200 dark:bg-amber-900/50 text-amber-700 dark:text-amber-400 text-[10px] font-bold flex items-center justify-center shrink-0 mt-0.5">{i + 1}</span>
                                             <div>
                                                 <p className="text-sm text-slate-700 dark:text-slate-300">{w.reason}</p>
-                                                <p className="text-xs text-slate-400 mt-0.5">{new Date(w.issuedAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</p>
+                                                <p className="text-xs text-slate-400 mt-0.5">{new Date(w.issuedAt).toLocaleDateString('en-LK', { day: 'numeric', month: 'short', year: 'numeric' })}</p>
                                             </div>
                                         </div>
                                     ))}

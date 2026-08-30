@@ -190,7 +190,7 @@ const PayoutsTab = () => {
                                     </Badge>
                                 </td>
                                 <td className="px-5 py-3.5 text-slate-600 dark:text-slate-300">{p.processedBy?.name || '—'}</td>
-                                <td className="px-5 py-3.5 text-xs text-slate-500 dark:text-slate-400">{new Date(p.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}</td>
+                                <td className="px-5 py-3.5 text-xs text-slate-500 dark:text-slate-400">{new Date(p.createdAt).toLocaleDateString('en-LK', { day: '2-digit', month: 'short', year: 'numeric' })}</td>
                             </tr>
                         ))}
                     </tbody>
@@ -567,7 +567,7 @@ const UsersTab = () => {
                                                                             </span>
                                                                             <div>
                                                                                 <p className="text-sm text-slate-700 dark:text-slate-300">{w.reason}</p>
-                                                                                <p className="text-[11px] text-slate-400 mt-0.5">{new Date(w.issuedAt).toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</p>
+                                                                                <p className="text-[11px] text-slate-400 mt-0.5">{new Date(w.issuedAt).toLocaleString('en-LK', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</p>
                                                                             </div>
                                                                         </div>
                                                                         <button
@@ -1090,7 +1090,7 @@ const AdminDashboard = () => {
                                             <div className="flex-1 min-w-0">
                                                 <p className="text-sm font-medium text-slate-900 dark:text-white truncate">{p.instructor?.name}</p>
                                                 <p className="text-xs text-slate-500 dark:text-slate-400 capitalize">
-                                                    {p.method?.replace('_', ' ')} &middot; {new Date(p.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}
+                                                    {p.method?.replace('_', ' ')} &middot; {new Date(p.createdAt).toLocaleDateString('en-LK', { day: '2-digit', month: 'short' })}
                                                 </p>
                                             </div>
                                             <span className={`text-sm font-semibold ${p.status === 'completed' ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'}`}>
