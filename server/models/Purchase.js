@@ -22,8 +22,8 @@ const purchaseSchema = new mongoose.Schema({
     },
     currency: {
         type: String,
-        enum: ['SLR', 'USD'],
-        default: 'SLR'
+        enum: ['LKR', 'USD'],
+        default: 'LKR'
     },
     stripePaymentIntentId: {
         type: String,

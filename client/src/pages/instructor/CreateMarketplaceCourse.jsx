@@ -19,7 +19,7 @@ const CreateMarketplaceCourse = () => {
         language: 'English',
         price: '',
         originalPrice: '',
-        currency: 'SLR',
+        currency: 'LKR',
         thumbnail: '',
         previewVideo: '',
         requirements: [''],
@@ -163,10 +163,10 @@ const CreateMarketplaceCourse = () => {
                         <div key={s} className="flex items-center">
                             <div
                                 className={`w-10 h-10 rounded-full flex items-center justify-center font-semibold transition-colors ${s === step
-                                        ? 'bg-indigo-500 text-white'
-                                        : s < step
-                                            ? 'bg-green-500 text-white'
-                                            : 'bg-slate-200 dark:bg-slate-700 text-slate-500'
+                                    ? 'bg-indigo-500 text-white'
+                                    : s < step
+                                        ? 'bg-green-500 text-white'
+                                        : 'bg-slate-200 dark:bg-slate-700 text-slate-500'
                                     }`}
                             >
                                 {s}
@@ -325,7 +325,7 @@ const CreateMarketplaceCourse = () => {
                                         onChange={handleChange}
                                         className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg focus:outline-none focus:border-indigo-500"
                                     >
-                                        <option value="SLR">SLR (Rs)</option>
+                                        <option value="LKR">LKR (Rs)</option>
                                         <option value="USD">USD ($)</option>
                                     </select>
                                 </div>

@@ -1,9 +1,9 @@
-const PriceDisplay = ({ price, originalPrice, currency = 'SLR', size = 'md' }) => {
+const PriceDisplay = ({ price, originalPrice, currency = 'LKR', size = 'md' }) => {
     const formatPrice = (amount) => {
-        if (currency === 'SLR') {
-            return `LKR ${amount.toLocaleString('en-LK')}`;
+        if (currency === 'LKR') {
+            return `Rs. ${amount.toLocaleString('en-LK')}`;
         }
-        return `$${amount.toLocaleString('en-US')}`;
+        return `Rs. ${amount.toLocaleString('en-US')}`;
     };
 
     const sizeClasses = {

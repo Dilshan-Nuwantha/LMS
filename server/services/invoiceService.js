@@ -1,6 +1,6 @@
 const PDFDocument = require('pdfkit');
 
-const CURRENCY_SYMBOLS = { SLR: 'Rs', USD: '$' };
+const CURRENCY_SYMBOLS = { LKR: 'Rs', USD: '$' };
 
 /**
  * Generate a professional PDF invoice and pipe it to the response stream.

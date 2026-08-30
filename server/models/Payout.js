@@ -12,8 +12,8 @@ const payoutSchema = new mongoose.Schema({
     },
     currency: {
         type: String,
-        enum: ['SLR', 'USD'],
-        default: 'SLR'
+        enum: ['LKR', 'USD'],
+        default: 'LKR'
     },
     method: {
         type: String,
