@@ -4,7 +4,6 @@ const Conversation = require('../models/Conversation');
 const Course = require('../models/Course');
 const { encrypt, decrypt } = require('../utils/encryption');
 const { testConnection, callChat } = require('../services/aiService');
-const pdfParse = require('pdf-parse');
 
 function maskKey(key) {
     if (!key || key.length < 12) return '••••••••';
@@ -248,11 +247,18 @@ const sendMessage = asyncHandler(async (req, res) => {
     if (file) {
         if (file.mimetype === 'application/pdf') {
             try {
-                const pdfData = await pdfParse(file.buffer);
+                const { PDFParse } = require('pdf-parse');
+                const parser = new PDFParse({
+                    data: file.buffer
+                });
+
+                const pdfData = await parser.getText();
+                await parser.destroy();
                 const extracted = pdfData.text.substring(0, 15000);
                 userText = `${userText}\n\n[Extracted from PDF "${file.originalname}"]\n${extracted}`;
-                attachmentMeta = { fileName: file.originalname, fileType: 'pdf', mimeType: file.mimetype };
-            } catch {
+                attachmentMeta = {fileName: file.originalname, fileType: 'pdf',mimeType: file.mimetype};
+            } catch (error) {
+                console.error('PDF parsing error:', error);
                 res.status(400);
                 throw new Error('Failed to parse PDF file');
             }
