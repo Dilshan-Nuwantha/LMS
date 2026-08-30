@@ -95,8 +95,9 @@ export const AuthProvider = ({ children }) => {
         return res.data;
     };
 
-    const googleLogin = async (code) => {
-        const res = await api.post('/auth/google', { code });
+    const googleLogin = async (code, role) => {
+        const rolePath = getRolePath(role);
+        const res = await api.post(`/auth/${rolePath}/google`, { code });
         localStorage.setItem('token', res.data.token);
         cacheUser(res.data);
         setUser(res.data);

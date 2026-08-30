@@ -7,11 +7,15 @@
     "start": "node index.js",
     "dev": "nodemon index.js"
   },
+  "engines": {
+    "node": "22.x"
+  },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
+    "@napi-rs/canvas": "^1.0.8",
     "bcryptjs": "^3.0.3",
     "cors": "^2.8.5",
     "dotenv": "^17.2.3",

@@ -60,7 +60,7 @@ const InvoicePage = () => {
         });
     };
 
-    const currencySymbol = invoice?.currency === 'USD' ? '$' : '₹';
+    const currencySymbol = invoice?.currency === 'USD' ? '$' : 'LKR ';
 
     if (loading) {
         return (

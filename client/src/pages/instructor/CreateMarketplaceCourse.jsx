@@ -282,14 +282,16 @@ const CreateMarketplaceCourse = () => {
                                         Price *
                                     </label>
                                     <div className="relative">
-                                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500">Rs</span>
+                                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-xs font-semibold">
+                                            {formData.currency === 'USD' ? '$' : 'LKR'}
+                                        </span>
                                         <input
                                             type="number"
                                             name="price"
                                             value={formData.price}
                                             onChange={handleChange}
                                             placeholder="499"
-                                            className="w-full px-4 py-3 pl-8 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg focus:outline-none focus:border-indigo-500"
+                                            className="w-full px-4 py-3 pl-12 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg focus:outline-none focus:border-indigo-500"
                                         />
                                     </div>
                                 </div>
@@ -299,14 +301,16 @@ const CreateMarketplaceCourse = () => {
                                         Original Price (for discount)
                                     </label>
                                     <div className="relative">
-                                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500">₹</span>
+                                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-xs font-semibold">
+                                            {formData.currency === 'USD' ? '$' : 'LKR'}
+                                        </span>
                                         <input
                                             type="number"
                                             name="originalPrice"
                                             value={formData.originalPrice}
                                             onChange={handleChange}
                                             placeholder="999"
-                                            className="w-full px-4 py-3 pl-8 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg focus:outline-none focus:border-indigo-500"
+                                            className="w-full px-4 py-3 pl-12 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg focus:outline-none focus:border-indigo-500"
                                         />
                                     </div>
                                 </div>

@@ -2,11 +2,16 @@ import { useState, useEffect, useContext } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
     FaPlus, FaUsers, FaBook, FaChartLine,
-    FaEdit, FaEye, FaCog, FaRupeeSign, FaUser
+    FaEdit, FaTag, FaEye, FaArrowRight, FaMoneyCheckAlt,
+    FaCheckCircle, FaClock, FaCog
 } from 'react-icons/fa';
 import api from '../../api/axios';
 import AuthContext from '../../context/AuthContext';
 import { showError } from '../../utils/toast';
+
+const LkrIcon = () => (
+    <span className="font-bold text-[14px] leading-none tracking-tight select-none">Rs</span>
+);
 
 const InstructorDashboard = () => {
     const { user } = useContext(AuthContext);
@@ -37,7 +42,7 @@ const InstructorDashboard = () => {
     };
 
     const formatCurrency = (amount) => {
-        return `₹${(amount || 0).toLocaleString('en-LK')}`;
+        return `LKR ${(amount || 0).toLocaleString('en-LK')}`;
     };
 
     if (loading) {
@@ -167,14 +172,15 @@ const InstructorDashboard = () => {
 
                 </div>
 
-                {/* 3. COURSES TABLE */}
-                <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/80 dark:border-slate-800 p-6 sm:p-8 shadow-eduport">
-                    <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-6 mb-6">
-                        <div>
-                            <h3 className="font-extrabold text-base text-slate-900 dark:text-white">
-                                Your Created Courses
-                            </h3>
-                            <p className="text-xs text-slate-500 mt-0.5">Manage and edit your course contents</p>
+                {/* Overview Tab */}
+                {activeTab === 'overview' && (
+                    <>
+                        {/* Stats */}
+                        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+                            <StatCard icon={LkrIcon} label="Total Revenue" value={formatCurrency(dashboard.totalRevenue)} color="green" />
+                            <StatCard icon={FaChartLine} label="Total Sales" value={dashboard.totalSales} color="blue" />
+                            <StatCard icon={FaUsers} label="Total Students" value={dashboard.totalStudents} color="purple" />
+                            <StatCard icon={FaBook} label="Courses" value={dashboard.totalCourses} color="orange" />
                         </div>
                         <Link
                             to="/instructor/create-course"

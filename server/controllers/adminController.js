@@ -197,7 +197,7 @@ const createPayout = asyncHandler(async (req, res) => {
 
     if (amount > pending) {
         res.status(400);
-        throw new Error(`Amount exceeds pending balance of ₹${pending}`);
+        throw new Error(`Amount exceeds pending balance of LKR ${pending}`);
     }
 
     const payout = await Payout.create({
