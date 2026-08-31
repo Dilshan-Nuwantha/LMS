@@ -3,10 +3,11 @@ import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { useGoogleLogin } from '@react-oauth/google';
 import AuthContext from '../../context/AuthContext';
 import { showSuccess, showError, showWarning } from '../../utils/toast';
-import { FaGraduationCap, FaChalkboardTeacher, FaRobot, FaBullhorn, FaShieldAlt } from 'react-icons/fa';
+import { FaShieldAlt, FaChalkboardTeacher, FaGraduationCap, FaEye, FaEyeSlash, FaFacebook, FaYoutube } from 'react-icons/fa';
+import { SiTiktok } from 'react-icons/si';
 
 const GoogleIcon = () => (
-    <svg viewBox="0 0 24 24" className="w-4 h-4 shrink-0" xmlns="http://www.w3.org/2000/svg">
+    <svg viewBox="0 0 24 24" className="w-5 h-5 shrink-0" xmlns="http://www.w3.org/2000/svg">
         <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
         <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" />
         <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05" />
@@ -14,26 +15,14 @@ const GoogleIcon = () => (
     </svg>
 );
 
-const studentFeatures = [
-    { icon: FaGraduationCap, text: 'Track your learning progress across all enrolled courses' },
-    { icon: FaChalkboardTeacher, text: 'Build and publish courses with a powerful curriculum editor' },
-    { icon: FaRobot, text: 'AI-powered study assistant for instant help with any topic' },
-    { icon: FaBullhorn, text: 'Real-time announcements and broadcasts from instructors' },
-];
-
-const adminFeatures = [
-    { icon: FaShieldAlt, text: 'Review platform activity and manage account safety' },
-    { icon: FaBullhorn, text: 'Monitor broadcasts, reports, and platform-wide announcements' },
-    { icon: FaChalkboardTeacher, text: 'Oversee instructors, courses, and publishing workflows' },
-    { icon: FaGraduationCap, text: 'Keep the learning experience running smoothly for everyone' },
-];
-
-const teacherFeatures = [
-    { icon: FaChalkboardTeacher, text: 'Create and publish courses with a guided curriculum editor' },
-    { icon: FaGraduationCap, text: 'Manage enrolled learners and track their course progress' },
-    { icon: FaBullhorn, text: 'Broadcast updates and announcements to your students instantly' },
-    { icon: FaRobot, text: 'Use AI notes, assistants and quiz tools to save grading time' },
-];
+const LMSLogo = () => (
+    <div className="flex items-center gap-2">
+        <div className="w-8 h-8 bg-blue-500 rounded-md flex items-center justify-center">
+            <FaGraduationCap className="text-white text-sm" />
+        </div>
+        <span className="text-gray-800 font-bold text-lg tracking-tight">Tenz <span className="text-blue-500">Learn</span></span>
+    </div>
+);
 
 const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 
@@ -61,15 +50,15 @@ const GoogleLoginButton = ({ onSuccess, disabled }) => {
             type="button"
             onClick={() => loginWithGoogle()}
             disabled={isGoogleLoading || disabled}
-            className="mt-5 flex w-full items-center justify-center gap-3 rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-2.5 text-sm font-medium text-slate-700 dark:text-slate-200 shadow-sm hover:bg-gray-50 dark:hover:bg-slate-750 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex w-full items-center justify-center gap-3 rounded-lg border border-gray-200 bg-white px-4 py-3 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
         >
             {isGoogleLoading ? (
-                <svg className="animate-spin h-4 w-4 text-slate-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <svg className="animate-spin h-5 w-5 text-gray-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                 </svg>
             ) : <GoogleIcon />}
-            Continue with Google
+            Sign in with Google
         </button>
     );
 };
@@ -77,13 +66,14 @@ const GoogleLoginButton = ({ onSuccess, disabled }) => {
 const Login = () => {
     const [formData, setFormData] = useState({ email: '', password: '' });
     const [isLoading, setIsLoading] = useState(false);
+    const [showPassword, setShowPassword] = useState(false);
+    const [rememberMe, setRememberMe] = useState(false);
     const { login, googleLogin } = useContext(AuthContext);
     const navigate = useNavigate();
     const location = useLocation();
     const isTeacherLogin = location.pathname.startsWith('/teacher/login');
     const isAdminLogin = location.pathname.startsWith('/admin/login');
     const isStudentLogin = !isTeacherLogin && !isAdminLogin;
-    const features = isAdminLogin ? adminFeatures : (isTeacherLogin ? teacherFeatures : studentFeatures);
     const targetRole = isAdminLogin ? 'admin' : (isTeacherLogin ? 'instructor' : 'student');
 
     const { email, password } = formData;
@@ -94,7 +84,6 @@ const Login = () => {
             showError(`Account role is not ${targetRole === 'instructor' ? 'teacher' : targetRole}.`);
             return false;
         }
-
         if (user.role === 'admin') {
             navigate('/admin/dashboard');
         } else if (user.role === 'instructor') {
@@ -152,186 +141,250 @@ const Login = () => {
         }
     };
 
+    const panelBg = isAdminLogin
+        ? 'from-slate-800 to-slate-900'
+        : isTeacherLogin
+        ? 'from-blue-700 to-blue-900'
+        : 'from-blue-600 to-blue-800';
+
+    const accentColor = isAdminLogin ? 'bg-slate-700' : isTeacherLogin ? 'bg-blue-600' : 'bg-blue-500';
+    const accentHover = isAdminLogin ? 'hover:bg-slate-600' : isTeacherLogin ? 'hover:bg-blue-500' : 'hover:bg-blue-700';
+    const accentText = isAdminLogin ? 'text-slate-600' : isTeacherLogin ? 'text-blue-600' : 'text-blue-500';
+    const accentHoverText = isAdminLogin ? 'hover:text-slate-500' : isTeacherLogin ? 'hover:text-blue-500' : 'hover:text-blue-700';
+
+    const panelTitle = isAdminLogin
+        ? 'Admin Portal'
+        : isTeacherLogin
+        ? 'Teacher Portal'
+        : 'Start Learning Today';
+
+    const panelSubtitle = isAdminLogin
+        ? 'Manage your platform with full administrative control'
+        : isTeacherLogin
+        ? 'Create courses and inspire thousands of learners'
+        : 'Join thousands of students on their learning journey';
+
+    const formTitle = isAdminLogin
+        ? 'Administrator Login'
+        : isTeacherLogin
+        ? 'Teacher Login'
+        : 'Login';
+
+    const formSubtitle = isAdminLogin
+        ? 'Enter your admin credentials to access the dashboard'
+        : isTeacherLogin
+        ? 'Sign in to manage your courses and students'
+        : 'Enter your credentials to login to your account';
+
     return (
-        <div className="relative min-h-[100dvh] overflow-hidden flex bg-slate-950 lg:bg-gray-50 dark:bg-slate-950">
-            <div className="absolute inset-0 lg:hidden bg-gradient-to-br from-slate-950 via-slate-900 to-blue-950" />
-            <div className="absolute -top-24 -right-20 h-72 w-72 rounded-full bg-blue-500/20 blur-3xl lg:hidden" />
-            <div className="absolute -bottom-24 -left-20 h-72 w-72 rounded-full bg-indigo-500/20 blur-3xl lg:hidden" />
+        <div className="min-h-screen flex flex-col lg:flex-row bg-white font-sans">
+            {/* ── Left Panel ── */}
+            <div className={`hidden lg:flex lg:w-[48%] xl:w-[45%] relative flex-col bg-gradient-to-br ${panelBg} overflow-hidden`}>
+                {/* Decorative circles */}
+                <div className="absolute top-16 left-16 w-48 h-48 rounded-full border border-white/10" />
+                <div className="absolute top-8 left-8 w-72 h-72 rounded-full border border-white/10" />
+                <div className="absolute bottom-32 right-8 w-36 h-36 rounded-full border border-white/10" />
+                <div className="absolute bottom-16 right-0 w-56 h-56 rounded-full border border-white/10" />
 
-            {/* ── Left branding panel (hidden on mobile) ── */}
-            <div className="hidden lg:flex lg:w-[52%] xl:w-[55%] relative flex-col bg-slate-900 dark:bg-slate-950 overflow-hidden">
-                {/* Background layers */}
-                <div className="absolute inset-0 bg-gradient-to-br from-slate-900 via-slate-800 to-blue-950" />
-                <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-blue-600/10 rounded-full blur-3xl -translate-y-1/3 translate-x-1/4" />
-                <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-indigo-600/10 rounded-full blur-3xl translate-y-1/3 -translate-x-1/4" />
-                <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmYiIGZpbGwtb3BhY2l0eT0iMC4wMyI+PHBhdGggZD0iTTM2IDM0djItSDI0di0yaDEyek0zNiAyNHYySDI0di0yaDEyeiIvPjwvZz48L2c+PC9zdmc+')] opacity-100" />
-
-                <div className="relative z-10 flex flex-col h-full p-8 xl:p-12 justify-center">
-                    {/* Hero text */}
-                    <div className="mb-6">
-                        <h1 className="text-3xl xl:text-4xl font-bold text-white leading-tight tracking-tight">
-                            Learn smarter,<br />
-                            <span className="text-blue-400">teach better.</span>
-                        </h1>
-                        <p className="mt-3 text-slate-400 text-sm xl:text-base leading-relaxed max-w-md">
-                            A complete platform to manage courses, track student progress, and learn with AI assistance.
-                        </p>
+                {/* Content */}
+                <div className="relative z-10 flex flex-col h-full px-10 xl:px-14 py-12 justify-between">
+                    {/* Logo */}
+                    <div className="flex items-center gap-2">
+                        <div className="w-9 h-9 bg-white/20 rounded-lg flex items-center justify-center backdrop-blur-sm">
+                            {isAdminLogin ? <FaShieldAlt className="text-white text-base" /> : isTeacherLogin ? <FaChalkboardTeacher className="text-white text-base" /> : <FaGraduationCap className="text-white text-base" />}
+                        </div>
+                        <span className="text-white font-bold text-xl tracking-tight">Tenz Learn</span>
                     </div>
 
-                    {/* Feature list */}
-                    <div className="space-y-3 mb-6">
-                        {features.map(({ icon: Icon, text }) => (
-                            <div key={text} className="flex items-start gap-3">
-                                <div className="w-7 h-7 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center shrink-0 mt-0.5">
-                                    <Icon className="text-blue-400 text-xs" />
+                    {/* Center hero */}
+                    <div className="flex flex-col items-center text-center -mt-8">
+                        {/* Student illustration on white oval */}
+                        {isStudentLogin && (
+                            <div className="relative mb-6">
+                                <div className="w-72 h-80 xl:w-80 xl:h-96 bg-white rounded-[50%] flex items-end justify-center overflow-hidden shadow-2xl">
+                                    <img
+                                        src="/student-reading.jpg"
+                                        alt="Student reading"
+                                        className="w-full h-full object-cover object-top"
+                                    />
                                 </div>
-                                <p className="text-slate-400 text-sm leading-relaxed">{text}</p>
                             </div>
-                        ))}
+                        )}
+                        {!isStudentLogin && (
+                            <div className="mb-8 w-40 h-40 bg-white/10 rounded-full flex items-center justify-center backdrop-blur-sm border border-white/20">
+                                {isAdminLogin ? <FaShieldAlt className="text-white text-6xl opacity-60" /> : <FaChalkboardTeacher className="text-white text-6xl opacity-60" />}
+                            </div>
+                        )}
+                        <h2 className="text-white text-2xl xl:text-3xl font-bold leading-tight">{panelTitle}</h2>
+                        <p className="text-white/70 text-sm mt-2 max-w-xs leading-relaxed">{panelSubtitle}</p>
                     </div>
 
-                    {/* Stats bar */}
-                    <div className="flex items-center gap-6 pt-5 border-t border-white/10">
-                        <div>
-                            <p className="text-white font-bold text-base">10k+</p>
-                            <p className="text-slate-500 text-xs">Students</p>
-                        </div>
-                        <div className="w-px h-7 bg-white/10" />
-                        <div>
-                            <p className="text-white font-bold text-base">500+</p>
-                            <p className="text-slate-500 text-xs">Courses</p>
-                        </div>
-                        <div className="w-px h-7 bg-white/10" />
-                        <div>
-                            <p className="text-white font-bold text-base">98%</p>
-                            <p className="text-slate-500 text-xs">Satisfaction</p>
-                        </div>
+                    {/* Footer */}
+                    <div className="text-white/50 text-xs text-center">
+                        © 2024 All rights reserved <span className="text-white/80 font-medium">Tenz Learn</span>
                     </div>
                 </div>
             </div>
 
-            {/* ── Right form panel ── */}
-            <div className="relative z-10 flex-1 flex flex-col justify-center px-4 py-6 sm:px-10 lg:px-14 xl:px-20 lg:bg-white dark:bg-slate-900 overflow-y-auto">
-                <div className="w-full max-w-sm mx-auto lg:mx-0 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl lg:bg-transparent lg:backdrop-blur-none rounded-3xl lg:rounded-none shadow-2xl lg:shadow-none border border-white/10 lg:border-0 px-5 py-6 sm:px-0 sm:py-0">
-                    <div className="mb-6 lg:hidden">
-                        <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs font-medium text-blue-200">
-                            {isAdminLogin ? <FaShieldAlt className="text-blue-400" /> : (isTeacherLogin ? <FaChalkboardTeacher className="text-blue-400" /> : <FaGraduationCap className="text-blue-400" />)}
-                            {isAdminLogin ? 'Admin access' : (isTeacherLogin ? 'Teacher access' : 'Tenz Learn')}
-                        </div>
-                        <h2 className="mt-4 text-3xl font-bold text-white tracking-tight">
-                            {isAdminLogin ? 'Welcome, administrator' : (isTeacherLogin ? 'Teacher portal' : 'Welcome back')}
-                        </h2>
-                        <p className="mt-2 text-sm leading-relaxed text-slate-300">
-                            {isAdminLogin
-                                ? 'Sign in to manage users, courses, and platform activity.'
-                                : (isTeacherLogin ? 'Sign in to manage your classes and students.' : 'Sign in to continue your learning journey.')}
-                        </p>
+            {/* ── Right Form Panel ── */}
+            <div className="flex-1 flex flex-col min-h-screen">
+                {/* Mobile background */}
+                <div className={`lg:hidden h-2 w-full bg-gradient-to-r ${panelBg}`} />
+
+                <div className="flex-1 flex flex-col justify-center px-6 py-10 sm:px-12 lg:px-16 xl:px-24">
+                    {/* Logo (visible on all sizes, top-right on desktop) */}
+                    <div className="lg:hidden mb-8">
+                        <LMSLogo />
+                    </div>
+                    <div className="hidden lg:flex mb-10">
+                        <LMSLogo />
                     </div>
 
-                    <div className="hidden lg:block">
-                        <h2 className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">
-                            {isAdminLogin ? 'Administrator login' : (isTeacherLogin ? 'Teacher login' : 'Welcome back')}
-                        </h2>
-                        <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-                            {isAdminLogin
-                                ? 'Use your admin account to access platform controls'
-                                : (isTeacherLogin ? 'Sign in to manage and build your courses' : 'Sign in to continue your learning journey')}
-                        </p>
+                    <div className="w-full max-w-md mx-auto lg:mx-0">
+                        {/* Heading */}
+                        <div className="mb-8">
+                            <h1 className="text-3xl font-bold text-gray-900 tracking-tight">{formTitle}</h1>
+                            <p className="mt-2 text-gray-500 text-sm">{formSubtitle}</p>
+                        </div>
+
+                        {/* Form */}
+                        <form onSubmit={onSubmit} className="space-y-5">
+                            {/* Email */}
+                            <div>
+                                <label htmlFor="email" className="block text-sm font-semibold text-gray-700 mb-1.5">
+                                    Email
+                                </label>
+                                <input
+                                    id="email"
+                                    name="email"
+                                    type="email"
+                                    autoComplete="email"
+                                    required
+                                    value={email}
+                                    onChange={onChange}
+                                    placeholder="example.educationpro@gmail.com"
+                                    className="block w-full rounded-lg border border-gray-200 bg-white px-4 py-3 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-400/40 focus:border-orange-400 transition-all shadow-sm"
+                                />
+                            </div>
+
+                            {/* Password */}
+                            <div>
+                                <label htmlFor="password" className="block text-sm font-semibold text-gray-700 mb-1.5">
+                                    Password
+                                </label>
+                                <div className="relative">
+                                    <input
+                                        id="password"
+                                        name="password"
+                                        type={showPassword ? 'text' : 'password'}
+                                        autoComplete="current-password"
+                                        required
+                                        value={password}
+                                        onChange={onChange}
+                                        placeholder="••••••••••••••••"
+                                        className="block w-full rounded-lg border border-gray-200 bg-white px-4 py-3 pr-12 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-400/40 focus:border-orange-400 transition-all shadow-sm"
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowPassword(v => !v)}
+                                        className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                                    >
+                                        {showPassword ? <FaEyeSlash className="text-base" /> : <FaEye className="text-base" />}
+                                    </button>
+                                </div>
+                            </div>
+
+                            {/* Remember me + Forgot password */}
+                            <div className="flex items-center justify-between">
+                                <label className="flex items-center gap-2 cursor-pointer select-none">
+                                    <input
+                                        type="checkbox"
+                                        checked={rememberMe}
+                                        onChange={e => setRememberMe(e.target.checked)}
+                                        className="w-4 h-4 rounded border-gray-300 accent-orange-500"
+                                    />
+                                    <span className="text-sm text-gray-600">Remember me</span>
+                                </label>
+                                <a href="#" className={`text-sm font-semibold ${accentText} ${accentHoverText} transition-colors`}>
+                                    Forgot Password?
+                                </a>
+                            </div>
+
+                            {/* Sign In button */}
+                            <button
+                                type="submit"
+                                disabled={isLoading}
+                                className={`w-full flex justify-center items-center gap-2 rounded-lg ${accentColor} ${accentHover} px-4 py-3 text-sm font-semibold text-white shadow-md hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed`}
+                            >
+                                {isLoading ? (
+                                    <>
+                                        <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                                        </svg>
+                                        Signing in...
+                                    </>
+                                ) : 'Sign In'}
+                            </button>
+                        </form>
+
+                        {/* Google Sign In */}
+                        <div className="mt-4">
+                            {googleClientId ? (
+                                <GoogleLoginButton onSuccess={handleGoogleSuccess} disabled={isLoading} />
+                            ) : (
+                                <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+                                    Google sign-in is not configured. Set VITE_GOOGLE_CLIENT_ID in client/.env to enable it.
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Sign up link */}
+                        <div className="mt-6 text-sm text-gray-500 text-center">
+                            {isStudentLogin && (
+                                <p>
+                                    Don't have an account?{' '}
+                                    <Link to="/register" className={`font-semibold ${accentText} ${accentHoverText} transition-colors`}>
+                                        Sign Up
+                                    </Link>
+                                </p>
+                            )}
+                            {isTeacherLogin && (
+                                <p>
+                                    Don't have an account?{' '}
+                                    <Link to="/teacher/register" className={`font-semibold ${accentText} ${accentHoverText} transition-colors`}>
+                                        Sign Up as Teacher
+                                    </Link>
+                                </p>
+                            )}
+                            {isAdminLogin && (
+                                <p>
+                                    Need an admin account?{' '}
+                                    <Link to="/admin/register" className={`font-semibold ${accentText} ${accentHoverText} transition-colors`}>
+                                        Register as Admin
+                                    </Link>
+                                </p>
+                            )}
+                        </div>
                     </div>
+                </div>
 
-                    {googleClientId ? (
-                        <GoogleLoginButton onSuccess={handleGoogleSuccess} disabled={isLoading} />
-                    ) : (
-                        <div className="mt-5 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:border-amber-500/20 dark:bg-amber-500/10 dark:text-amber-200">
-                            Google sign-in is not configured. Set VITE_GOOGLE_CLIENT_ID in client/.env to enable it.
-                        </div>
-                    )}
-
-                    {/* Divider */}
-                    <div className="my-4 flex items-center gap-3">
-                        <div className="flex-1 h-px bg-gray-200 dark:bg-slate-700" />
-                        <span className="text-xs text-slate-400 dark:text-slate-500 font-medium">or sign in with email</span>
-                        <div className="flex-1 h-px bg-gray-200 dark:bg-slate-700" />
-                    </div>
-
-                    {/* Email/password form */}
-                    <form onSubmit={onSubmit} className="space-y-4">
-                        <div>
-                            <label htmlFor="email" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                                Email address
-                            </label>
-                            <input
-                                id="email"
-                                name="email"
-                                type="email"
-                                autoComplete="email"
-                                required
-                                value={email}
-                                onChange={onChange}
-                                placeholder="you@example.com"
-                                className="block w-full rounded-xl border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800 px-4 py-2.5 text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 dark:focus:border-blue-500 transition-all"
-                            />
-                        </div>
-
-                        <div>
-                            <label htmlFor="password" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                                Password
-                            </label>
-                            <input
-                                id="password"
-                                name="password"
-                                type="password"
-                                autoComplete="current-password"
-                                required
-                                value={password}
-                                onChange={onChange}
-                                placeholder="••••••••"
-                                className="block w-full rounded-xl border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800 px-4 py-2.5 text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 dark:focus:border-blue-500 transition-all"
-                            />
-                        </div>
-
-                        <button
-                            type="submit"
-                            disabled={isLoading}
-                            className="mt-1 flex w-full justify-center items-center gap-2 rounded-xl bg-slate-900 dark:bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-slate-800 dark:hover:bg-blue-500 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                            {isLoading ? (
-                                <>
-                                    <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                                    </svg>
-                                    Signing in...
-                                </>
-                            ) : 'Sign in'}
-                        </button>
-                    </form>
-
-                    <div className="mt-5 text-center text-sm text-slate-500 dark:text-slate-400 space-y-2">
-                        {isStudentLogin && (
-                            <p>
-                                Don't have an account?{' '}
-                                <Link to="/register" className="font-semibold text-blue-600 hover:text-blue-500 dark:text-blue-400 dark:hover:text-blue-300 transition-colors">
-                                    Sign up as a student
-                                </Link>
-                            </p>
-                        )}
-                        {isTeacherLogin && (
-                            <p>
-                                Don't have an account?{' '}
-                                <Link to="/teacher/register" className="font-semibold text-blue-600 hover:text-blue-500 dark:text-blue-400 dark:hover:text-blue-300 transition-colors">
-                                    Sign up as a teacher
-                                </Link>
-                            </p>
-                        )}
-                        {isAdminLogin && (
-                            <p>
-                                Need an admin account?{' '}
-                                <Link to="/admin/register" className="font-semibold text-blue-600 hover:text-blue-500 dark:text-blue-400 dark:hover:text-blue-300 transition-colors">
-                                    Register as admin
-                                </Link>
-                            </p>
-                        )}
+                {/* Footer */}
+                <div className="flex items-center justify-between px-6 sm:px-12 lg:px-16 xl:px-24 py-4 border-t border-gray-100">
+                    <p className="text-xs text-gray-400">
+                        © 2024 All rights reserved{' '}
+                        <span className={`font-semibold ${accentText}`}>TENZE</span>
+                    </p>
+                    <div className="flex items-center gap-3">
+                        <a href="#" className="text-gray-400 hover:text-gray-600 transition-colors">
+                            <FaFacebook className="text-lg" />
+                        </a>
+                        <a href="#" className="text-gray-400 hover:text-gray-600 transition-colors">
+                            <FaYoutube className="text-lg" />
+                        </a>
+                        <a href="#" className="text-gray-400 hover:text-gray-600 transition-colors">
+                            <SiTiktok className="text-base" />
+                        </a>
                     </div>
                 </div>
             </div>
