@@ -1,8 +1,8 @@
 import { useState, useEffect, useContext } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import {
-    FaSearch, FaFilter, FaTimes, FaChevronDown, FaStore, FaGraduationCap,
-    FaChalkboardTeacher, FaCheckCircle, FaBookOpen, FaStar, FaUsers, FaArrowRight
+    FaSearch, FaFilter, FaTimes, FaChevronDown, FaStore, FaBookOpen,
+    FaChalkboardTeacher, FaCheckCircle, FaGraduationCap, FaStar, FaUsers, FaArrowRight
 } from 'react-icons/fa';
 import api from '../../api/axios';
 import CourseCard from '../../components/ui/CourseCard';
@@ -137,7 +137,7 @@ const Marketplace = () => {
     return (
         <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white transition-colors duration-200">
 
-            {/* 1. TENZE HERO BANNER */}
+            {/* 1. TenZe HERO BANNER */}
             <section className="relative overflow-hidden pt-10 pb-16 bg-gradient-to-b from-primary-light/30 via-white to-slate-50 dark:from-slate-900 dark:via-slate-950 dark:to-slate-950">
                 <div className="container mx-auto px-4 lg:px-8">
                     <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
@@ -175,7 +175,7 @@ const Marketplace = () => {
 
                         {/* Search Card Right */}
                         <div className="lg:col-span-5">
-                            <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-200/80 dark:border-slate-800 shadow-TENZE-lg space-y-4">
+                            <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-200/80 dark:border-slate-800 shadow-TenZe-lg space-y-4">
                                 <h3 className="text-lg font-black text-slate-900 dark:text-white">
                                     Search & Filter Courses
                                 </h3>
@@ -279,7 +279,7 @@ const Marketplace = () => {
 
                         <div className="p-4 rounded-2xl bg-success-500/5 dark:bg-slate-800 border border-success-500/20 flex items-center gap-4">
                             <div className="w-12 h-12 rounded-xl bg-success-light text-success flex items-center justify-center text-xl font-bold">
-                                <FaGraduationCap />
+                                <FaBookOpen />
                             </div>
                             <div>
                                 <span className="text-2xl font-black text-slate-900 dark:text-white block">100%</span>
@@ -410,8 +410,8 @@ const Marketplace = () => {
                                         setSearchParams(newParams);
                                     }}
                                     className={`w-10 h-10 rounded-xl font-bold text-xs transition-all ${pagination.page === i + 1
-                                            ? 'bg-primary text-white shadow-sm'
-                                            : 'bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-800 hover:border-primary'
+                                        ? 'bg-primary text-white shadow-sm'
+                                        : 'bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-800 hover:border-primary'
                                         }`}
                                 >
                                     {i + 1}
@@ -426,7 +426,7 @@ const Marketplace = () => {
             {/* 4. BECOME AN INSTRUCTOR CTA BANNER */}
             <section className="py-12">
                 <div className="container mx-auto px-4 lg:px-8">
-                    <div className="relative rounded-3xl overflow-hidden bg-gradient-to-r from-slate-900 via-primary-700 to-slate-900 text-white p-8 sm:p-12 shadow-TENZE-lg">
+                    <div className="relative rounded-3xl overflow-hidden bg-gradient-to-r from-slate-900 via-primary-700 to-slate-900 text-white p-8 sm:p-12 shadow-TenZe-lg">
                         <div className="relative z-10 max-w-2xl space-y-3">
                             <span className="bg-white/20 backdrop-blur-md px-3 py-1 rounded-full text-[10px] font-extrabold uppercase tracking-wider">
                                 Teach on LMS

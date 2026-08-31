@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { FaFacebookF, FaTwitter, FaInstagram, FaLinkedinIn, FaPhoneAlt, FaEnvelope, FaGlobe } from 'react-icons/fa';
+import { FaFacebookF, FaTwitter, FaInstagram, FaLinkedinIn, FaPhoneAlt, FaEnvelope, FaGlobe, FaGraduationCap, FaBookOpen, FaBook } from 'react-icons/fa';
 
 const Footer = () => {
     return (
@@ -12,14 +12,14 @@ const Footer = () => {
                     <div className="lg:col-span-1">
                         <Link to="/" className="flex items-center gap-2 mb-4 group">
                             <div className="w-9 h-9 rounded-xl bg-primary flex items-center justify-center text-white font-extrabold text-lg shadow-sm">
-                                TZ
+                                <FaBookOpen className="text-white text-sm" />
                             </div>
                             <span className="text-xl font-black text-slate-900 dark:text-white">
-                                TEN<span className="text-primary">ZE</span>
+                                Tenz<span className="text-primary">Learn</span>
                             </span>
                         </Link>
                         <p className="text-xs leading-relaxed mb-4 text-slate-500 dark:text-slate-400">
-                            TENZE provides flexible online education & courses tailored for students, teachers, and professionals worldwide.
+                            TenZe provides flexible online education & courses tailored for students, teachers, and professionals worldwide.
                         </p>
                         {/* Social Buttons */}
                         <div className="flex items-center gap-2">
@@ -91,7 +91,7 @@ const Footer = () => {
                                 <FaPhoneAlt className="text-primary text-xs" /> +123 456 7890
                             </p>
                             <p className="flex items-center gap-2 text-slate-700 dark:text-slate-300">
-                                <FaEnvelope className="text-danger text-xs" /> support@tenze.com
+                                <FaEnvelope className="text-danger text-xs" /> support@TenZe.com
                             </p>
                         </div>
                         {/* App Download Buttons */}
@@ -117,7 +117,7 @@ const Footer = () => {
                 {/* Bottom Legal Bar */}
                 <div className="border-t border-slate-200 dark:border-slate-800 pt-6 flex flex-col md:flex-row items-center justify-between gap-4 text-xs">
                     <p className="text-slate-500 dark:text-slate-400">
-                        Copyrights ©2026 <span className="font-bold text-slate-900 dark:text-white">TENZE</span>. All rights reserved.
+                        Copyrights ©2026 <span className="font-bold text-slate-900 dark:text-white">TenZe</span>. All rights reserved.
                     </p>
                     <div className="flex items-center gap-6">
                         <div className="flex items-center gap-1 text-slate-600 dark:text-slate-300 font-medium">

@@ -1,4 +1,4 @@
-import { FaTv, FaGraduationCap, FaUserTie, FaShieldAlt } from 'react-icons/fa';
+import { FaTv, FaBookOpen, FaUserTie, FaShieldAlt } from 'react-icons/fa';
 
 const StatsCounter = () => {
     const stats = [
@@ -22,7 +22,7 @@ const StatsCounter = () => {
         },
         {
             id: 3,
-            icon: FaGraduationCap,
+            icon: FaBookOpen,
             title: '60K+',
             subtitle: 'Online Students',
             bgColor: 'bg-purple-light text-purple dark:bg-purple-500/20 dark:text-purple-300',

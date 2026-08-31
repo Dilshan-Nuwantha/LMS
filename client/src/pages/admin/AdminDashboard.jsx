@@ -1,7 +1,7 @@
 import { useState, useEffect, useContext } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
-    FaUsers, FaChalkboardTeacher, FaGraduationCap, FaBook,
+    FaUsers, FaChalkboardTeacher, FaBookOpen, FaBook,
     FaChartLine, FaMoneyCheckAlt, FaHistory,
     FaArrowRight, FaExclamationCircle, FaCheckCircle, FaSearch,
     FaBan, FaUnlock, FaExclamationTriangle, FaTimes, FaEdit,
@@ -24,8 +24,8 @@ const formatCurrency = (amount) => `LKR ${(amount || 0).toLocaleString('en-LK')}
 const Avatar = ({ name, color = 'indigo', size = 9, blocked = false }) => {
     const palette = {
         indigo: 'bg-indigo-100 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400',
-        slate:  'bg-slate-100  dark:bg-slate-700       text-slate-600  dark:text-slate-300',
-        red:    'bg-red-100    dark:bg-red-900/40      text-red-600    dark:text-red-400',
+        slate: 'bg-slate-100  dark:bg-slate-700       text-slate-600  dark:text-slate-300',
+        red:  'bg-red-100    dark:bg-red-900/40      text-red-600    dark:text-red-400',
     };
     return (
         <div className={`w-${size} h-${size} rounded-full flex items-center justify-center text-sm font-semibold shrink-0 ${blocked ? palette.red : palette[color]}`}>
@@ -36,14 +36,14 @@ const Avatar = ({ name, color = 'indigo', size = 9, blocked = false }) => {
 
 const Badge = ({ variant, children }) => {
     const variants = {
-        active:      'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 ring-1 ring-emerald-200 dark:ring-emerald-800',
-        blocked:     'bg-red-50     dark:bg-red-900/20     text-red-700     dark:text-red-400     ring-1 ring-red-200     dark:ring-red-800',
-        warned:      'bg-amber-50   dark:bg-amber-900/20   text-amber-700   dark:text-amber-400   ring-1 ring-amber-200   dark:ring-amber-800',
-        student:     'bg-sky-50     dark:bg-sky-900/20     text-sky-700     dark:text-sky-400     ring-1 ring-sky-200     dark:ring-sky-800',
-        instructor:  'bg-violet-50  dark:bg-violet-900/20  text-violet-700  dark:text-violet-400  ring-1 ring-violet-200  dark:ring-violet-800',
-        completed:   'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 ring-1 ring-emerald-200 dark:ring-emerald-800',
-        pending:     'bg-amber-50   dark:bg-amber-900/20   text-amber-700   dark:text-amber-400   ring-1 ring-amber-200   dark:ring-amber-800',
-        failed:      'bg-red-50     dark:bg-red-900/20     text-red-700     dark:text-red-400     ring-1 ring-red-200     dark:ring-red-800',
+        active: 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 ring-1 ring-emerald-200 dark:ring-emerald-800',
+        blocked: 'bg-red-50     dark:bg-red-900/20     text-red-700     dark:text-red-400     ring-1 ring-red-200     dark:ring-red-800',
+        warned: 'bg-amber-50   dark:bg-amber-900/20   text-amber-700   dark:text-amber-400   ring-1 ring-amber-200   dark:ring-amber-800',
+        student: 'bg-sky-50     dark:bg-sky-900/20     text-sky-700     dark:text-sky-400     ring-1 ring-sky-200     dark:ring-sky-800',
+        instructor: 'bg-violet-50  dark:bg-violet-900/20  text-violet-700  dark:text-violet-400  ring-1 ring-violet-200  dark:ring-violet-800',
+        completed: 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 ring-1 ring-emerald-200 dark:ring-emerald-800',
+        pending: 'bg-amber-50   dark:bg-amber-900/20   text-amber-700   dark:text-amber-400   ring-1 ring-amber-200   dark:ring-amber-800',
+        failed: 'bg-red-50     dark:bg-red-900/20     text-red-700     dark:text-red-400     ring-1 ring-red-200     dark:ring-red-800',
     };
     return (
         <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium ${variants[variant] || variants.active}`}>
@@ -77,11 +77,10 @@ const Pagination = ({ page, totalPages, onPageChange }) => {
                             : <button
                                 key={p}
                                 onClick={() => onPageChange(p)}
-                                className={`w-7 h-7 text-xs rounded-lg font-medium transition-colors ${
-                                    p === page
+                                className={`w-7 h-7 text-xs rounded-lg font-medium transition-colors ${p === page
                                         ? 'bg-indigo-500 text-white'
                                         : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700'
-                                }`}
+                                    }`}
                             >{p}</button>
                     )
                 }
@@ -102,9 +101,9 @@ const Pagination = ({ page, totalPages, onPageChange }) => {
 ───────────────────────────────────────────────────────────────────────────── */
 const StatCard = ({ icon: Icon, label, value, sub, color }) => {
     const colors = {
-        blue:   { wrap: 'bg-blue-500',   ring: 'ring-blue-100 dark:ring-blue-900/30',   text: 'text-blue-600 dark:text-blue-400' },
+        blue: { wrap: 'bg-blue-500', ring: 'ring-blue-100 dark:ring-blue-900/30', text: 'text-blue-600 dark:text-blue-400' },
         purple: { wrap: 'bg-violet-500', ring: 'ring-violet-100 dark:ring-violet-900/30', text: 'text-violet-600 dark:text-violet-400' },
-        green:  { wrap: 'bg-emerald-500', ring: 'ring-emerald-100 dark:ring-emerald-900/30', text: 'text-emerald-600 dark:text-emerald-400' },
+        green: { wrap: 'bg-emerald-500', ring: 'ring-emerald-100 dark:ring-emerald-900/30', text: 'text-emerald-600 dark:text-emerald-400' },
         orange: { wrap: 'bg-orange-500', ring: 'ring-orange-100 dark:ring-orange-900/30', text: 'text-orange-600 dark:text-orange-400' },
     };
     const c = colors[color];
@@ -364,11 +363,10 @@ const UsersTab = () => {
                             <button
                                 key={f.id}
                                 onClick={() => setFilter(f.id)}
-                                className={`px-3 py-1.5 text-xs font-medium rounded-lg border transition-all ${
-                                    isActive
+                                className={`px-3 py-1.5 text-xs font-medium rounded-lg border transition-all ${isActive
                                         ? `${accent} text-white shadow-sm`
                                         : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:border-slate-300 dark:hover:border-slate-600'
-                                }`}
+                                    }`}
                             >
                                 {f.label}
                                 <span className={`ml-1.5 px-1.5 py-0.5 rounded-full text-[10px] font-bold ${isActive ? 'bg-white/25' : 'bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400'}`}>
@@ -442,11 +440,10 @@ const UsersTab = () => {
                                                         <select
                                                             value={user.role}
                                                             onChange={e => handleChangeRole(user._id, e.target.value)}
-                                                            className={`text-xs px-2.5 py-1.5 rounded-lg border font-medium focus:outline-none focus:ring-2 focus:ring-indigo-400 cursor-pointer ${
-                                                                user.role === 'instructor'
+                                                            className={`text-xs px-2.5 py-1.5 rounded-lg border font-medium focus:outline-none focus:ring-2 focus:ring-indigo-400 cursor-pointer ${user.role === 'instructor'
                                                                     ? 'bg-violet-50 dark:bg-violet-900/20 border-violet-200 dark:border-violet-800 text-violet-700 dark:text-violet-300'
                                                                     : 'bg-sky-50 dark:bg-sky-900/20 border-sky-200 dark:border-sky-800 text-sky-700 dark:text-sky-300'
-                                                            }`}
+                                                                }`}
                                                         >
                                                             <option value="student">Student</option>
                                                             <option value="instructor">Instructor</option>
@@ -458,13 +455,12 @@ const UsersTab = () => {
                                                         <div className="space-y-1.5">
                                                             <div className="flex items-center gap-2">
                                                                 {/* Count pill */}
-                                                                <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold ${
-                                                                    warnCount === 0
+                                                                <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold ${warnCount === 0
                                                                         ? 'bg-slate-100 dark:bg-slate-700 text-slate-400'
                                                                         : warnCount >= maxWarn
                                                                             ? 'bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400'
                                                                             : 'bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400'
-                                                                }`}>
+                                                                    }`}>
                                                                     {warnCount > 0 && <FaExclamationTriangle className="text-[8px]" />}
                                                                     {warnCount}/{maxWarn}
                                                                 </span>
@@ -667,9 +663,8 @@ const UsersTab = () => {
                                 <button
                                     onClick={handleWarn}
                                     disabled={warnLoading}
-                                    className={`flex-1 px-4 py-2.5 text-white rounded-xl text-sm font-semibold transition-colors disabled:opacity-50 ${
-                                        isLastWarning(warnModal.user) ? 'bg-red-500 hover:bg-red-600' : 'bg-amber-500 hover:bg-amber-600'
-                                    }`}
+                                    className={`flex-1 px-4 py-2.5 text-white rounded-xl text-sm font-semibold transition-colors disabled:opacity-50 ${isLastWarning(warnModal.user) ? 'bg-red-500 hover:bg-red-600' : 'bg-amber-500 hover:bg-amber-600'
+                                        }`}
                                 >
                                     {warnLoading ? 'Issuing…' : isLastWarning(warnModal.user) ? 'Warn & Block' : 'Issue Warning'}
                                 </button>
@@ -1003,11 +998,10 @@ const AdminDashboard = () => {
                                 <button
                                     key={tab.id}
                                     onClick={() => setActiveTab(tab.id)}
-                                    className={`flex items-center gap-2 px-5 py-3 text-sm font-medium border-b-2 transition-all ${
-                                        activeTab === tab.id
+                                    className={`flex items-center gap-2 px-5 py-3 text-sm font-medium border-b-2 transition-all ${activeTab === tab.id
                                             ? 'border-indigo-500 text-indigo-600 dark:text-indigo-400'
                                             : 'border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
-                                    }`}
+                                        }`}
                                 >
                                     <Icon className="text-sm" />
                                     <span className="hidden sm:inline">{tab.label}</span>
@@ -1026,10 +1020,10 @@ const AdminDashboard = () => {
                     <div className="space-y-6">
                         {/* Stats */}
                         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                            <StatCard icon={FaUsers}           label="Total Users"  value={stats.totalUsers}   color="blue" />
+                            <StatCard icon={FaUsers} label="Total Users" value={stats.totalUsers} color="blue" />
                             <StatCard icon={FaChalkboardTeacher} label="Instructors" value={stats.totalInstructors} color="purple" />
-                            <StatCard icon={FaGraduationCap}   label="Students"     value={stats.totalStudents} color="green" />
-                            <StatCard icon={FaBook}            label="Courses"       value={`${stats.publishedCourses ?? 0}/${stats.totalCourses ?? 0}`} sub="published / total" color="orange" />
+                            <StatCard icon={FaBookOpen} label="Students" value={stats.totalStudents} color="green" />
+                            <StatCard icon={FaBook} label="Courses" value={`${stats.publishedCourses ?? 0}/${stats.totalCourses ?? 0}`} sub="published / total" color="orange" />
                         </div>
 
                         {/* Revenue */}

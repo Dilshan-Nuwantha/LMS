@@ -32,7 +32,7 @@ const CourseCard = ({ course }) => {
     const formattedDuration = formatDuration(totalDuration);
 
     return (
-        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-sm hover:shadow-TENZE-lg transition-all duration-300 flex flex-col overflow-hidden group card-hover-lift">
+        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-sm hover:shadow-TenZe-lg transition-all duration-300 flex flex-col overflow-hidden group card-hover-lift">
             {/* Thumbnail Header */}
             <div className="relative aspect-[16/10] overflow-hidden bg-slate-100 dark:bg-slate-800">
                 {thumbnail ? (

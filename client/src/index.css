@@ -199,7 +199,7 @@
     display: none;
 }
 
-/* TENZE Signature Utilities */
+/* TenZe Signature Utilities */
 .btn-primary-soft {
     @apply bg-primary-light text-primary hover:bg-primary hover:text-white transition-all duration-200 font-medium;
 }

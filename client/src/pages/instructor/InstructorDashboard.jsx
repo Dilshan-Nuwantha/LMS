@@ -31,7 +31,7 @@ const LkrIcon = () => (
 // STAT CARD
 // --------------------------------------------------
 const StatCard = ({ icon: Icon, label, value }) => (
-    <div className="bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-200/80 dark:border-slate-800 shadow-TENZE flex items-center gap-4">
+    <div className="bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-200/80 dark:border-slate-800 shadow-TenZe flex items-center gap-4">
         <div className="w-12 h-12 rounded-xl bg-primary-light text-primary flex items-center justify-center text-xl font-bold">
             <Icon />
         </div>
@@ -155,12 +155,12 @@ const InstructorDashboard = () => {
                                     <img
                                         src={user.profilePicture}
                                         alt={user.name || 'Instructor'}
-                                        className="w-20 h-20 rounded-full object-cover border-4 border-white dark:border-slate-800 shadow-TENZE"
+                                        className="w-20 h-20 rounded-full object-cover border-4 border-white dark:border-slate-800 shadow-TenZe"
                                     />
 
                                 ) : (
 
-                                    <div className="w-20 h-20 rounded-full bg-primary text-white flex items-center justify-center font-black text-2xl border-4 border-white dark:border-slate-800 shadow-TENZE">
+                                    <div className="w-20 h-20 rounded-full bg-primary text-white flex items-center justify-center font-black text-2xl border-4 border-white dark:border-slate-800 shadow-TenZe">
                                         {user?.name
                                             ? user.name.charAt(0).toUpperCase()
                                             : <FaUser />
@@ -237,7 +237,7 @@ const InstructorDashboard = () => {
 
 
                     {/* Total Courses */}
-                    <div className="bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-200/80 dark:border-slate-800 shadow-TENZE flex items-center gap-4">
+                    <div className="bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-200/80 dark:border-slate-800 shadow-TenZe flex items-center gap-4">
 
                         <div className="w-12 h-12 rounded-xl bg-amber-500/10 text-amber-600 flex items-center justify-center text-xl font-bold">
                             <FaBook />
@@ -259,7 +259,7 @@ const InstructorDashboard = () => {
 
 
                     {/* Total Students */}
-                    <div className="bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-200/80 dark:border-slate-800 shadow-TENZE flex items-center gap-4">
+                    <div className="bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-200/80 dark:border-slate-800 shadow-TenZe flex items-center gap-4">
 
                         <div className="w-12 h-12 rounded-xl bg-purple-light text-purple flex items-center justify-center text-xl font-bold">
                             <FaUsers />
@@ -281,7 +281,7 @@ const InstructorDashboard = () => {
 
 
                     {/* Total Revenue */}
-                    <div className="bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-200/80 dark:border-slate-800 shadow-TENZE flex items-center gap-4">
+                    <div className="bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-200/80 dark:border-slate-800 shadow-TenZe flex items-center gap-4">
 
                         <div className="w-12 h-12 rounded-xl bg-success-light text-success flex items-center justify-center text-xl font-bold">
                             <FaRupeeSign />
@@ -303,7 +303,7 @@ const InstructorDashboard = () => {
 
 
                     {/* Total Sales */}
-                    <div className="bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-200/80 dark:border-slate-800 shadow-TENZE flex items-center gap-4">
+                    <div className="bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-200/80 dark:border-slate-800 shadow-TenZe flex items-center gap-4">
 
                         <div className="w-12 h-12 rounded-xl bg-primary-light text-primary flex items-center justify-center text-xl font-bold">
                             <FaChartLine />
@@ -329,7 +329,7 @@ const InstructorDashboard = () => {
                 {/* ==================================================
                     OVERVIEW
                 ================================================== */}
-                <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-TENZE overflow-hidden">
+                <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-TenZe overflow-hidden">
 
 
                     {/* Header */}

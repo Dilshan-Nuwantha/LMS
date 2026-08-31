@@ -530,7 +530,7 @@ skill-path/
 ### 1. Clone
 
 ```bash
-git clone https://github.com/tenze/study-portal.git
+git clone https://github.com/TenZe/study-portal.git
 cd study-portal
 ```
 

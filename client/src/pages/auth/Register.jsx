@@ -3,7 +3,7 @@ import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { useGoogleLogin } from '@react-oauth/google';
 import AuthContext from '../../context/AuthContext';
 import { showSuccess, showError } from '../../utils/toast';
-import { FaCheckCircle, FaGraduationCap, FaShieldAlt, FaChalkboardTeacher, FaEye, FaEyeSlash, FaFacebook, FaYoutube } from 'react-icons/fa';
+import { FaCheckCircle, FaBookOpen, FaShieldAlt, FaChalkboardTeacher, FaEye, FaEyeSlash, FaFacebook, FaYoutube } from 'react-icons/fa';
 import { SiTiktok } from 'react-icons/si';
 
 const GoogleIcon = () => (
@@ -18,7 +18,7 @@ const GoogleIcon = () => (
 const LMSLogo = () => (
     <div className="flex items-center gap-2">
         <div className="w-8 h-8 bg-blue-500 rounded-md flex items-center justify-center">
-            <FaGraduationCap className="text-white text-sm" />
+            <FaBookOpen className="text-white text-sm" />
         </div>
         <span className="text-gray-800 font-bold text-lg tracking-tight">Tenz <span className="text-blue-500">Learn</span></span>
     </div>
@@ -142,8 +142,8 @@ const Register = () => {
     const panelBg = isAdminRegister
         ? 'from-slate-800 to-slate-900'
         : isTeacherRegister
-        ? 'from-blue-700 to-blue-900'
-        : 'from-blue-600 to-blue-800';
+            ? 'from-blue-700 to-blue-900'
+            : 'from-blue-600 to-blue-800';
 
     const accentColor = isAdminRegister ? 'bg-slate-700' : isTeacherRegister ? 'bg-blue-600' : 'bg-blue-500';
     const accentHover = isAdminRegister ? 'hover:bg-slate-600' : isTeacherRegister ? 'hover:bg-blue-500' : 'hover:bg-blue-600';
@@ -154,26 +154,26 @@ const Register = () => {
     const panelTitle = isAdminRegister
         ? 'Admin Control Center'
         : isTeacherRegister
-        ? 'Start Teaching Today'
-        : 'Everything You Need';
+            ? 'Start Teaching Today'
+            : 'Everything You Need';
 
     const panelSubtitle = isAdminRegister
         ? 'Manage your platform with full administrative control'
         : isTeacherRegister
-        ? 'Build courses and inspire thousands of learners'
-        : 'Join thousands of students and educators on Tenz Learn';
+            ? 'Build courses and inspire thousands of learners'
+            : 'Join thousands of students and educators on Tenz Learn';
 
     const formTitle = isAdminRegister
         ? 'Admin Registration'
         : isTeacherRegister
-        ? 'Teacher Registration'
-        : 'Create Account';
+            ? 'Teacher Registration'
+            : 'Create Account';
 
     const formSubtitle = isAdminRegister
         ? 'Create an admin account to configure and oversee portal features'
         : isTeacherRegister
-        ? 'Create an instructor account to manage and publish courses'
-        : 'Start your learning journey — it\'s completely free';
+            ? 'Create an instructor account to manage and publish courses'
+            : 'Start your learning journey — it\'s completely free';
 
     return (
         <div className="min-h-screen flex flex-col lg:flex-row bg-white font-sans">
@@ -190,7 +190,7 @@ const Register = () => {
                     {/* Logo */}
                     <div className="flex items-center gap-2">
                         <div className="w-9 h-9 bg-white/20 rounded-lg flex items-center justify-center backdrop-blur-sm">
-                            {isAdminRegister ? <FaShieldAlt className="text-white text-base" /> : isTeacherRegister ? <FaChalkboardTeacher className="text-white text-base" /> : <FaGraduationCap className="text-white text-base" />}
+                            {isAdminRegister ? <FaShieldAlt className="text-white text-base" /> : isTeacherRegister ? <FaChalkboardTeacher className="text-white text-base" /> : <FaBookOpen className="text-white text-base" />}
                         </div>
                         <span className="text-white font-bold text-xl tracking-tight">Tenz Learn</span>
                     </div>
@@ -226,7 +226,7 @@ const Register = () => {
 
                     {/* Footer */}
                     <div className="text-white/50 text-xs text-center">
-                        © 2024 All rights reserved <span className="text-white/80 font-medium">TENZE</span>
+                        © 2024 All rights reserved <span className="text-white/80 font-medium">TenZe</span>
                     </div>
                 </div>
             </div>
@@ -387,7 +387,7 @@ const Register = () => {
                 <div className="flex items-center justify-between px-6 sm:px-12 lg:px-16 xl:px-24 py-4 border-t border-gray-100">
                     <p className="text-xs text-gray-400">
                         © 2024 All rights reserved{' '}
-                        <span className={`font-semibold ${accentText}`}>tenzlearn</span>
+                        <span className={`font-semibold ${accentText}`}>TenZe</span>
                     </p>
                     <div className="flex items-center gap-3">
                         <a href="#" className="text-gray-400 hover:text-gray-600 transition-colors">

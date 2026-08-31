@@ -4,7 +4,7 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import AuthContext from '../../context/AuthContext';
 import {
     FaBook, FaCheckCircle, FaPlus, FaTrash,
-    FaGraduationCap, FaChalkboardTeacher, FaStore, FaRobot,
+    FaBookOpen, FaChalkboardTeacher, FaStore, FaRobot,
     FaPlay, FaSearch, FaUser
 } from 'react-icons/fa';
 import { showSuccess, showError } from '../../utils/toast';
@@ -134,10 +134,10 @@ const StudentDashboard = ({ defaultTab }) => {
                                     <img
                                         src={user.profilePicture}
                                         alt={user.name}
-                                        className="w-20 h-20 rounded-full object-cover border-4 border-white dark:border-slate-800 shadow-TENZE"
+                                        className="w-20 h-20 rounded-full object-cover border-4 border-white dark:border-slate-800 shadow-TenZe"
                                     />
                                 ) : (
-                                    <div className="w-20 h-20 rounded-full bg-primary text-white flex items-center justify-center font-black text-2xl border-4 border-white dark:border-slate-800 shadow-TENZE">
+                                    <div className="w-20 h-20 rounded-full bg-primary text-white flex items-center justify-center font-black text-2xl border-4 border-white dark:border-slate-800 shadow-TenZe">
                                         {user?.name ? user.name.charAt(0).toUpperCase() : <FaUser />}
                                     </div>
                                 )}
@@ -182,9 +182,9 @@ const StudentDashboard = ({ defaultTab }) => {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-8 max-w-2xl">
 
                     {/* Metric 1: Enrolled Courses */}
-                    <div className="bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-200/80 dark:border-slate-800 shadow-TENZE flex items-center gap-4">
+                    <div className="bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-200/80 dark:border-slate-800 shadow-TenZe flex items-center gap-4">
                         <div className="w-12 h-12 rounded-xl bg-primary-light text-primary flex items-center justify-center text-xl font-bold">
-                            <FaGraduationCap />
+                            <FaBookOpen />
                         </div>
                         <div>
                             <span className="text-2xl font-black text-slate-900 dark:text-white block">
@@ -195,7 +195,7 @@ const StudentDashboard = ({ defaultTab }) => {
                     </div>
 
                     {/* Metric 2: Created Courses */}
-                    <div className="bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-200/80 dark:border-slate-800 shadow-TENZE flex items-center gap-4">
+                    <div className="bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-200/80 dark:border-slate-800 shadow-TenZe flex items-center gap-4">
                         <div className="w-12 h-12 rounded-xl bg-purple-light text-purple flex items-center justify-center text-xl font-bold">
                             <FaChalkboardTeacher />
                         </div>
@@ -210,7 +210,7 @@ const StudentDashboard = ({ defaultTab }) => {
                 </div>
 
                 {/* 3. MAIN DASHBOARD CONTENT */}
-                <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/80 dark:border-slate-800 p-6 sm:p-8 shadow-TENZE">
+                <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/80 dark:border-slate-800 p-6 sm:p-8 shadow-TenZe">
 
                     {/* Header Controls */}
                     <div className="flex flex-col sm:flex-row items-center justify-between gap-4 border-b border-slate-100 dark:border-slate-800 pb-6 mb-6">
@@ -220,8 +220,8 @@ const StudentDashboard = ({ defaultTab }) => {
                             <button
                                 onClick={() => setActiveTab('enrolled')}
                                 className={`px-5 py-2.5 rounded-xl font-bold text-xs transition-all ${activeTab === 'enrolled'
-                                        ? 'bg-primary text-white shadow-sm'
-                                        : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:text-primary'
+                                    ? 'bg-primary text-white shadow-sm'
+                                    : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:text-primary'
                                     }`}
                             >
                                 My Learning ({enrolledCourses.length})
@@ -229,8 +229,8 @@ const StudentDashboard = ({ defaultTab }) => {
                             <button
                                 onClick={() => setActiveTab('created')}
                                 className={`px-5 py-2.5 rounded-xl font-bold text-xs transition-all ${activeTab === 'created'
-                                        ? 'bg-primary text-white shadow-sm'
-                                        : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:text-primary'
+                                    ? 'bg-primary text-white shadow-sm'
+                                    : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:text-primary'
                                     }`}
                             >
                                 Created Courses ({createdCourses.length})
@@ -256,7 +256,7 @@ const StudentDashboard = ({ defaultTab }) => {
                             {filteredEnrolledCourses.length === 0 ? (
                                 <div className="text-center py-16">
                                     <div className="w-16 h-16 rounded-full bg-primary-light text-primary flex items-center justify-center text-3xl mx-auto mb-3">
-                                        <FaGraduationCap />
+                                        <FaBookOpen />
                                     </div>
                                     <h3 className="text-base font-bold text-slate-900 dark:text-white mb-1">
                                         No Enrolled Courses
@@ -384,7 +384,7 @@ const StudentDashboard = ({ defaultTab }) => {
             {/* CREATE COURSE MODAL */}
             {showCreateModal && (
                 <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-                    <div className="bg-white dark:bg-slate-900 rounded-3xl max-w-md w-full p-6 shadow-TENZE-lg border border-slate-200 dark:border-slate-800">
+                    <div className="bg-white dark:bg-slate-900 rounded-3xl max-w-md w-full p-6 shadow-TenZe-lg border border-slate-200 dark:border-slate-800">
                         <h3 className="text-base font-black text-slate-900 dark:text-white mb-4">Create New Course</h3>
                         <form onSubmit={handleCreateCourse} className="space-y-4">
                             <div>
@@ -433,7 +433,7 @@ const StudentDashboard = ({ defaultTab }) => {
             {/* DELETE COURSE MODAL */}
             {showDeleteModal && (
                 <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-                    <div className="bg-white dark:bg-slate-900 rounded-3xl max-w-sm w-full p-6 shadow-TENZE-lg border border-slate-200 dark:border-slate-800 text-center">
+                    <div className="bg-white dark:bg-slate-900 rounded-3xl max-w-sm w-full p-6 shadow-TenZe-lg border border-slate-200 dark:border-slate-800 text-center">
                         <h3 className="text-base font-black text-slate-900 dark:text-white mb-2">Delete Course?</h3>
                         <p className="text-xs text-slate-500 mb-6">
                             Are you sure you want to delete <span className="font-bold text-slate-900 dark:text-white">"{courseToDelete?.title}"</span>? This action cannot be undone.
