@@ -305,9 +305,12 @@ const Login = () => {
                                     />
                                     <span className="text-sm text-gray-600">Remember me</span>
                                 </label>
-                                <a href="#" className={`text-sm font-semibold ${accentText} ${accentHoverText} transition-colors`}>
+                                <Link
+                                    to="/forgot-password"
+                                    className={`text-sm font-semibold ${accentText} ${accentHoverText} transition-colors`}
+                                >
                                     Forgot Password?
-                                </a>
+                                </Link>
                             </div>
 
                             {/* Sign In button */}
