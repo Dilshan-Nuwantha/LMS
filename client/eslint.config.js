@@ -26,4 +26,12 @@ export default defineConfig([
       'no-unused-vars': ['error', { varsIgnorePattern: '^[A-Z_]' }],
     },
   },
+  {
+    // Playwright's config and specs run in Node, but the callbacks they pass to
+    // page.evaluate / addInitScript run in the browser — so allow both.
+    files: ['playwright.config.js', 'e2e/**/*.js'],
+    languageOptions: {
+      globals: { ...globals.node, ...globals.browser },
+    },
+  },
 ])

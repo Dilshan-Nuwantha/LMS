@@ -2,8 +2,11 @@ const mongoose = require('mongoose');
 
 const connectDB = async () => {
     try {
-        const conn = await mongoose.connect(process.env.MONGO_URI || 'mongodb://localhost:27017/studytracker');
-        console.log(`MongoDB Connected: ${conn.connection.host}`);
+        const conn = await mongoose.connect(
+            process.env.MONGO_URI || 'mongodb://localhost:27017/studytracker',
+            process.env.MONGO_DB_NAME ? { dbName: process.env.MONGO_DB_NAME } : {}
+        );
+        console.log(`MongoDB Connected: ${conn.connection.host} (db: ${conn.connection.name})`);
     } catch (error) {
         console.error(`Error: ${error.message}`);
         process.exit(1);
