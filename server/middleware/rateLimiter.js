@@ -57,9 +57,23 @@ const createCourseLimiter = rateLimit({
     skip: skipInDev,
 });
 
+// OTP request limiter - 5 OTP requests per 15 minutes per IP
+const otpLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 5,
+    message: {
+        message: 'Too many OTP requests. Please try again after 15 minutes.',
+        retryAfter: 15
+    },
+    standardHeaders: true,
+    legacyHeaders: false,
+    skip: skipInDev,
+});
+
 module.exports = {
     apiLimiter,
     authLimiter,
     registerLimiter,
-    createCourseLimiter
+    createCourseLimiter,
+    otpLimiter,
 };

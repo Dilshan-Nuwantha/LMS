@@ -7,9 +7,12 @@ const {
     getMe,
     updatePassword,
     updateProfile,
+    forgotPassword,
+    verifyOTP,
+    resetPassword,
 } = require('../controllers/authController');
 const { protect } = require('../middleware/authMiddleware');
-const { authLimiter, registerLimiter } = require('../middleware/rateLimiter');
+const { authLimiter, registerLimiter, otpLimiter } = require('../middleware/rateLimiter');
 
 // Helper middleware to inject role for specific endpoints
 const setRole = (role) => (req, res, next) => {
@@ -40,5 +43,10 @@ router.post('/admin/google', authLimiter, setRole('admin'), googleLogin);
 router.get('/me', protect, getMe);
 router.put('/profile', protect, updateProfile);
 router.put('/updatepassword', protect, updatePassword);
+
+// Password recovery via OTP
+router.post('/forgot-password', otpLimiter, forgotPassword);
+router.post('/verify-otp', otpLimiter, verifyOTP);
+router.post('/reset-password', authLimiter, resetPassword);
 
 module.exports = router;

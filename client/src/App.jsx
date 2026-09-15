@@ -13,6 +13,9 @@ import api from './api/axios';
 // Auth
 const Login = lazy(() => import('./pages/auth/Login'));
 const Register = lazy(() => import('./pages/auth/Register'));
+const ForgotPassword = lazy(() => import('./pages/auth/ForgotPassword'));
+const OTPInput = lazy(() => import('./pages/auth/OTPInput'));
+const Reset = lazy(() => import('./pages/auth/Reset'));
 
 // Course management
 const CourseManage = lazy(() => import('./pages/course/CourseManage'));
@@ -151,7 +154,7 @@ const AuthenticatedFloatingButton = () => {
 };
 
 function App() {
-  const authRoutePaths = ['/login', '/register', '/admin/login', '/teacher/register', '/teacher/login', '/admin/register'];
+  const authRoutePaths = ['/login', '/register', '/admin/login', '/teacher/register', '/teacher/login', '/admin/register', '/forgot-password', '/verify-otp', '/reset-password'];
   const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 
   return (
@@ -228,6 +231,9 @@ const AppShell = ({ authRoutePaths }) => {
             <Route path="/register" element={<Register />} />
             <Route path="/teacher/register" element={<Register />} />
             <Route path="/admin/register" element={<Register />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/verify-otp" element={<OTPInput />} />
+            <Route path="/reset-password" element={<Reset />} />
 
             {/* Admin-only routes */}
             <Route path="/admin/dashboard" element={<ProtectedRoute adminOnly={true}><AdminDashboard /></ProtectedRoute>} />
