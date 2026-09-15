@@ -582,7 +582,17 @@ cd client && npm run dev
 
 App runs at `http://localhost:5173`
 
----
+
+
+
+## QA Test
+
+```bash
+cd client
+npm run test:e2e              # full suite on Chromium, Firefox, WebKit and mobile - Chrome
+npm run test:e2e:chromium     # Chromium only, for a quicker check
+npm run test:report           # open the report from the last run
+```
 
 ## Deployment (Render)
 
