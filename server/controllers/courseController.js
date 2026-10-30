@@ -125,6 +125,20 @@ const getCourse = asyncHandler(async (req, res) => {
             }));
     }
 
+    // Users who are not enrolled (e.g. haven't bought a marketplace course) only see
+    // lecture titles - same rule as getLecture, so the paywall can't be skipped here
+    if (!isOwnerOrAdmin && !isTeacher) {
+        const enrolled = await Progress.exists({ student: userId, course: req.params.id });
+        if (!enrolled) {
+            course.sections = course.sections.map(section => ({
+                ...section,
+                lectures: section.lectures.map(lecture => (
+                    lecture.isPreview ? lecture : { ...lecture, resourceUrl: '', description: '' }
+                ))
+            }));
+        }
+    }
+
     // Add user role info
     if (isOwnerOrAdmin) {
         course.userRole = req.user.role === 'admin' ? 'admin' : 'owner';

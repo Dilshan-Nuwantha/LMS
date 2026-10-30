@@ -5,6 +5,7 @@ const Purchase = require('../models/Purchase');
 const Lecture = require('../models/Lecture');
 const BankDetail = require('../models/BankDetail');
 const Payout = require('../models/Payout');
+const { CURRENCIES, getEarningsByCurrency, totalsFor, toSummary } = require('../services/earningsService');
 
 // @desc    Become an instructor (upgrade from student)
 // @route   POST /api/instructor/become
@@ -49,24 +50,8 @@ const getInstructorDashboard = asyncHandler(async (req, res) => {
         isMarketplace: true
     }).select('title enrollmentCount rating price status');
 
-    // Get total revenue
-    const revenueResult = await Purchase.aggregate([
-        {
-            $match: {
-                instructor: instructorId,
-                status: 'completed'
-            }
-        },
-        {
-            $group: {
-                _id: null,
-                totalRevenue: { $sum: '$amount' },
-                totalSales: { $sum: 1 }
-            }
-        }
-    ]);
-
-    const revenue = revenueResult[0] || { totalRevenue: 0, totalSales: 0 };
+    // Get total revenue, per currency. Aggregations don't cast ids, so use the ObjectId.
+    const revenue = toSummary(totalsFor(await getEarningsByCurrency({ instructor: req.user._id })));
 
     // Get recent purchases
     const recentPurchases = await Purchase.find({
@@ -87,8 +72,9 @@ const getInstructorDashboard = asyncHandler(async (req, res) => {
     res.status(200).json({
         courses,
         totalCourses: courses.length,
-        totalRevenue: revenue.totalRevenue,
+        totalRevenue: revenue.totalEarnings, // LKR
         totalSales: revenue.totalSales,
+        revenueByCurrency: revenue.byCurrency,
         totalStudents: uniqueStudents.length,
         recentPurchases
     });
@@ -274,16 +260,23 @@ const getCourseSales = asyncHandler(async (req, res) => {
         .populate('user', 'name email')
         .sort({ purchasedAt: -1 });
 
-    const totalRevenue = purchases.reduce((sum, p) => sum + p.amount, 0);
+    // A course may have changed currency over time, so keep the totals apart
+    const revenueByCurrency = Object.fromEntries(CURRENCIES.map(c => [c, 0]));
+    purchases.forEach(p => {
+        const currency = CURRENCIES.includes(p.currency) ? p.currency : 'LKR';
+        revenueByCurrency[currency] += p.amount;
+    });
 
     res.status(200).json({
         course: {
             title: course.title,
             price: course.price,
+            currency: course.currency,
             enrollmentCount: course.enrollmentCount
         },
         purchases,
-        totalRevenue,
+        totalRevenue: revenueByCurrency[course.currency] || 0, // in the course's currency
+        revenueByCurrency,
         totalSales: purchases.length
     });
 });
@@ -331,15 +324,8 @@ const saveBankDetails = asyncHandler(async (req, res) => {
 const getEarnings = asyncHandler(async (req, res) => {
     const instructorId = req.user.id;
 
-    const [earningsResult, payoutResult, payouts, monthlyEarnings] = await Promise.all([
-        Purchase.aggregate([
-            { $match: { instructor: req.user._id, status: 'completed' } },
-            { $group: { _id: null, total: { $sum: '$amount' }, sales: { $sum: 1 } } }
-        ]),
-        Payout.aggregate([
-            { $match: { instructor: req.user._id, status: 'completed' } },
-            { $group: { _id: null, total: { $sum: '$amount' } } }
-        ]),
+    const [earnings, payouts, monthlyRows] = await Promise.all([
+        getEarningsByCurrency({ instructor: req.user._id }),
         Payout.find({ instructor: instructorId })
             .populate('processedBy', 'name')
             .sort({ createdAt: -1 })
@@ -348,26 +334,36 @@ const getEarnings = asyncHandler(async (req, res) => {
             { $match: { instructor: req.user._id, status: 'completed' } },
             {
                 $group: {
-                    _id: { $dateToString: { format: '%Y-%m', date: '$purchasedAt' } },
+                    _id: { month: { $dateToString: { format: '%Y-%m', date: '$purchasedAt' } }, currency: '$currency' },
                     total: { $sum: '$amount' },
                     count: { $sum: 1 }
                 }
-            },
-            { $sort: { _id: -1 } },
-            { $limit: 6 }
+            }
         ])
     ]);
 
-    const earnings = earningsResult[0] || { total: 0, sales: 0 };
-    const paidOut = payoutResult[0]?.total || 0;
+    // Last 6 months; total stays LKR, byCurrency has the split
+    const months = {};
+    monthlyRows.forEach(({ _id, total, count }) => {
+        const month = months[_id.month] || (months[_id.month] = {
+            _id: _id.month,
+            total: 0,
+            count: 0,
+            byCurrency: Object.fromEntries(CURRENCIES.map(c => [c, 0]))
+        });
+        const currency = CURRENCIES.includes(_id.currency) ? _id.currency : 'LKR';
+        month.byCurrency[currency] += total;
+        month.total = month.byCurrency.LKR;
+        month.count += count;
+    });
+    const monthlyEarnings = Object.values(months)
+        .sort((a, b) => a._id.localeCompare(b._id))
+        .slice(-6);
 
     res.status(200).json({
-        totalEarnings: earnings.total,
-        totalSales: earnings.sales,
-        totalPaidOut: paidOut,
-        pendingAmount: earnings.total - paidOut,
+        ...toSummary(totalsFor(earnings)),
         payouts,
-        monthlyEarnings: monthlyEarnings.reverse()
+        monthlyEarnings
     });
 });
 

@@ -4,6 +4,7 @@ const Course = require('../models/Course');
 const Purchase = require('../models/Purchase');
 const Payout = require('../models/Payout');
 const BankDetail = require('../models/BankDetail');
+const { CURRENCIES, getEarningsByCurrency, totalsFor, toSummary } = require('../services/earningsService');
 
 // @desc    Get admin dashboard stats
 // @route   GET /api/admin/dashboard
@@ -15,8 +16,7 @@ const getAdminDashboard = asyncHandler(async (req, res) => {
         totalStudents,
         totalCourses,
         publishedCourses,
-        revenueResult,
-        totalPayoutsResult,
+        earnings,
         recentPurchases,
         recentPayouts
     ] = await Promise.all([
@@ -25,14 +25,7 @@ const getAdminDashboard = asyncHandler(async (req, res) => {
         User.countDocuments({ role: 'student' }),
         Course.countDocuments({ isMarketplace: true }),
         Course.countDocuments({ isMarketplace: true, status: 'Published' }),
-        Purchase.aggregate([
-            { $match: { status: 'completed' } },
-            { $group: { _id: null, total: { $sum: '$amount' }, count: { $sum: 1 } } }
-        ]),
-        Payout.aggregate([
-            { $match: { status: 'completed' } },
-            { $group: { _id: null, total: { $sum: '$amount' } } }
-        ]),
+        getEarningsByCurrency(),
         Purchase.find({ status: 'completed' })
             .populate('user', 'name email')
             .populate('course', 'title')
@@ -46,8 +39,8 @@ const getAdminDashboard = asyncHandler(async (req, res) => {
             .limit(5)
     ]);
 
-    const revenue = revenueResult[0] || { total: 0, count: 0 };
-    const totalPaidOut = totalPayoutsResult[0]?.total || 0;
+    // Money fields are LKR; byCurrency has the LKR / USD split
+    const summary = toSummary(totalsFor(earnings));
 
     res.status(200).json({
         stats: {
@@ -56,10 +49,11 @@ const getAdminDashboard = asyncHandler(async (req, res) => {
             totalStudents,
             totalCourses,
             publishedCourses,
-            totalRevenue: revenue.total,
-            totalSales: revenue.count,
-            totalPaidOut,
-            pendingPayout: revenue.total - totalPaidOut
+            totalRevenue: summary.totalEarnings,
+            totalSales: summary.totalSales,
+            totalPaidOut: summary.totalPaidOut,
+            pendingPayout: summary.pendingAmount,
+            byCurrency: summary.byCurrency
         },
         recentPurchases,
         recentPayouts
@@ -76,16 +70,9 @@ const getInstructors = asyncHandler(async (req, res) => {
 
     const instructorIds = instructors.map(i => i._id);
 
-    // Run 4 bulk queries instead of 4 * N individual ones
-    const [earningsByInstructor, payoutsByInstructor, coursesByInstructor, bankDetails] = await Promise.all([
-        Purchase.aggregate([
-            { $match: { instructor: { $in: instructorIds }, status: 'completed' } },
-            { $group: { _id: '$instructor', total: { $sum: '$amount' }, sales: { $sum: 1 } } }
-        ]),
-        Payout.aggregate([
-            { $match: { instructor: { $in: instructorIds }, status: 'completed' } },
-            { $group: { _id: '$instructor', total: { $sum: '$amount' } } }
-        ]),
+    // Run bulk queries instead of N individual ones
+    const [earningsByInstructor, coursesByInstructor, bankDetails] = await Promise.all([
+        getEarningsByCurrency({ instructor: { $in: instructorIds } }, '$instructor'),
         Course.aggregate([
             { $match: { user: { $in: instructorIds }, isMarketplace: true } },
             { $group: { _id: '$user', count: { $sum: 1 } } }
@@ -94,23 +81,16 @@ const getInstructors = asyncHandler(async (req, res) => {
     ]);
 
     // Index results by instructor ID for O(1) lookup
-    const earningsMap = Object.fromEntries(earningsByInstructor.map(e => [e._id.toString(), e]));
-    const payoutsMap = Object.fromEntries(payoutsByInstructor.map(p => [p._id.toString(), p]));
     const coursesMap = Object.fromEntries(coursesByInstructor.map(c => [c._id.toString(), c.count]));
     const bankMap = Object.fromEntries(bankDetails.map(b => [b.user.toString(), b]));
 
     const instructorData = instructors.map(instructor => {
         const id = instructor._id.toString();
-        const earnings = earningsMap[id] || { total: 0, sales: 0 };
-        const paidOut = payoutsMap[id]?.total || 0;
         const bank = bankMap[id];
 
         return {
             ...instructor.toObject(),
-            totalEarnings: earnings.total,
-            totalSales: earnings.sales,
-            totalPaidOut: paidOut,
-            pendingAmount: earnings.total - paidOut,
+            ...toSummary(totalsFor(earningsByInstructor, id)),
             courseCount: coursesMap[id] || 0,
             hasBankDetails: !!bank,
             preferredMethod: bank?.preferredMethod || null
@@ -130,16 +110,9 @@ const getInstructorDetail = asyncHandler(async (req, res) => {
         throw new Error('Instructor not found');
     }
 
-    const [bankDetail, earningsResult, payoutResult, courses, payouts] = await Promise.all([
+    const [bankDetail, earnings, courses, payouts] = await Promise.all([
         BankDetail.findOne({ user: instructor._id }),
-        Purchase.aggregate([
-            { $match: { instructor: instructor._id, status: 'completed' } },
-            { $group: { _id: null, total: { $sum: '$amount' }, sales: { $sum: 1 } } }
-        ]),
-        Payout.aggregate([
-            { $match: { instructor: instructor._id, status: 'completed' } },
-            { $group: { _id: null, total: { $sum: '$amount' } } }
-        ]),
+        getEarningsByCurrency({ instructor: instructor._id }),
         Course.find({ user: instructor._id, isMarketplace: true }).select('title price enrollmentCount status'),
         Payout.find({ instructor: instructor._id })
             .populate('processedBy', 'name')
@@ -147,16 +120,10 @@ const getInstructorDetail = asyncHandler(async (req, res) => {
             .limit(20)
     ]);
 
-    const earnings = earningsResult[0] || { total: 0, sales: 0 };
-    const paidOut = payoutResult[0]?.total || 0;
-
     res.status(200).json({
         instructor: instructor.toObject(),
         bankDetail,
-        totalEarnings: earnings.total,
-        totalSales: earnings.sales,
-        totalPaidOut: paidOut,
-        pendingAmount: earnings.total - paidOut,
+        ...toSummary(totalsFor(earnings)),
         courses,
         payouts
     });
@@ -166,11 +133,16 @@ const getInstructorDetail = asyncHandler(async (req, res) => {
 // @route   POST /api/admin/payouts
 // @access  Private (Admin)
 const createPayout = asyncHandler(async (req, res) => {
-    const { instructorId, amount, method, transactionId, note } = req.body;
+    const { instructorId, amount, method, transactionId, note, currency = 'LKR' } = req.body;
 
     if (!instructorId || !amount || !method) {
         res.status(400);
         throw new Error('Please provide instructor, amount, and method');
+    }
+
+    if (!CURRENCIES.includes(currency)) {
+        res.status(400);
+        throw new Error(`Currency must be one of ${CURRENCIES.join(', ')}`);
     }
 
     const instructor = await User.findById(instructorId);
@@ -179,30 +151,19 @@ const createPayout = asyncHandler(async (req, res) => {
         throw new Error('Instructor not found');
     }
 
-    // Verify amount doesn't exceed pending
-    const [earningsResult, payoutResult] = await Promise.all([
-        Purchase.aggregate([
-            { $match: { instructor: instructor._id, status: 'completed' } },
-            { $group: { _id: null, total: { $sum: '$amount' } } }
-        ]),
-        Payout.aggregate([
-            { $match: { instructor: instructor._id, status: 'completed' } },
-            { $group: { _id: null, total: { $sum: '$amount' } } }
-        ])
-    ]);
-
-    const totalEarnings = earningsResult[0]?.total || 0;
-    const totalPaid = payoutResult[0]?.total || 0;
-    const pending = totalEarnings - totalPaid;
+    // Verify amount doesn't exceed what is pending in that currency
+    const earnings = await getEarningsByCurrency({ instructor: instructor._id });
+    const pending = totalsFor(earnings)[currency].pending;
 
     if (amount > pending) {
         res.status(400);
-        throw new Error(`Amount exceeds pending balance of LKR ${pending}`);
+        throw new Error(`Amount exceeds pending balance of ${currency} ${pending}`);
     }
 
     const payout = await Payout.create({
         instructor: instructorId,
         amount,
+        currency,
         method,
         transactionId: transactionId || '',
         note: note || '',

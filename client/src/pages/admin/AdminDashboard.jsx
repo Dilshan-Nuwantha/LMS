@@ -19,7 +19,14 @@ const LkrIcon = ({ className }) => (
 /* ─────────────────────────────────────────────────────────────────────────────
    Shared helpers
 ───────────────────────────────────────────────────────────────────────────── */
-const formatCurrency = (amount) => `LKR ${(amount || 0).toLocaleString('en-LK')}`;
+const formatCurrency = (amount, currency = 'LKR') => currency === 'USD'
+    ? `$${(amount || 0).toLocaleString('en-US')}`
+    : `LKR ${(amount || 0).toLocaleString('en-LK')}`;
+
+// LKR and USD can't be added together, so totals show LKR with the USD part underneath when there is any
+const UsdLine = ({ amount, className = '' }) => (amount > 0
+    ? <span className={`block text-xs font-medium text-slate-500 dark:text-slate-400 ${className}`}>+ {formatCurrency(amount, 'USD')}</span>
+    : null);
 
 const Avatar = ({ name, color = 'indigo', size = 9, blocked = false }) => {
     const palette = {
@@ -183,7 +190,7 @@ const PayoutsTab = () => {
                                         </div>
                                     </div>
                                 </td>
-                                <td className="px-5 py-3.5 font-semibold text-slate-900 dark:text-white">{formatCurrency(p.amount)}</td>
+                                <td className="px-5 py-3.5 font-semibold text-slate-900 dark:text-white">{formatCurrency(p.amount, p.currency)}</td>
                                 <td className="px-5 py-3.5 text-slate-600 dark:text-slate-300 capitalize">{p.method?.replace('_', ' ')}</td>
                                 <td className="px-5 py-3.5 font-mono text-xs text-slate-500 dark:text-slate-400">{p.transactionId || '—'}</td>
                                 <td className="px-5 py-3.5">
@@ -902,7 +909,7 @@ const AdminDashboard = () => {
     // Payout modal
     const [showPayoutModal, setShowPayoutModal] = useState(false);
     const [selectedInstructor, setSelectedInstructor] = useState(null);
-    const [payoutForm, setPayoutForm] = useState({ amount: '', method: 'bank_transfer', transactionId: '', note: '' });
+    const [payoutForm, setPayoutForm] = useState({ amount: '', currency: 'LKR', method: 'bank_transfer', transactionId: '', note: '' });
     const [payoutLoading, setPayoutLoading] = useState(false);
 
     useEffect(() => { fetchData(); }, []);
@@ -923,9 +930,20 @@ const AdminDashboard = () => {
         }
     };
 
+    // Pending balance of an instructor in one currency
+    const pendingIn = (instructor, currency) => (currency === 'USD'
+        ? instructor.byCurrency?.USD?.pending || 0
+        : instructor.pendingAmount || 0);
+
     const openPayoutModal = (instructor) => {
         setSelectedInstructor(instructor);
-        setPayoutForm({ amount: '', method: instructor.preferredMethod || 'bank_transfer', transactionId: '', note: '' });
+        setPayoutForm({
+            amount: '',
+            currency: pendingIn(instructor, 'LKR') > 0 ? 'LKR' : 'USD',
+            method: instructor.preferredMethod || 'bank_transfer',
+            transactionId: '',
+            note: ''
+        });
         setShowPayoutModal(true);
     };
 
@@ -937,6 +955,7 @@ const AdminDashboard = () => {
             await api.post('/admin/payouts', {
                 instructorId: selectedInstructor._id,
                 amount: Number(payoutForm.amount),
+                currency: payoutForm.currency,
                 method: payoutForm.method,
                 transactionId: payoutForm.transactionId,
                 note: payoutForm.note
@@ -1029,9 +1048,9 @@ const AdminDashboard = () => {
                         {/* Revenue */}
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                             {[
-                                { icon: LkrIcon, label: 'Total Revenue', value: formatCurrency(stats.totalRevenue), sub: `${stats.totalSales ?? 0} sales`, bg: 'bg-emerald-500', light: 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-100 dark:border-emerald-900/30' },
-                                { icon: FaMoneyCheckAlt, label: 'Total Paid Out', value: formatCurrency(stats.totalPaidOut), sub: 'To instructors', bg: 'bg-indigo-500', light: 'bg-indigo-50 dark:bg-indigo-900/20 border-indigo-100 dark:border-indigo-900/30' },
-                                { icon: FaExclamationCircle, label: 'Pending Payout', value: formatCurrency(stats.pendingPayout), sub: 'Owed to instructors', bg: 'bg-amber-500', light: 'bg-amber-50 dark:bg-amber-900/20 border-amber-100 dark:border-amber-900/30' },
+                                { icon: LkrIcon, label: 'Total Revenue', value: formatCurrency(stats.totalRevenue), usd: stats.byCurrency?.USD?.earned, sub: `${stats.totalSales ?? 0} sales`, bg: 'bg-emerald-500', light: 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-100 dark:border-emerald-900/30' },
+                                { icon: FaMoneyCheckAlt, label: 'Total Paid Out', value: formatCurrency(stats.totalPaidOut), usd: stats.byCurrency?.USD?.paidOut, sub: 'To instructors', bg: 'bg-indigo-500', light: 'bg-indigo-50 dark:bg-indigo-900/20 border-indigo-100 dark:border-indigo-900/30' },
+                                { icon: FaExclamationCircle, label: 'Pending Payout', value: formatCurrency(stats.pendingPayout), usd: stats.byCurrency?.USD?.pending, sub: 'Owed to instructors', bg: 'bg-amber-500', light: 'bg-amber-50 dark:bg-amber-900/20 border-amber-100 dark:border-amber-900/30' },
                             ].map(r => (
                                 <div key={r.label} className={`rounded-xl border p-5 flex items-center gap-4 ${r.light}`}>
                                     <div className={`w-11 h-11 rounded-xl ${r.bg} flex items-center justify-center shrink-0 shadow`}>
@@ -1040,6 +1059,7 @@ const AdminDashboard = () => {
                                     <div>
                                         <p className="text-xs text-slate-500 dark:text-slate-400">{r.label}</p>
                                         <p className="text-xl font-bold text-slate-900 dark:text-white">{r.value}</p>
+                                        <UsdLine amount={r.usd} className="text-sm" />
                                         <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{r.sub}</p>
                                     </div>
                                 </div>
@@ -1064,7 +1084,7 @@ const AdminDashboard = () => {
                                                 <p className="text-sm font-medium text-slate-900 dark:text-white truncate">{p.user?.name}</p>
                                                 <p className="text-xs text-slate-500 dark:text-slate-400 truncate">{p.course?.title}</p>
                                             </div>
-                                            <span className="text-sm font-semibold text-emerald-600 dark:text-emerald-400">+{formatCurrency(p.amount)}</span>
+                                            <span className="text-sm font-semibold text-emerald-600 dark:text-emerald-400">+{formatCurrency(p.amount, p.currency)}</span>
                                         </div>
                                     ))}
                                     {(!dashboard?.recentPurchases || dashboard.recentPurchases.length === 0) && (
@@ -1092,7 +1112,7 @@ const AdminDashboard = () => {
                                                 </p>
                                             </div>
                                             <span className={`text-sm font-semibold ${p.status === 'completed' ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'}`}>
-                                                {formatCurrency(p.amount)}
+                                                {formatCurrency(p.amount, p.currency)}
                                             </span>
                                         </div>
                                     ))}
@@ -1153,12 +1173,19 @@ const AdminDashboard = () => {
                                                 </td>
                                                 <td className="px-5 py-4 text-slate-700 dark:text-slate-300 font-medium">{inst.courseCount}</td>
                                                 <td className="px-5 py-4 text-slate-700 dark:text-slate-300">{inst.totalSales}</td>
-                                                <td className="px-5 py-4 font-semibold text-slate-900 dark:text-white">{formatCurrency(inst.totalEarnings)}</td>
-                                                <td className="px-5 py-4 text-emerald-600 dark:text-emerald-400 font-medium">{formatCurrency(inst.totalPaidOut)}</td>
+                                                <td className="px-5 py-4 font-semibold text-slate-900 dark:text-white">
+                                                    {formatCurrency(inst.totalEarnings)}
+                                                    <UsdLine amount={inst.byCurrency?.USD?.earned} />
+                                                </td>
+                                                <td className="px-5 py-4 text-emerald-600 dark:text-emerald-400 font-medium">
+                                                    {formatCurrency(inst.totalPaidOut)}
+                                                    <UsdLine amount={inst.byCurrency?.USD?.paidOut} />
+                                                </td>
                                                 <td className="px-5 py-4">
                                                     <span className={`font-semibold ${inst.pendingAmount > 0 ? 'text-amber-600 dark:text-amber-400' : 'text-slate-400'}`}>
                                                         {formatCurrency(inst.pendingAmount)}
                                                     </span>
+                                                    <UsdLine amount={inst.byCurrency?.USD?.pending} />
                                                 </td>
                                                 <td className="px-5 py-4">
                                                     {inst.hasBankDetails
@@ -1167,7 +1194,7 @@ const AdminDashboard = () => {
                                                     }
                                                 </td>
                                                 <td className="px-5 py-4 text-right">
-                                                    {inst.pendingAmount > 0 && (
+                                                    {(inst.pendingAmount > 0 || inst.byCurrency?.USD?.pending > 0) && (
                                                         <button
                                                             onClick={() => openPayoutModal(inst)}
                                                             className="px-3.5 py-1.5 bg-indigo-500 hover:bg-indigo-600 text-white text-xs font-semibold rounded-lg transition-colors shadow-sm"
@@ -1217,6 +1244,9 @@ const AdminDashboard = () => {
                                 <h3 className="font-semibold text-slate-900 dark:text-white">Record Payout</h3>
                                 <p className="text-xs text-slate-500 dark:text-slate-400">
                                     {selectedInstructor.name} &middot; Pending: <span className="font-semibold text-amber-500">{formatCurrency(selectedInstructor.pendingAmount)}</span>
+                                    {pendingIn(selectedInstructor, 'USD') > 0 && (
+                                        <span className="font-semibold text-amber-500"> + {formatCurrency(pendingIn(selectedInstructor, 'USD'), 'USD')}</span>
+                                    )}
                                 </p>
                             </div>
                             <button onClick={() => setShowPayoutModal(false)} className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 hover:text-slate-600 transition-colors">
@@ -1225,12 +1255,24 @@ const AdminDashboard = () => {
                         </div>
                         <form onSubmit={handlePayout} className="p-5 space-y-4">
                             <div>
-                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Amount (LKR)</label>
+                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Currency</label>
+                                <select
+                                    value={payoutForm.currency}
+                                    onChange={e => setPayoutForm({ ...payoutForm, currency: e.target.value })}
+                                    className="w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                >
+                                    <option value="LKR">LKR (pending {formatCurrency(pendingIn(selectedInstructor, 'LKR'))})</option>
+                                    <option value="USD">USD (pending {formatCurrency(pendingIn(selectedInstructor, 'USD'), 'USD')})</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Amount ({payoutForm.currency})</label>
                                 <input
                                     type="number"
                                     value={payoutForm.amount}
                                     onChange={e => setPayoutForm({ ...payoutForm, amount: e.target.value })}
-                                    max={selectedInstructor.pendingAmount}
+                                    max={pendingIn(selectedInstructor, payoutForm.currency)}
+                                    step="0.01"
                                     className="w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
                                     placeholder="Enter amount"
                                     required

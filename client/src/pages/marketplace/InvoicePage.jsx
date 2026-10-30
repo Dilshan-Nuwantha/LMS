@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { FaDownload, FaCheckCircle, FaClock, FaShareAlt } from 'react-icons/fa';
+import { FaDownload, FaCheckCircle, FaClock, FaShareAlt, FaUndo } from 'react-icons/fa';
 import api from '../../api/axios';
 import { showSuccess, showError } from '../../utils/toast';
 
@@ -49,7 +49,7 @@ const InvoicePage = () => {
     const handleShare = () => {
         const url = window.location.href;
         navigator.clipboard.writeText(url);
-        showSuccess('Invoice link copied to clipboard!');
+        showSuccess('Invoice link copied! Only you, the instructor and admins can open it.');
     };
 
     const formatDate = (date) => {
@@ -75,7 +75,7 @@ const InvoicePage = () => {
             <div className="min-h-screen bg-gray-50 dark:bg-slate-950 flex items-center justify-center px-4">
                 <div className="text-center">
                     <h1 className="text-2xl font-bold text-slate-900 dark:text-white mb-4">Invoice Not Found</h1>
-                    <p className="text-slate-500 dark:text-slate-400 mb-6">The invoice you're looking for doesn't exist.</p>
+                    <p className="text-slate-500 dark:text-slate-400 mb-6">The invoice you're looking for doesn't exist, or you don't have access to it.</p>
                     <Link to="/marketplace" className="text-indigo-500 hover:text-indigo-600 font-medium">
                         Go to Marketplace
                     </Link>
@@ -84,7 +84,11 @@ const InvoicePage = () => {
         );
     }
 
-    const isPaid = invoice.invoiceStatus === 'paid';
+    const statusStyle = {
+        paid: { label: 'Paid', line: 'Payment Received', icon: FaCheckCircle, badge: 'bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400', text: 'text-green-600 dark:text-green-400' },
+        refunded: { label: 'Refunded', line: 'Payment Refunded', icon: FaUndo, badge: 'bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400', text: 'text-red-600 dark:text-red-400' }
+    }[invoice.invoiceStatus] || { label: 'Created', line: 'Payment Pending', icon: FaClock, badge: 'bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400', text: 'text-amber-600 dark:text-amber-400' };
+    const StatusIcon = statusStyle.icon;
 
     return (
         <div className="min-h-screen bg-gray-100 dark:bg-slate-950 py-8 px-4">
@@ -123,12 +127,9 @@ const InvoicePage = () => {
                             </div>
                             <div className="text-right">
                                 <h3 className="text-3xl font-bold text-slate-900 dark:text-white">INVOICE</h3>
-                                <div className={`inline-flex items-center gap-1.5 mt-2 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide ${isPaid
-                                    ? 'bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400'
-                                    : 'bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400'
-                                    }`}>
-                                    {isPaid ? <FaCheckCircle /> : <FaClock />}
-                                    {isPaid ? 'Paid' : 'Created'}
+                                <div className={`inline-flex items-center gap-1.5 mt-2 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide ${statusStyle.badge}`}>
+                                    <StatusIcon />
+                                    {statusStyle.label}
                                 </div>
                             </div>
                         </div>
@@ -217,8 +218,8 @@ const InvoicePage = () => {
                                     <span className="text-base font-bold text-slate-900 dark:text-white">{currencySymbol}{invoice.amount}</span>
                                 </div>
                                 <div className="text-right">
-                                    <span className={`text-xs font-semibold ${isPaid ? 'text-green-600 dark:text-green-400' : 'text-amber-600 dark:text-amber-400'}`}>
-                                        {isPaid ? 'Payment Received' : 'Payment Pending'}
+                                    <span className={`text-xs font-semibold ${statusStyle.text}`}>
+                                        {statusStyle.line}
                                     </span>
                                 </div>
                             </div>

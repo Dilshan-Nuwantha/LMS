@@ -29,9 +29,10 @@ const purchaseSchema = new mongoose.Schema({
         type: String,
         default: ''
     },
+    // Empty for free enrollments (price 0 or 100% coupon)
     stripeSessionId: {
         type: String,
-        required: true
+        default: ''
     },
     status: {
         type: String,
@@ -58,7 +59,7 @@ const purchaseSchema = new mongoose.Schema({
     },
     invoiceStatus: {
         type: String,
-        enum: ['created', 'paid'],
+        enum: ['created', 'paid', 'refunded'],
         default: null
     },
     originalPrice: {
