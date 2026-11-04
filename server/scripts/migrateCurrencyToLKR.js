@@ -1,4 +1,4 @@
-// One-off migration: old records use the invalid currency codes 'SLR' / 'INR'.
+// One-off migration: old records use the invalid currency codes 'lkr' / 'INR'.
 // Stripe only accepts ISO codes, so these are rewritten to 'LKR'.
 //
 // Usage (from server/):
@@ -7,7 +7,7 @@
 require('dotenv').config({ quiet: true });
 const mongoose = require('mongoose');
 
-const LEGACY_CODES = ['SLR', 'INR'];
+const LEGACY_CODES = ['lkr', 'INR'];
 const COLLECTIONS = ['courses', 'purchases', 'payouts'];
 
 const run = async () => {

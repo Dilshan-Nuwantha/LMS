@@ -27,7 +27,7 @@ const getEarningsByCurrency = async (match = {}, groupBy = null) => {
     const bucket = ({ key, currency }) => {
         const id = key ? key.toString() : 'all';
         result[id] = result[id] || emptyTotals();
-        // Old records may still carry the legacy rupee codes (SLR / INR)
+        // Old records may still carry the legacy rupee codes (lkr / INR)
         return result[id][CURRENCIES.includes(currency) ? currency : 'LKR'];
     };
 

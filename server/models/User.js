@@ -1,6 +1,8 @@
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 
+const isBcryptHash = (str) => typeof str === 'string' && /^\$2[aby]\$\d{2}\$[./A-Za-z0-9]{53}$/.test(str);
+
 const userSchema = new mongoose.Schema({
     name: {
         type: String,
@@ -13,7 +15,27 @@ const userSchema = new mongoose.Schema({
     },
     password: {
         type: String,
-        required: [function () { return !this.googleId; }, 'Please add a password']
+        required: [
+            function () {
+                return !this.googleId;
+            },
+            'Please add a password'
+        ],
+        validate: {
+            validator: function (value) {
+                // Allow null or undefined password ONLY if account has a googleId
+                if (this.googleId && (value === null || value === undefined)) {
+                    return true;
+                }
+                // When password is provided or account is local:
+                // Must be either a valid bcrypt hash, or a plaintext string of at least 6 characters before save
+                if (typeof value !== 'string') return false;
+                return isBcryptHash(value) || value.trim().length >= 6;
+            },
+            message: 'Password must be at least 6 characters or a valid bcrypt hash'
+        },
+        default: null,
+        select: false,
     },
     googleId: {
         type: String,
@@ -59,12 +81,19 @@ const userSchema = new mongoose.Schema({
 
 // Match user entered password to hashed password in database
 userSchema.methods.matchPassword = async function (enteredPassword) {
+    if (!enteredPassword || !this.password || typeof enteredPassword !== 'string') {
+        return false;
+    }
     return await bcrypt.compare(enteredPassword, this.password);
 };
 
 // Encrypt password using bcrypt
 userSchema.pre('save', async function () {
-    if (!this.isModified('password')) {
+    if (!this.isModified('password') || !this.password) {
+        return;
+    }
+    // Prevent double hashing if already a valid bcrypt hash
+    if (isBcryptHash(this.password)) {
         return;
     }
     const salt = await bcrypt.genSalt(10);
