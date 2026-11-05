@@ -15,11 +15,10 @@ const { protect } = require('../middleware/authMiddleware');
 // Note: This route is mounted separately in index.js with raw body parser
 router.post('/webhook', handleStripeWebhook);
 
-// Public invoice routes (shareable via link)
-router.get('/invoice/:invoiceNumber', getInvoiceData);
-router.get('/invoice/:invoiceNumber/pdf', downloadInvoicePDF);
-
 // Protected routes
+// Invoices: only the student, the course instructor or an admin
+router.get('/invoice/:invoiceNumber', protect, getInvoiceData);
+router.get('/invoice/:invoiceNumber/pdf', protect, downloadInvoicePDF);
 router.post('/checkout', protect, createCheckoutSession);
 router.get('/my-purchases', protect, getMyPurchases);
 router.get('/verify/:courseId', protect, verifyPurchase);

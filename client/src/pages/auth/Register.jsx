@@ -65,7 +65,15 @@ const GoogleSignUpButton = ({ onSuccess, disabled }) => {
     const signUpWithGoogle = useGoogleLogin({
         flow: 'auth-code',
         onSuccess: handleGoogleSuccess,
-        onError: () => showError('Google sign-up failed'),
+        onError: (errorResponse) => {
+            setIsGoogleLoading(false);
+            if (errorResponse?.error !== 'access_denied') {
+                showError('Google sign-up failed');
+            }
+        },
+        onNonOAuthError: () => {
+            setIsGoogleLoading(false);
+        },
     });
 
     return (
@@ -121,9 +129,29 @@ const Register = () => {
     const onSubmit = async (e) => {
         e.preventDefault();
         if (isLoading) return;
+
+        const trimmedName = name.trim();
+        const trimmedEmail = email.trim();
+
+        if (!trimmedName) {
+            showError('Please enter your full name');
+            return;
+        }
+
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!trimmedEmail || !emailRegex.test(trimmedEmail)) {
+            showError('Please enter a valid email address');
+            return;
+        }
+
+        if (!password || password.length < 6) {
+            showError('Password must be at least 6 characters');
+            return;
+        }
+
         setIsLoading(true);
         try {
-            const user = await register(name, email, password, targetRole);
+            const user = await register(trimmedName, trimmedEmail, password, targetRole);
             if (user.role === 'admin') {
                 navigate('/admin/dashboard');
             } else if (user.role === 'instructor') {

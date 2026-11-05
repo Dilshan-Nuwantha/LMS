@@ -273,8 +273,8 @@ const AppShell = ({ authRoutePaths }) => {
             <Route path="/ai-chat" element={<ProtectedRoute><AIChatPage /></ProtectedRoute>} />
             <Route path="/ai-settings" element={<ProtectedRoute><StudentAISettings /></ProtectedRoute>} />
 
-            {/* Invoice - public (shareable via link) */}
-            <Route path="/invoice/:invoiceNumber" element={<InvoicePage />} />
+            {/* Invoice - student, course instructor or admin only */}
+            <Route path="/invoice/:invoiceNumber" element={<ProtectedRoute><InvoicePage /></ProtectedRoute>} />
 
 
             {/* Instructor routes */}

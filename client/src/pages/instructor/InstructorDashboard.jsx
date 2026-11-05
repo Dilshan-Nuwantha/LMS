@@ -125,6 +125,7 @@ const InstructorDashboard = () => {
         courses = [],
         totalCourses = 0,
         totalRevenue = 0,
+        revenueByCurrency,
         totalStudents = 0,
         totalSales = 0
     } = dashboard;
@@ -292,6 +293,13 @@ const InstructorDashboard = () => {
                             <span className="text-2xl font-black text-slate-900 dark:text-white block">
                                 {formatCurrency(totalRevenue)}
                             </span>
+
+                            {/* USD sales are kept separate - LKR and USD can't be added together */}
+                            {revenueByCurrency?.USD?.earned > 0 && (
+                                <span className="text-sm font-bold text-slate-700 dark:text-slate-300 block">
+                                    + ${revenueByCurrency.USD.earned.toLocaleString('en-US')}
+                                </span>
+                            )}
 
                             <span className="text-xs font-semibold text-slate-500">
                                 Total Earnings

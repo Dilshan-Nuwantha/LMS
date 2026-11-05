@@ -153,6 +153,14 @@ const CourseLanding = () => {
                 couponCode: couponApplied ? couponCode : null
             });
 
+            // Free course / 100% coupon: enrolled directly, no payment needed
+            if (res.data.enrolled) {
+                setHasPurchased(true);
+                showSuccess('You are now enrolled in this course!');
+                setPurchasing(false);
+                return;
+            }
+
             // Redirect to Stripe checkout
             if (res.data.url) {
                 window.location.href = res.data.url;

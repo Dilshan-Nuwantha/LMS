@@ -42,7 +42,15 @@ const GoogleLoginButton = ({ onSuccess, disabled }) => {
         flow: 'auth-code',
         prompt: 'select_account',
         onSuccess: handleGoogleSuccess,
-        onError: () => showError('Google sign-in failed'),
+        onError: (errorResponse) => {
+            setIsGoogleLoading(false);
+            if (errorResponse?.error !== 'access_denied') {
+                showError('Google sign-up failed');
+            }
+        },
+        onNonOAuthError: () => {
+            setIsGoogleLoading(false);
+        },
     });
 
     return (
@@ -118,9 +126,16 @@ const Login = () => {
     const onSubmit = async (e) => {
         e.preventDefault();
         if (isLoading) return;
+
+        const trimmedEmail = email.trim();
+        if (!trimmedEmail || !password) {
+            showError('Please enter both email and password');
+            return;
+        }
+
         setIsLoading(true);
         try {
-            const user = await login(email, password, targetRole);
+            const user = await login(trimmedEmail, password, targetRole);
             if (!finishLogin(user)) return;
             if (user.warnings?.length > 0) {
                 showWarning(`You have ${user.warnings.length} warning${user.warnings.length > 1 ? 's' : ''} on your account. Check your profile for details.`);

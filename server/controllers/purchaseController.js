@@ -5,6 +5,10 @@ const Purchase = require('../models/Purchase');
 const Progress = require('../models/Progress');
 const Coupon = require('../models/Coupon');
 const { generateInvoicePDF } = require('../services/invoiceService');
+const {
+    createPurchaseWithInvoice,
+    isDuplicateKey
+} = require('../services/purchaseService');
 
 const requireStripe = () => {
     if (!stripe) {
@@ -14,6 +18,32 @@ const requireStripe = () => {
     }
 
     return stripe;
+};
+
+// Enroll the student once a purchase is completed (paid or free)
+const grantCourseAccess = async ({ userId, courseId, couponId }) => {
+    if (couponId) {
+        await Coupon.findByIdAndUpdate(couponId, {
+            $inc: { usedCount: 1 }
+        });
+    }
+
+    await Course.findByIdAndUpdate(courseId, {
+        $inc: { enrollmentCount: 1 }
+    });
+
+    const existingProgress = await Progress.findOne({
+        student: userId,
+        course: courseId
+    });
+
+    if (!existingProgress) {
+        await Progress.create({
+            student: userId,
+            course: courseId,
+            completedLectures: []
+        });
+    }
 };
 
 // @desc    Create Stripe checkout session
@@ -52,77 +82,118 @@ const createCheckoutSession = asyncHandler(async (req, res) => {
         throw new Error('You cannot purchase your own course');
     }
 
-    // Remove any previous pending/failed purchase to avoid duplicate key error
-    await Purchase.deleteOne({
-        user: req.user.id,
-        course: courseId,
-        status: { $in: ['pending', 'failed'] }
-    });
-
-    const clientUrl = process.env.CLIENT_URL || 'http://localhost:5173';
-
     let finalPrice = course.price;
     let discountAmount = 0;
     let couponApplied = null;
 
-    // Apply coupon if provided
+    // Apply coupon if provided - reject instead of silently charging full price
     if (couponCode) {
         const coupon = await Coupon.findOne({
             code: couponCode.toUpperCase(),
             course: courseId
         });
 
-        if (coupon) {
-            const validity = coupon.isValid();
-            if (validity.valid) {
-                discountAmount = coupon.calculateDiscount(course.price);
-                finalPrice = course.price - discountAmount;
-                couponApplied = coupon._id;
-            }
+        if (!coupon) {
+            res.status(400);
+            throw new Error('Invalid coupon code');
         }
+
+        const validity = coupon.isValid();
+        if (!validity.valid) {
+            res.status(400);
+            throw new Error(validity.reason);
+        }
+
+        discountAmount = coupon.calculateDiscount(course.price);
+        finalPrice = Math.max(course.price - discountAmount, 0);
+        couponApplied = coupon._id;
     }
 
-    // Ensure price is at least 1 (Stripe minimum)
-    finalPrice = Math.max(finalPrice, 1);
+    // Remove any previous pending/failed purchase to avoid duplicate key error.
+    // If that older Stripe session still gets paid, the webhook re-attaches it by user + course.
+    await Purchase.deleteOne({
+        user: req.user.id,
+        course: courseId,
+        status: { $in: ['pending', 'failed'] }
+    });
+
+    // Free course or 100% coupon: enroll directly without Stripe
+    if (finalPrice <= 0) {
+        const purchase = await createPurchaseWithInvoice({
+            user: req.user.id,
+            course: courseId,
+            instructor: course.user,
+            amount: 0,
+            originalPrice: course.price,
+            currency: course.currency,
+            status: 'completed',
+            couponApplied: couponApplied,
+            discountAmount: discountAmount,
+            purchasedAt: new Date(),
+            invoiceStatus: 'paid'
+        });
+
+        await grantCourseAccess({ userId: req.user.id, courseId, couponId: couponApplied });
+
+        return res.status(200).json({
+            enrolled: true,
+            invoiceNumber: purchase.invoiceNumber
+        });
+    }
+
+    const clientUrl = process.env.CLIENT_URL || 'http://localhost:5173';
+
+    const productData = { name: course.title };
+    if (course.description) {
+        productData.description = course.description.substring(0, 500);
+    }
+    // Stripe only accepts absolute https image URLs
+    if (/^https:\/\//i.test(course.thumbnail || '')) {
+        productData.images = [course.thumbnail];
+    }
 
     // Create Stripe checkout session
     const stripeClient = requireStripe();
 
-    const session = await stripeClient.checkout.sessions.create({
-        payment_method_types: ['card'],
-        line_items: [
-            {
-                price_data: {
-                    currency: course.currency.toLowerCase(),
-                    product_data: {
-                        name: course.title,
-                        description: course.description.substring(0, 500),
-                        images: course.thumbnail ? [course.thumbnail] : []
+    let session;
+    try {
+        session = await stripeClient.checkout.sessions.create({
+            payment_method_types: ['card'],
+            line_items: [
+                {
+                    price_data: {
+                        currency: course.currency.toLowerCase(),
+                        product_data: productData,
+                        unit_amount: Math.round(finalPrice * 100) // Stripe uses cents
                     },
-                    unit_amount: Math.round(finalPrice * 100) // Stripe uses cents
-                },
-                quantity: 1
+                    quantity: 1
+                }
+            ],
+            mode: 'payment',
+            billing_address_collection: 'required',
+            success_url: `${clientUrl}/checkout/success?session_id={CHECKOUT_SESSION_ID}`,
+            cancel_url: `${clientUrl}/marketplace/course/${courseId}`,
+            customer_email: req.user.email,
+            metadata: {
+                courseId: courseId,
+                userId: req.user.id,
+                instructorId: course.user.toString(),
+                couponId: couponApplied ? couponApplied.toString() : '',
+                discountAmount: discountAmount.toString(),
+                originalPrice: course.price.toString()
             }
-        ],
-        mode: 'payment',
-        billing_address_collection: 'required',
-        success_url: `${clientUrl}/checkout/success?session_id={CHECKOUT_SESSION_ID}`,
-        cancel_url: `${clientUrl}/marketplace/course/${courseId}`,
-        customer_email: req.user.email,
-        metadata: {
-            courseId: courseId,
-            userId: req.user.id,
-            instructorId: course.user.toString(),
-            couponId: couponApplied ? couponApplied.toString() : '',
-            discountAmount: discountAmount.toString()
+        });
+    } catch (err) {
+        // e.g. amount below Stripe's minimum charge (about USD 0.50) or an unsupported currency
+        if (err.type === 'StripeInvalidRequestError') {
+            res.status(400);
+            throw new Error(`Payment could not be started: ${err.message}`);
         }
-    });
-
-    // Generate invoice number at checkout initiation
-    const invoiceNumber = await Purchase.generateInvoiceNumber();
+        throw err;
+    }
 
     // Create pending purchase record with invoice
-    await Purchase.create({
+    await createPurchaseWithInvoice({
         user: req.user.id,
         course: courseId,
         instructor: course.user,
@@ -133,7 +204,6 @@ const createCheckoutSession = asyncHandler(async (req, res) => {
         status: 'pending',
         couponApplied: couponApplied,
         discountAmount: discountAmount,
-        invoiceNumber: invoiceNumber,
         invoiceStatus: 'created'
     });
 
@@ -171,6 +241,9 @@ const handleStripeWebhook = asyncHandler(async (req, res) => {
             const expiredSession = event.data.object;
             await handleExpiredSession(expiredSession);
             break;
+        case 'charge.refunded':
+            await handleRefund(event.data.object);
+            break;
         default:
             console.log(`Unhandled event type ${event.type}`);
     }
@@ -178,60 +251,111 @@ const handleStripeWebhook = asyncHandler(async (req, res) => {
     res.status(200).json({ received: true });
 });
 
-// Helper function to handle successful payment
+// Helper function to handle successful payment.
+// Safe to call more than once for the same session (webhook retries + success page check).
 const handleSuccessfulPayment = async (session) => {
-    const { courseId, userId, couponId } = session.metadata;
+    const { courseId, userId, instructorId, couponId, discountAmount, originalPrice } = session.metadata || {};
 
-    // Update purchase status and mark invoice as paid
-    const purchase = await Purchase.findOneAndUpdate(
-        { stripeSessionId: session.id },
+    if (!courseId || !userId) {
+        console.error('Checkout session is missing purchase metadata:', session.id);
+        return;
+    }
+
+    if (session.payment_status !== 'paid') {
+        return;
+    }
+
+    const paidFields = {
+        status: 'completed',
+        stripeSessionId: session.id,
+        stripePaymentIntentId: session.payment_intent,
+        amount: session.amount_total / 100,
+        currency: session.currency.toUpperCase(),
+        couponApplied: couponId || null,
+        discountAmount: Number(discountAmount) || 0,
+        purchasedAt: new Date(),
+        invoiceStatus: 'paid'
+    };
+
+    // Atomic: only the first caller flips the purchase to completed, so counters are bumped once.
+    // Matched by user + course so a payment from an older (replaced) checkout session still lands.
+    // The payment-intent check stops a replayed event for an already refunded payment from
+    // granting access again.
+    let purchase = await Purchase.findOneAndUpdate(
         {
-            status: 'completed',
-            stripePaymentIntentId: session.payment_intent,
-            purchasedAt: new Date(),
-            invoiceStatus: 'paid'
+            user: userId,
+            course: courseId,
+            status: { $ne: 'completed' },
+            stripePaymentIntentId: { $ne: session.payment_intent }
         },
+        paidFields,
         { new: true }
     );
 
     if (!purchase) {
-        console.error('Purchase not found for session:', session.id);
+        const existing = await Purchase.findOne({ user: userId, course: courseId, status: { $in: ['completed', 'refunded'] } });
+        if (existing?.status === 'refunded') {
+            return; // replay of a payment that was already refunded
+        }
+        if (existing) {
+            if (existing.stripeSessionId !== session.id) {
+                console.warn(`Duplicate payment: session ${session.id} paid for course ${courseId} that user ${userId} already owns. Refund payment ${session.payment_intent} in Stripe.`);
+            }
+            return;
+        }
+
+        // The pending record was removed (e.g. replaced by a newer checkout) - recreate it
+        try {
+            purchase = await createPurchaseWithInvoice({
+                user: userId,
+                course: courseId,
+                instructor: instructorId,
+                originalPrice: Number(originalPrice) || paidFields.amount,
+                ...paidFields
+            });
+        } catch (err) {
+            // Another request created it at the same moment and already granted access
+            if (isDuplicateKey(err)) return;
+            throw err;
+        }
+    }
+
+    await grantCourseAccess({ userId, courseId, couponId });
+
+    console.log(`Payment successful for course ${courseId} by user ${userId}`);
+};
+
+// Helper function to handle a refund made in Stripe: a full refund removes course access.
+// A partial refund (e.g. a goodwill discount) keeps access.
+const handleRefund = async (charge) => {
+    if (!charge.refunded) {
+        console.log(`Partial refund on payment ${charge.payment_intent} - course access kept`);
         return;
     }
 
-    // Increment coupon usage
-    if (couponId) {
-        await Coupon.findByIdAndUpdate(couponId, {
-            $inc: { usedCount: 1 }
-        });
+    // Only matches the payment that bought the course, so refunding a duplicate payment keeps access
+    const purchase = await Purchase.findOneAndUpdate(
+        { stripePaymentIntentId: charge.payment_intent, status: 'completed' },
+        { status: 'refunded', invoiceStatus: 'refunded' },
+        { new: true }
+    );
+
+    if (!purchase) {
+        return;
     }
 
-    // Increment course enrollment count
-    await Course.findByIdAndUpdate(courseId, {
-        $inc: { enrollmentCount: 1 }
+    await Progress.deleteOne({ student: purchase.user, course: purchase.course });
+    await Course.findByIdAndUpdate(purchase.course, {
+        $inc: { enrollmentCount: -1 }
     });
 
-    // Create progress record for the student
-    const existingProgress = await Progress.findOne({
-        student: userId,
-        course: courseId
-    });
-
-    if (!existingProgress) {
-        await Progress.create({
-            student: userId,
-            course: courseId,
-            completedLectures: []
-        });
-    }
-
-    console.log(`Payment successful for course ${courseId} by user ${userId}`);
+    console.log(`Refund processed for course ${purchase.course} by user ${purchase.user} - access removed`);
 };
 
 // Helper function to handle expired session
 const handleExpiredSession = async (session) => {
     await Purchase.findOneAndUpdate(
-        { stripeSessionId: session.id },
+        { stripeSessionId: session.id, status: 'pending' },
         { status: 'failed' }
     );
 };
@@ -301,30 +425,29 @@ const verifyPurchase = asyncHandler(async (req, res) => {
 const getSessionStatus = asyncHandler(async (req, res) => {
     const { sessionId } = req.params;
 
-    let purchase = await Purchase.findOne({
+    const findPurchase = () => Purchase.findOne({
         stripeSessionId: sessionId,
         user: req.user.id
     }).populate('course', 'title');
 
-    if (!purchase) {
-        res.status(404);
-        throw new Error('Session not found');
-    }
+    let purchase = await findPurchase();
 
-    // If still pending, verify directly with Stripe (handles cases where webhook hasn't fired)
-    if (purchase.status === 'pending') {
+    // If missing or still pending, verify directly with Stripe (handles cases where webhook hasn't fired)
+    if (!purchase || purchase.status === 'pending') {
         try {
             const session = await requireStripe().checkout.sessions.retrieve(sessionId);
-            if (session.payment_status === 'paid') {
+            if (session.metadata?.userId === req.user.id && session.payment_status === 'paid') {
                 await handleSuccessfulPayment(session);
-                purchase = await Purchase.findOne({
-                    stripeSessionId: sessionId,
-                    user: req.user.id
-                }).populate('course', 'title');
+                purchase = await findPurchase();
             }
         } catch (err) {
             console.error('Stripe session verification failed:', err.message);
         }
+    }
+
+    if (!purchase) {
+        res.status(404);
+        throw new Error('Session not found');
     }
 
     res.status(200).json({
@@ -333,21 +456,34 @@ const getSessionStatus = asyncHandler(async (req, res) => {
     });
 });
 
-// @desc    Get invoice data (shareable - public by invoice number)
-// @route   GET /api/purchase/invoice/:invoiceNumber
-// @access  Public
-const getInvoiceData = asyncHandler(async (req, res) => {
-    const { invoiceNumber } = req.params;
-
-    const purchase = await Purchase.findOne({ invoiceNumber })
+// Load an invoice the current user may see: the student who bought it, the
+// course instructor, or an admin. Anyone else gets the same 404 as a missing
+// invoice, so invoice numbers can't be probed.
+const findInvoiceForUser = async (req, res) => {
+    const purchase = await Purchase.findOne({ invoiceNumber: req.params.invoiceNumber })
         .populate('user', 'name email')
         .populate('course', 'title description category level')
         .populate('instructor', 'name');
 
-    if (!purchase) {
+    const canView = purchase && (
+        req.user.role === 'admin' ||
+        purchase.user?._id.toString() === req.user.id ||
+        purchase.instructor?._id.toString() === req.user.id
+    );
+
+    if (!canView) {
         res.status(404);
         throw new Error('Invoice not found');
     }
+
+    return purchase;
+};
+
+// @desc    Get invoice data
+// @route   GET /api/purchase/invoice/:invoiceNumber
+// @access  Private (student, course instructor, admin)
+const getInvoiceData = asyncHandler(async (req, res) => {
+    const purchase = await findInvoiceForUser(req, res);
 
     res.status(200).json({
         invoiceNumber: purchase.invoiceNumber,
@@ -375,19 +511,9 @@ const getInvoiceData = asyncHandler(async (req, res) => {
 
 // @desc    Download invoice as PDF
 // @route   GET /api/purchase/invoice/:invoiceNumber/pdf
-// @access  Public
+// @access  Private (student, course instructor, admin)
 const downloadInvoicePDF = asyncHandler(async (req, res) => {
-    const { invoiceNumber } = req.params;
-
-    const purchase = await Purchase.findOne({ invoiceNumber })
-        .populate('user', 'name email')
-        .populate('course', 'title description category level')
-        .populate('instructor', 'name');
-
-    if (!purchase) {
-        res.status(404);
-        throw new Error('Invoice not found');
-    }
+    const purchase = await findInvoiceForUser(req, res);
 
     generateInvoicePDF(purchase, res);
 });
