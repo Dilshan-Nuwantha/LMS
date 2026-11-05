@@ -375,14 +375,6 @@ const Login = () => {
                                     </Link>
                                 </p>
                             )}
-                            {isAdminLogin && (
-                                <p>
-                                    Need an admin account?{' '}
-                                    <Link to="/admin/register" className={`font-semibold ${accentText} ${accentHoverText} transition-colors`}>
-                                        Register as Admin
-                                    </Link>
-                                </p>
-                            )}
                         </div>
                     </div>
                 </div>

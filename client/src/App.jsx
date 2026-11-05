@@ -230,7 +230,6 @@ const AppShell = ({ authRoutePaths }) => {
             <Route path="/teacher/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
             <Route path="/teacher/register" element={<Register />} />
-            <Route path="/admin/register" element={<Register />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route path="/verify-otp" element={<OTPInput />} />
             <Route path="/reset-password" element={<Reset />} />

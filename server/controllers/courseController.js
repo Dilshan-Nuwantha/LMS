@@ -8,6 +8,7 @@ const QuizAttempt = require('../models/QuizAttempt');
 const Quiz = require('../models/Quiz');
 const CourseTeacher = require('../models/CourseTeacher');
 const { canManage, getTeacherPermissions } = require('../middleware/ownershipMiddleware');
+const { isSafeUrl } = require('../utils/url');
 
 // @desc    Create new course
 // @route   POST /api/courses
@@ -240,6 +241,11 @@ const addLectureToSection = asyncHandler(async (req, res) => {
     const { title, number, resourceUrl, description, dueDate } = req.body;
     const { id, sectionId } = req.params;
 
+    if (!isSafeUrl(resourceUrl)) {
+        res.status(400);
+        throw new Error('Resource URL must be a valid http or https URL');
+    }
+
     // Course is attached by verifyCourseOwnership middleware
     const course = req.course;
 
@@ -286,6 +292,11 @@ const addLectureToSection = asyncHandler(async (req, res) => {
 // @access  Private (Admin or Course Owner)
 const updateLecture = asyncHandler(async (req, res) => {
     const { title, resourceUrl, description, dueDate } = req.body;
+
+    if (!isSafeUrl(resourceUrl)) {
+        res.status(400);
+        throw new Error('Resource URL must be a valid http or https URL');
+    }
 
     // Lecture and course are attached by verifyLectureOwnership middleware
     const lecture = req.lecture;

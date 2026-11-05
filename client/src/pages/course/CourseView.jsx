@@ -7,6 +7,7 @@ import StatusSelector from '../../components/ui/StatusSelector';
 import LectureSidebarItem from '../../components/course/LectureSidebarItem';
 import Pagination from '../../components/ui/Pagination';
 import { showSuccess, showError, showWarning } from '../../utils/toast';
+import { openExternalLink } from '../../utils/safeLink';
 
 const getYouTubeEmbedUrl = (url) => {
     try {
@@ -226,7 +227,7 @@ const CourseView = () => {
     // Handle resource download
     const handleResourceDownload = async (resource) => {
         if (resource.fileType === 'link') {
-            window.open(resource.url, '_blank');
+            openExternalLink(resource.url);
             return;
         }
         try {
@@ -247,7 +248,7 @@ const CourseView = () => {
     // Handle inline view
     const handleResourceView = async (resource) => {
         if (resource.fileType === 'link') {
-            window.open(resource.url, '_blank');
+            openExternalLink(resource.url);
             return;
         }
         try {

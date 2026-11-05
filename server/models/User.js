@@ -11,7 +11,9 @@ const userSchema = new mongoose.Schema({
     email: {
         type: String,
         required: [true, 'Please add an email'],
-        unique: true
+        unique: true,
+        lowercase: true,
+        trim: true
     },
     password: {
         type: String,
@@ -85,6 +87,14 @@ userSchema.methods.matchPassword = async function (enteredPassword) {
         return false;
     }
     return await bcrypt.compare(enteredPassword, this.password);
+};
+
+// Find an account by email. The second lookup covers accounts stored with capitals
+// before emails were normalized, until scripts/normalizeUserEmails.js has been run.
+userSchema.statics.findByEmail = async function (email, projection = '') {
+    const normalized = String(email ?? '').toLowerCase().trim();
+    return await this.findOne({ email: normalized }).select(projection)
+        || await this.findOne({ email: normalized }).collation({ locale: 'en', strength: 2 }).select(projection);
 };
 
 // Encrypt password using bcrypt

@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import api from '../../api/axios';
 import { FaUpload, FaTrash, FaDownload, FaFilePdf, FaImage, FaFileAlt, FaLink, FaToggleOn, FaToggleOff, FaTimes, FaCloudUploadAlt, FaUserGraduate, FaChalkboardTeacher, FaEye, FaPaperclip, FaBook, FaEdit } from 'react-icons/fa';
 import { showSuccess, showError } from '../../utils/toast';
+import { openExternalLink } from '../../utils/safeLink';
 
 const FILE_TYPE_ICONS = {
     pdf: FaFilePdf,
@@ -178,7 +179,7 @@ const ResourceManager = ({ courseId, isTeacher = false, userId = null, sections 
 
     const handleDownload = async (resource) => {
         if (resource.fileType === 'link') {
-            window.open(resource.url, '_blank');
+            openExternalLink(resource.url);
             return;
         }
         try {
@@ -200,7 +201,7 @@ const ResourceManager = ({ courseId, isTeacher = false, userId = null, sections 
 
     const handleView = async (resource) => {
         if (resource.fileType === 'link') {
-            window.open(resource.url, '_blank');
+            openExternalLink(resource.url);
             return;
         }
         try {
