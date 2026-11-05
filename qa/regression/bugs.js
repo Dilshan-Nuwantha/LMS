@@ -274,7 +274,7 @@ const bugs = [
         'Add a JSON 404 for /api.',
         ['ERR-004']),
     bug('LMS-069', 'Low', 'Bug', 'Client code quality errors', 'client/src/pages/course/ManageCoupons.jsx:13',
-        'Lint reports 92 errors and 35 warnings. That includes 13 conditional hook errors in ManageCoupons, which could crash if courseId were ever missing. Current callers always pass it.',
+        'Lint reports 91 errors and 35 warnings. That includes 13 conditional hook errors in ManageCoupons, which could crash if courseId were ever missing. Current callers always pass it.',
         'Move the early return below the hooks, then clear the lint errors.',
         ['BLD-002']),
     bug('LMS-070', 'Low', 'Bug', 'Unused component imports an undeclared package', 'client/src/components/course/VideoPlayer.jsx:2',
@@ -287,14 +287,18 @@ const bugs = [
         ['UI-001'])
 ];
 
+// Fixed after the regression run. Their failed tests must now pass, which run.js --report checks.
+const FIXED = new Set(['LMS-001', 'LMS-002', 'LMS-003', 'LMS-004']);
+bugs.forEach(b => { b.status = FIXED.has(b.id) ? 'Fixed' : 'Open'; });
+
 const manualResults = {
-    'BLD-001': ['PASS', 'Build succeeded in 45 seconds'],
-    'BLD-002': ['FAIL', '92 errors, 35 warnings'],
+    'BLD-001': ['PASS', 'Build succeeded in 17 seconds'],
+    'BLD-002': ['FAIL', '91 errors, 35 warnings'],
     'BLD-003': ['FAIL', '1 critical, 6 high, 2 moderate'],
     'BLD-004': ['FAIL', '1 high'],
     'BLD-005': ['PASS', 'No .env with secrets and no live keys in history. client/.env.production is tracked but holds public values only'],
     'BLD-006': ['FAIL', 'react-player is imported but not declared'],
-    'BLD-007': ['PASS', '12 of 12 passed against a local database'],
+    'BLD-007': ['PASS', '13 of 13 passed against a local database'],
     'UI-001': ['FAIL', 'Pages render; React key error in the console'],
     'UI-002': ['PASS', 'Landed on /my-learning'],
     'UI-003': ['PASS', 'Toast showed "Invalid credentials"'],
@@ -304,10 +308,13 @@ const manualResults = {
     'UI-007': ['PASS', 'Theme changed and survived a reload'],
     'UI-008': ['PASS', 'No overflow on home, marketplace or dashboard at 375px'],
     'UI-009': ['PASS', 'Title, Rs. 5,000 and curriculum rendered'],
-    'UI-010': ['FAIL', 'In real Chrome the script ran and read the token. The app\'s embedded browser pane blocked the popup'],
+    'UI-010': ['PASS', 'In real Chrome, a stored javascript: link no longer runs or reads the token, and a normal link still opens'],
     'UI-011': ['PASS', 'React replaced the link with a blocked URL'],
-    'UI-012': ['FAIL', 'A guest gets a working "Create Admin Account" form'],
+    'UI-012': ['PASS', '/admin/register now shows the 404 page'],
     'UI-013': ['FAIL', 'Tab title says "Skill Path"']
 };
 
-module.exports = { bugs, manualResults };
+// Browser and build checks repeated after the critical fixes
+const retested = ['BLD-001', 'BLD-002', 'BLD-007', 'UI-010', 'UI-012'];
+
+module.exports = { bugs, manualResults, retested };

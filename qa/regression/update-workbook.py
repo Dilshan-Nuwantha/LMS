@@ -4,6 +4,7 @@ Edits the sheet XML directly so every other part of the workbook stays as it is.
 Also widens the Dashboard formulas and the dropdowns to row 1000, which the
 conditional formatting on these tabs already covers. Refuses to write over a used row.
 """
+import html
 import json
 import os
 import re
@@ -15,9 +16,12 @@ QA = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..')
 BOOK = os.path.join(QA, 'TENZE_LMS_Management_Workbook_Updated.xlsx')
 ROWS = json.load(open(os.path.join(QA, 'results', 'workbook-rows.json'), encoding='utf-8'))
 LAST_ROW = 1000
+# Original test cases this run did not cover. The other 18 are replaced, see BUG_REPORT.md.
+KEEP_TESTS = {'TC-RBAC-002', 'TC-NOTIF-001', 'TC-INT-001', 'TC-SEC-002'}
+TEST_COLUMNS = 14
 ALLOWED = {
     'bug': {4: {'Critical', 'High', 'Medium', 'Low'}, 5: {'Critical', 'High', 'Medium', 'Low'},
-            7: {'Open'}, 9: {'Local', 'Staging', 'Production'}},
+            7: {'Open', 'Fixed'}, 9: {'Local', 'Staging', 'Production'}},
     'test': {7: {'Pass', 'Fail'}, 8: {'Manual', 'Automated'}, 9: {'Critical', 'High', 'Medium', 'Low'}},
 }
 ROW_RE = re.compile(r'<row r="(\d+)"([^>]*?)(?:/>|>(.*?)</row>)', re.S)
@@ -35,7 +39,7 @@ def styles(xml, row):
     return {c.group(1): re.search(r's="(\d+)"', c.group(2)).group(1) for c in CELL_RE.finditer(body)}
 
 
-def add_rows(xml, rows, first_row, even_style, odd_style):
+def add_rows(xml, rows, first_row, even_style, odd_style, replace_before=0):
     new = {}
     for i, values in enumerate(rows):
         n = first_row + i
@@ -54,7 +58,7 @@ def add_rows(xml, rows, first_row, even_style, odd_style):
         n = int(m.group(1))
         if n not in new:
             return m.group(0)
-        if m.group(3) and '<v>' in m.group(3):
+        if n >= replace_before and m.group(3) and '<v>' in m.group(3):
             sys.exit(f'Row {n} already has data, nothing was changed')
         return new[n]
 
@@ -91,6 +95,24 @@ def existing(xml, shared, column):
     return dict(out)
 
 
+def kept_tests(xml, shared):
+    """Values of the original test cases that stay, in their original order."""
+    kept = []
+    for m in ROW_RE.finditer(xml):
+        if int(m.group(1)) == 1 or not m.group(3):
+            continue
+        values = [''] * TEST_COLUMNS
+        for c in CELL_RE.finditer(m.group(3)):
+            v = re.search(r'<v>(.*?)</v>', c.group(3) or '')
+            if v:
+                values[ord(c.group(1)) - ord('A')] = html.unescape(shared[int(v.group(1))])
+        if values[0] in KEEP_TESTS:
+            kept.append(values)
+    if len(kept) != len(KEEP_TESTS):
+        sys.exit('Kept test cases not found, nothing was changed')
+    return kept
+
+
 def main():
     for kind, rows in (('bug', ROWS['bugRows']), ('test', ROWS['testRows'])):
         for row in rows:
@@ -98,7 +120,9 @@ def main():
                 if row[index] not in allowed:
                     sys.exit(f'{row[0]}: "{row[index]}" is not an allowed value')
 
-    with zipfile.ZipFile(BOOK) as z:
+    # A base file lets the rows be rebuilt from the untouched workbook after a later run
+    base = sys.argv[1] if len(sys.argv) > 1 else BOOK
+    with zipfile.ZipFile(base) as z:
         items = [(i, z.read(i.filename)) for i in z.infolist()]
     files = {i.filename: data for i, data in items}
     dash = files['xl/worksheets/sheet1.xml'].decode('utf-8')
@@ -113,10 +137,10 @@ def main():
         sys.exit(f'Expected next rows 6 and 24, found {bug_first} and {test_first}, nothing was changed')
 
     old_bug = {'E': existing(bug, shared, 'E'), 'H': existing(bug, shared, 'H')}
-    old_test_results = existing(test, shared, 'H')
+    test_rows = kept_tests(test, shared) + ROWS['testRows']
 
     bug = widen_dropdowns(add_rows(bug, ROWS['bugRows'], bug_first, styles(bug, 6), styles(bug, 7)))
-    test = widen_dropdowns(add_rows(test, ROWS['testRows'], test_first, styles(test, 24), styles(test, 25)))
+    test = widen_dropdowns(add_rows(test, test_rows, 2, styles(test, 24), styles(test, 25), replace_before=test_first))
 
     dash = re.sub(r"('Bug Tracker'!\$[A-Z]\$2:\$[A-Z]\$)50\b", rf'\g<1>{LAST_ROW}', dash)
     dash = re.sub(r"('QA Test Cases'!\$[A-Z]\$2:\$[A-Z]\$)100\b", rf'\g<1>{LAST_ROW}', dash)
@@ -124,7 +148,7 @@ def main():
     # Stored results, so viewers that do not recalculate still show the right numbers
     severities = list(old_bug['E'].values()) + [r[4] for r in ROWS['bugRows']]
     statuses = list(old_bug['H'].values()) + [r[7] for r in ROWS['bugRows']]
-    results = list(old_test_results.values()) + [r[7] for r in ROWS['testRows']]
+    results = [r[7] for r in test_rows]
     total, executed = len(results), sum(r != 'Not Run' for r in results)
     passed, failed = results.count('Pass'), results.count('Fail')
     open_sev = [s for s, st in zip(severities, statuses) if st != 'Closed']

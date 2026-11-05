@@ -1,21 +1,21 @@
 # Tenz Learn - Regression Bug Report
 
-**Branch:** develop at commit cd8554b  
+**Branch:** develop at commit cd8554b, plus the uncommitted fixes for LMS-001 to LMS-004  
 **Run date:** 2026-11-05  
-**Result:** 370 test cases, 249 passed, 121 failed  
-**Findings:** 69 (4 Critical, 17 High, 36 Medium, 12 Low)
+**Result:** 378 test cases, 269 passed, 109 failed  
+**Open findings:** 65 (0 Critical, 17 High, 36 Medium, 12 Low). **Fixed:** 4
 
-**Recommendation: do not release this branch.** LMS-001 to LMS-004 need fixing first. LMS-001 gives any visitor full admin access, and LMS-004 locks out existing users.
+**Recommendation: do not release yet.** All Critical findings are fixed, but the workbook's Production Gate needs zero High bugs and 17 remain open. The fixes also need the database steps listed under Fixed.
 
 ## Summary
 
 | Severity | Security issues | Vulnerabilities | Bugs | Total |
 |---|---|---|---|---|
-| Critical | 2 | 1 | 1 | 4 |
+| Critical | 0 | 0 | 0 | 0 |
 | High | 8 | 2 | 7 | 17 |
 | Medium | 13 | 0 | 23 | 36 |
 | Low | 4 | 1 | 7 | 12 |
-| **Total** | **27** | **4** | **38** | **69** |
+| **Total** | **25** | **3** | **37** | **65** |
 
 - **Security issue:** a flaw in the app's own access control or data handling.
 - **Vulnerability:** an exploitable weakness, such as XSS, or a known flaw in a dependency.
@@ -25,7 +25,7 @@
 
 | Module | Cases | Passed | Failed |
 |---|---|---|---|
-| Authentication | 41 | 33 | 8 |
+| Authentication | 43 | 37 | 6 |
 | Course management | 25 | 18 | 7 |
 | Lecture progress | 11 | 6 | 5 |
 | Co-instructors | 14 | 11 | 3 |
@@ -41,14 +41,14 @@
 | Reviews | 15 | 12 | 3 |
 | Notifications | 9 | 7 | 2 |
 | Activity log | 8 | 4 | 4 |
-| Security | 50 | 14 | 36 |
+| Security | 56 | 28 | 28 |
 | Error handling | 5 | 1 | 4 |
 | Build and dependencies | 7 | 3 | 4 |
-| User interface | 13 | 9 | 4 |
+| User interface | 13 | 11 | 2 |
 
 ## How this was tested
 
-- The API suite ran 350 cases against the real server code at commit cd8554b on develop, using a temporary local MongoDB. The hosted lms-dev database was not used.
+- The API suite ran 358 cases against the real server code at commit cd8554b on develop, using a temporary local MongoDB. The hosted lms-dev database was not used.
 - Stripe, email, Google sign-in and the AI providers were local stand-ins, so **no real payment, email or AI request was made**. Stripe webhook signatures were verified for real. Outbound calls blocked: 0.
 - Production-only behaviour (rate limits, stack traces, cron secret) ran against a second instance with NODE_ENV=production.
 - UI checks ran on commit 4280b9e and were not repeated on cd8554b. LMS-003 was confirmed in real Chrome with a temporary profile, and its code has not changed since.
@@ -61,46 +61,6 @@
 - UI coverage was a smoke test of the main pages. Instructor and admin screens were tested through the API only.
 
 ## Critical
-
-### LMS-001: Anyone can create an admin account
-
-**Type:** Security  
-**Where:** server/routes/authRoutes.js:39, :41; server/controllers/authController.js:56-57; client/src/App.jsx:233  
-**Failed tests:** SEC-001, SEC-002, SEC-003, SEC-004, UI-012
-
-A guest can register as admin through /auth/admin/register, /auth/admin/google, the /admin/register page, or by sending role: "admin" to /auth/register. In the test, a guest-created admin read every user record. SRS 10.2 says there is no admin self-registration.
-
-**Fix:** Remove the admin register and Google routes and the /admin/register page. Accept no role from the request body. Create admins only with a server-side script.
-
-### LMS-002: Passwords, AI keys and bank details are stored in plain text in the activity log
-
-**Type:** Security  
-**Where:** server/middleware/activityLogger.js:20-25  
-**Failed tests:** SEC-006, SEC-007, SEC-008
-
-The logger removes only `password` and `token`. It keeps currentPassword, newPassword, apiKey and accountNumber in Activity.data, and admins and the user can read them back through the API. This also defeats the AES encryption of AI keys.
-
-**Fix:** Log an allowlist of safe fields, not the whole body. Delete the existing data field from stored Activity records, then ask affected users to change those passwords and AI keys.
-
-### LMS-003: Stored XSS: a resource link can steal the login token
-
-**Type:** Vulnerability  
-**Where:** server/controllers/resourceController.js:48; client/src/components/course/ResourceManager.jsx:181, :203; client/src/pages/course/CourseView.jsx:229, :250  
-**Failed tests:** SEC-034, UI-010
-
-Resource URLs are not validated, and the client passes them to window.open. In real Chrome, one click on a javascript: link ran the script on the app origin and read the token from localStorage. Instructors can plant this, and so can students when uploads are enabled. An admin impersonating someone also has adminToken in localStorage.
-
-**Fix:** Allow only http and https URLs on the server, and check again in the client before window.open. Add a Content-Security-Policy, and move tokens to httpOnly cookies when possible.
-
-### LMS-004: Existing accounts with capitals in the email are locked out
-
-**Type:** Bug  
-**Where:** server/controllers/authController.js:133, :315; introduced by commit 4280b9e  
-**Failed tests:** AUTH-039, AUTH-040
-
-Login and password reset now lowercase the email before searching, but older accounts keep the email as typed and no migration exists. Those users get "Invalid credentials", and their reset request reports success without sending anything. This is a regression on this branch.
-
-**Fix:** Before release, count affected users with the filter { email: /[A-Z]/ }, then lowercase stored emails with a migration that handles duplicates (for example Foo@x and foo@x). Add `lowercase: true` to the schema.
 
 ## High
 
@@ -734,7 +694,7 @@ There is no JSON 404 handler (NFR-REL-03).
 **Where:** client/src/pages/course/ManageCoupons.jsx:13  
 **Failed tests:** BLD-002
 
-Lint reports 92 errors and 35 warnings. That includes 13 conditional hook errors in ManageCoupons, which could crash if courseId were ever missing. Current callers always pass it.
+Lint reports 91 errors and 35 warnings. That includes 13 conditional hook errors in ManageCoupons, which could crash if courseId were ever missing. Current callers always pass it.
 
 **Fix:** Move the early return below the hooks, then clear the lint errors.
 
@@ -757,6 +717,81 @@ react-player is not in package.json. Nothing imports VideoPlayer, so the build s
 The filter select renders options without a key and logs a console error.
 
 **Fix:** Add a key to each option.
+
+## Fixed
+
+These fixes are not committed yet. Their tests now pass.
+
+### LMS-001: Anyone can create an admin account
+
+**Type:** Security  
+**Tests now passing:** SEC-001, SEC-002, SEC-003, SEC-004, UI-012
+
+A guest can register as admin through /auth/admin/register, /auth/admin/google, the /admin/register page, or by sending role: "admin" to /auth/register. In the test, a guest-created admin read every user record. SRS 10.2 says there is no admin self-registration.
+
+**Fix:** Remove the admin register and Google routes and the /admin/register page. Accept no role from the request body. Create admins only with a server-side script.
+
+### LMS-002: Passwords, AI keys and bank details are stored in plain text in the activity log
+
+**Type:** Security  
+**Tests now passing:** SEC-006, SEC-007, SEC-008
+
+The logger removes only `password` and `token`. It keeps currentPassword, newPassword, apiKey and accountNumber in Activity.data, and admins and the user can read them back through the API. This also defeats the AES encryption of AI keys.
+
+**Fix:** Log an allowlist of safe fields, not the whole body. Delete the existing data field from stored Activity records, then ask affected users to change those passwords and AI keys.
+
+### LMS-003: Stored XSS: a resource link can steal the login token
+
+**Type:** Vulnerability  
+**Tests now passing:** SEC-034, UI-010
+
+Resource URLs are not validated, and the client passes them to window.open. In real Chrome, one click on a javascript: link ran the script on the app origin and read the token from localStorage. Instructors can plant this, and so can students when uploads are enabled. An admin impersonating someone also has adminToken in localStorage.
+
+**Fix:** Allow only http and https URLs on the server, and check again in the client before window.open. Add a Content-Security-Policy, and move tokens to httpOnly cookies when possible.
+
+### LMS-004: Existing accounts with capitals in the email are locked out
+
+**Type:** Bug  
+**Tests now passing:** AUTH-039, AUTH-040
+
+Login and password reset now lowercase the email before searching, but older accounts keep the email as typed and no migration exists. Those users get "Invalid credentials", and their reset request reports success without sending anything. This is a regression on this branch.
+
+**Fix:** Before release, count affected users with the filter { email: /[A-Z]/ }, then lowercase stored emails with a migration that handles duplicates (for example Foo@x and foo@x). Add `lowercase: true` to the schema.
+
+### Database steps to run after deploying
+
+Run these from `server/`. Each script only reports until you add `--apply`, and none of them has been run on the hosted database.
+
+1. `node scripts/createAdmin.js --list`: check every admin. Anyone could create one before this fix, so remove any you do not recognise.
+2. `node scripts/purgeActivitySecrets.js --apply`: removes stored passwords, AI keys and bank details from old log records. Then ask affected users to change those passwords and AI keys.
+3. `node scripts/normalizeUserEmails.js --apply`: lowercases old emails and lists any pairs that differ only by case for you to resolve. Login already works for these accounts without it.
+
+## Workbook test cases replaced
+
+At the team's request, 18 of the 22 original test cases in the QA Test Cases tab were removed because a case in this run covers them. Where the original expected something different from what the app does, that decision is still open.
+
+| Removed | Covered by | Original expectation that differs |
+|---|---|---|
+| TC-AUTH-001 | AUTH-001 | |
+| TC-AUTH-002 | AUTH-002 | Expected HTTP 409; the app returns 400 |
+| TC-AUTH-003 | AUTH-006 | Expected HTTP 401; the app returns 400 |
+| TC-AUTH-004 | AUTH-028, AUTH-029 | |
+| TC-RBAC-001 | SEC-023, SEC-024 | |
+| TC-RBAC-003 | AUTH-034 | |
+| TC-CRS-001 | CRS-002 | |
+| TC-CRS-002 | CRS-003, MKT-001, MKT-002 | |
+| TC-ENR-001 | CRS-011 | |
+| TC-CONT-001 | CRS-016 | |
+| TC-QUIZ-001 | QZ-008, QZ-010 | Used 4 of 5 correct (80%); this run used all right and all wrong |
+| TC-QUIZ-002 | QZ-011 | |
+| TC-PAY-001 | PAY-001 | Used a real Stripe test key; this run used a local stand-in |
+| TC-PAY-002 | PAY-002 | Named payment_intent.succeeded; the app handles checkout.session.completed |
+| TC-PAY-003 | PAY-016, PAY-024 | |
+| TC-COUP-001 | CPN-013, CPN-015 | |
+| TC-SEC-001 | SEC-021 | |
+| TC-SEC-003 | SEC-015 | Expected a limit of 100 requests; the app allows 300 |
+
+Still in the tab as Not Run, because this run did not cover them: TC-RBAC-002, TC-NOTIF-001, TC-INT-001 and TC-SEC-002.
 
 ## Other observations
 

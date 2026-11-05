@@ -10,7 +10,7 @@ manual('BLD-003', B, 'High', 'Server dependency audit', 'Run npm audit --omit=de
 manual('BLD-004', B, 'High', 'Client dependency audit', 'Run npm audit --omit=dev in client/', 'No high or critical advisories');
 manual('BLD-005', B, 'Critical', 'No secrets in git history', 'Search all branches for .env files and live keys', 'Nothing found');
 manual('BLD-006', B, 'Low', 'Every import has a declared dependency', 'Compare client imports with package.json', 'All imports resolve to declared packages');
-manual('BLD-007', B, 'High', 'Existing auth test suite', 'Run server/tests/auth.test.js with MONGO_URI set to a local database', 'All tests pass');
+manual('BLD-007', B, 'High', 'Existing team test suites', 'Run the tests in server/tests with MONGO_URI and MONGO_TEST_URI set to a local database', 'All tests pass');
 
 const U = 'User interface';
 manual('UI-001', U, 'Critical', 'Home and marketplace load for a guest', 'Open / and /marketplace', 'Pages render with no console errors');

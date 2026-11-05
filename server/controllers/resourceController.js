@@ -4,6 +4,7 @@ const Resource = require('../models/Resource');
 const Course = require('../models/Course');
 const Progress = require('../models/Progress');
 const CourseTeacher = require('../models/CourseTeacher');
+const { isSafeUrl } = require('../utils/url');
 
 // @desc    Upload a resource (teacher or student)
 // @route   POST /api/resources/:courseId
@@ -46,6 +47,11 @@ const uploadResource = asyncHandler(async (req, res) => {
 
     // Handle link-type resource
     if (url) {
+        if (!isSafeUrl(url)) {
+            res.status(400);
+            throw new Error('Link must be a valid http or https URL');
+        }
+
         const resource = await Resource.create({
             course: courseId,
             uploadedBy: req.user.id,

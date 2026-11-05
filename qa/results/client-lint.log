@@ -50,13 +50,13 @@ D:\Tenze - StartUp\LMS\client\src\components\course\LectureSidebarItem.jsx
   24:11  error  'lectureStatusInfo' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u  no-unused-vars
 
 D:\Tenze - StartUp\LMS\client\src\components\course\ResourceManager.jsx
-   27:38  error    'isTeacher' is assigned a value but never used                                                                     no-unused-vars
-   79:18  error    'err' is defined but never used                                                                                    no-unused-vars
-   88:8   warning  React Hook useEffect has a missing dependency: 'fetchResources'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
-  150:18  error    'err' is defined but never used                                                                                    no-unused-vars
-  174:18  error    'err' is defined but never used                                                                                    no-unused-vars
-  196:18  error    'err' is defined but never used                                                                                    no-unused-vars
-  222:18  error    'err' is defined but never used                                                                                    no-unused-vars
+   28:38  error    'isTeacher' is assigned a value but never used                                                                     no-unused-vars
+   80:18  error    'err' is defined but never used                                                                                    no-unused-vars
+   89:8   warning  React Hook useEffect has a missing dependency: 'fetchResources'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+  151:18  error    'err' is defined but never used                                                                                    no-unused-vars
+  175:18  error    'err' is defined but never used                                                                                    no-unused-vars
+  197:18  error    'err' is defined but never used                                                                                    no-unused-vars
+  223:18  error    'err' is defined but never used                                                                                    no-unused-vars
 
 D:\Tenze - StartUp\LMS\client\src\components\course\StudentAnalytics.jsx
    26:22  error  'err' is defined but never used                                                                    no-unused-vars
@@ -189,9 +189,6 @@ D:\Tenze - StartUp\LMS\client\src\components\layout\NotificationBell.jsx
    93:21  error    Empty block statement                                                                                           no-empty
   105:17  error    Empty block statement                                                                                           no-empty
 
-D:\Tenze - StartUp\LMS\client\src\context\AuthContext.jsx
-  57:26  error  'error' is defined but never used  no-unused-vars
-
 D:\Tenze - StartUp\LMS\client\src\pages\NotificationsPage.jsx
   38:17  error  Empty block statement  no-empty
   56:17  error  Empty block statement  no-empty
@@ -247,16 +244,16 @@ D:\Tenze - StartUp\LMS\client\src\pages\course\CourseSettings.jsx
   120:18  error    'error' is defined but never used                                                                               no-unused-vars
 
 D:\Tenze - StartUp\LMS\client\src\pages\course\CourseView.jsx
-  166:8   warning  React Hook useEffect has a missing dependency: 'user'. Either include it or remove the dependency array                                                                                                                                                          react-hooks/exhaustive-deps
-  172:18  error    'err' is defined but never used                                                                                                                                                                                                                                  no-unused-vars
-  186:8   warning  React Hook useEffect has missing dependencies: 'course?.lectureStatuses', 'isEnrolled', 'progressMap', 'selectedLecture', and 'user'. Either include them or remove the dependency array                                                                         react-hooks/exhaustive-deps
-  293:8   warning  React Hook useEffect has missing dependencies: 'fetchLectureResources', 'lectureResources.length', and 'lectureResourcesLoading'. Either include them or remove the dependency array                                                                             react-hooks/exhaustive-deps
-  333:8   warning  React Hook useEffect has missing dependencies: 'progressMap' and 'selectedLecture'. Either include them or remove the dependency array. You can also replace multiple useState variables with useReducer if 'setNotes' needs the current value of 'progressMap'  react-hooks/exhaustive-deps
-  352:18  error    'error' is defined but never used                                                                                                                                                                                                                                no-unused-vars
-  399:18  error    'err' is defined but never used                                                                                                                                                                                                                                  no-unused-vars
-  417:18  error    'error' is defined but never used                                                                                                                                                                                                                                no-unused-vars
-  442:8   warning  React Hook useEffect has missing dependencies: 'course?.allowPeerProgress' and 'id'. Either include them or remove the dependency array                                                                                                                          react-hooks/exhaustive-deps
-  455:8   warning  React Hook useEffect has a missing dependency: 'id'. Either include it or remove the dependency array                                                                                                                                                            react-hooks/exhaustive-deps
+  167:8   warning  React Hook useEffect has a missing dependency: 'user'. Either include it or remove the dependency array                                                                                                                                                          react-hooks/exhaustive-deps
+  173:18  error    'err' is defined but never used                                                                                                                                                                                                                                  no-unused-vars
+  187:8   warning  React Hook useEffect has missing dependencies: 'course?.lectureStatuses', 'isEnrolled', 'progressMap', 'selectedLecture', and 'user'. Either include them or remove the dependency array                                                                         react-hooks/exhaustive-deps
+  294:8   warning  React Hook useEffect has missing dependencies: 'fetchLectureResources', 'lectureResources.length', and 'lectureResourcesLoading'. Either include them or remove the dependency array                                                                             react-hooks/exhaustive-deps
+  334:8   warning  React Hook useEffect has missing dependencies: 'progressMap' and 'selectedLecture'. Either include them or remove the dependency array. You can also replace multiple useState variables with useReducer if 'setNotes' needs the current value of 'progressMap'  react-hooks/exhaustive-deps
+  353:18  error    'error' is defined but never used                                                                                                                                                                                                                                no-unused-vars
+  400:18  error    'err' is defined but never used                                                                                                                                                                                                                                  no-unused-vars
+  418:18  error    'error' is defined but never used                                                                                                                                                                                                                                no-unused-vars
+  443:8   warning  React Hook useEffect has missing dependencies: 'course?.allowPeerProgress' and 'id'. Either include them or remove the dependency array                                                                                                                          react-hooks/exhaustive-deps
+  456:8   warning  React Hook useEffect has a missing dependency: 'id'. Either include it or remove the dependency array                                                                                                                                                            react-hooks/exhaustive-deps
 
 D:\Tenze - StartUp\LMS\client\src\pages\course\ManageCoupons.jsx
    15:35  error    React Hook "useState" is called conditionally. React Hooks must be called in the exact same order in every component render   react-hooks/rules-of-hooks
@@ -369,5 +366,5 @@ D:\Tenze - StartUp\LMS\client\src\pages\student\StudentAISettings.jsx
 D:\Tenze - StartUp\LMS\client\src\pages\student\StudentProgressDetail.jsx
   52:36  error  'lectureStatuses' is defined but never used  no-unused-vars
 
-✖ 127 problems (92 errors, 35 warnings)
+✖ 126 problems (91 errors, 35 warnings)
 

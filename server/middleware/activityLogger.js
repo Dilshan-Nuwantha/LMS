@@ -1,5 +1,20 @@
 const Activity = require('../models/Activity');
 
+// Only these request fields are stored. Anything else, such as passwords, API keys,
+// bank details or sign-in codes, never reaches the log.
+const LOGGED_FIELDS = [
+    'title', 'status', 'priority', 'importance', 'isActive', 'isPublic', 'isPreview',
+    'courseId', 'sectionId', 'lectureId', 'rating', 'reason', 'role', 'email',
+    'amount', 'currency', 'method', 'provider', 'model', 'discountType', 'discountValue',
+    'hideCourses', 'maxWarnings'
+];
+
+const pickLoggedFields = (body) => Object.fromEntries(
+    LOGGED_FIELDS
+        .filter(field => ['string', 'number', 'boolean'].includes(typeof body?.[field]))
+        .map(field => [field, body[field]])
+);
+
 const activityLogger = async (req, res, next) => {
     // We use 'finish' to ensure we capture the outcome and any user set during the request (e.g. Login)
     res.on('finish', async () => {
@@ -17,12 +32,7 @@ const activityLogger = async (req, res, next) => {
             const userId = user._id || user.id;
 
             // 3. Prepare Event Data (Body)
-            let eventData = { ...req.body };
-
-            // Sanitize sensitive fields
-            if (eventData.password) delete eventData.password;
-            if (eventData.token) delete eventData.token;
-            if (eventData.sections) delete eventData.sections; // sections too large for logs
+            const eventData = pickLoggedFields(req.body);
 
             const url = req.originalUrl;
 

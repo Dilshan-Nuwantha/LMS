@@ -52,12 +52,11 @@ const registerUser = asyncHandler(async (req, res) => {
         throw new Error('Password must be at least 6 characters');
     }
 
-    // Validate role
-    const validRoles = ['student', 'instructor', 'admin'];
-    const validatedRole = role && validRoles.includes(role) ? role : 'student';
+    // Admins are never created here, see scripts/createAdmin.js
+    const validatedRole = role === 'instructor' ? 'instructor' : 'student';
 
     // Check if user already exists
-    const userExists = await User.findOne({ email: normalizedEmail }).select('+password');
+    const userExists = await User.findByEmail(normalizedEmail, '+password');
     if (userExists) {
         if (userExists.googleId && !userExists.password) {
             res.status(400);
@@ -130,10 +129,8 @@ const loginUser = asyncHandler(async (req, res) => {
         throw new Error('Please provide email and password');
     }
 
-    const normalizedEmail = email.toLowerCase().trim();
-
-    // Query user and explicitly select password because select: false is set in schema
-    const user = await User.findOne({ email: normalizedEmail }).select('+password');
+    // Explicitly select password because select: false is set in schema
+    const user = await User.findByEmail(email, '+password');
 
     if (!user) {
         res.status(400);
@@ -235,7 +232,7 @@ const googleLogin = asyncHandler(async (req, res) => {
     const normalizedEmail = email ? email.toLowerCase().trim() : '';
 
     // Check if user exists by googleId or email
-    let user = await User.findOne({ $or: [{ googleId }, { email: normalizedEmail }] }).select('+password');
+    let user = await User.findOne({ googleId }).select('+password') || await User.findByEmail(normalizedEmail, '+password');
 
     if (user) {
         // If existing user found by email but no googleId, link the account
@@ -255,6 +252,12 @@ const googleLogin = asyncHandler(async (req, res) => {
             throw new Error(`Account role is not ${role === 'instructor' ? 'teacher' : role}.`);
         }
     } else {
+        // Admins are never created here, see scripts/createAdmin.js
+        if (role === 'admin') {
+            res.status(403);
+            throw new Error('Admin accounts cannot be created through sign-in.');
+        }
+
         // Create new user (Google account without password hash)
         user = await User.create({
             name,
@@ -262,7 +265,7 @@ const googleLogin = asyncHandler(async (req, res) => {
             googleId,
             password: null,
             profileImage: picture || '',
-            role: role || 'student',
+            role: role === 'instructor' ? 'instructor' : 'student',
         });
     }
 
@@ -312,7 +315,7 @@ const forgotPassword = asyncHandler(async (req, res) => {
         throw new Error('Please provide an email address');
     }
 
-    const user = await User.findOne({ email: email.toLowerCase().trim() }).select('+password');
+    const user = await User.findByEmail(email, '+password');
 
     // Always respond with success to prevent email enumeration attacks
     if (!user) {
@@ -353,7 +356,7 @@ const verifyOTP = asyncHandler(async (req, res) => {
         throw new Error('Email and OTP are required');
     }
 
-    const user = await User.findOne({ email: email.toLowerCase().trim() });
+    const user = await User.findByEmail(email);
 
     if (!user || !user.otpHash || !user.otpExpiry) {
         res.status(400);

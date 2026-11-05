@@ -187,10 +187,11 @@ tc('SEC-037', S, 'Medium', 'Impersonation sessions are short', 'Read the expiry 
     ok(exp - iat <= 3600, `token lasts ${Math.round((exp - iat) / 86400)} days`);
 });
 tc('SEC-038', S, 'Medium', 'Impersonated actions stay out of the personal log', 'Act through the impersonation token, read /activities/me', 'The action is hidden and attributed to the admin (FR-AUTH-06)', async () => {
+    const count = async () => (await api('GET', `/activities/me?action=${encodeURIComponent('Profile Updated')}`, { token: F.s2.token })).json.total;
+    const before = await count();
     await api('PUT', '/auth/profile', { token: F.impToken, body: { bio: 'Set by admin' } });
     await sleep(150);
-    const r = await api('GET', '/activities/me?action=Profile Updated', { token: F.s2.token });
-    ok(!r.json.activities.some(a => a.data?.bio === 'Set by admin'), 'the action appears as if the student did it');
+    eq(await count(), before, 'entries in the student log');
 });
 tc('SEC-039', S, 'Medium', 'Student notes stay private from teachers', 'Read progress and analytics as the course owner', 'Personal notes are not returned (code comment: "Teachers should not see")', async () => {
     const a = await api('GET', `/courses/${F.course.id}/progress/${F.s1.id}`, { token: F.instr.token });
@@ -239,6 +240,40 @@ tc('SEC-050', S, 'Low', 'Login does not reveal blocked status without the passwo
     await api('POST', `/admin/users/${u.id}/block`, { token: F.admin.token, body: { reason: 'Secret reason' } });
     const r = await api('POST', '/auth/login', { body: { email: u.email, password: 'wrong' } });
     is(r, 400);
+});
+tc('SEC-051', S, 'Critical', 'Role in the Google sign-in body is ignored', 'POST /auth/google with a new identity and role admin in the body', 'Refused, and no admin account is created', async () => {
+    const email = `gr.${uid()}@qa.test`;
+    await api('POST', '/auth/google', { body: { role: 'admin', code: googleCode({ sub: 'g' + uid(), email, name: 'G', email_verified: true }) } });
+    ok(!(await models.User.exists({ email, role: 'admin' })), 'an admin account was created');
+});
+tc('SEC-052', S, 'High', 'Existing admins can still sign in', 'Log in at /auth/admin/login and with Google at /auth/admin/google', 'HTTP 200 for both', async () => {
+    is(await api('POST', '/auth/admin/login', { body: { email: F.admin.email, password: F.admin.password } }), 200, 'password');
+    is(await api('POST', '/auth/admin/google', { body: { code: googleCode({ sub: 'g' + uid(), email: F.admin.email, name: 'A', email_verified: true }) } }), 200, 'google');
+});
+tc('SEC-053', S, 'Critical', 'Disguised script links are rejected', 'Add links using mixed case, spaces, a newline, data: and vbscript:', 'HTTP 400 for each', async () => {
+    for (const url of ['JaVaScRiPt:alert(1)', '  javascript:alert(1)', 'java\nscript:alert(1)', 'java\tscript:alert(1)', 'data:text/html,<script>alert(1)</script>', 'vbscript:msgbox(1)']) {
+        is(await api('POST', `/resources/${F.course.id}`, { token: F.instr.token, form: multipart({ url, title: 'XSS' }) }), 400, JSON.stringify(url));
+    }
+});
+tc('SEC-054', S, 'High', 'Normal links still work', 'Add https, http and no-scheme links, and clear a lecture URL', 'All are accepted', async () => {
+    for (const url of ['https://example.test/a', 'http://example.test/a', 'www.example.test/a']) {
+        is(await api('POST', `/resources/${F.course.id}`, { token: F.instr.token, form: multipart({ url, title: 'Link' }) }), 201, url);
+    }
+    is(await api('PUT', `/courses/lectures/${F.L1}`, { token: F.instr.token, body: { resourceUrl: 'https://youtu.be/ok' } }), 200, 'lecture');
+});
+tc('SEC-055', S, 'High', 'Google sign-in codes never reach the activity log', 'Sign in with Google, read the log entry', 'No code stored', async () => {
+    const email = `gc.${uid()}@qa.test`;
+    const code = googleCode({ sub: 'g' + uid(), email, name: 'G', email_verified: true });
+    const r = await api('POST', '/auth/google', { body: { code } });
+    await sleep(150);
+    ok(!(await models.Activity.exists({ user: r.json._id, 'data.code': code })), 'the sign-in code is stored in Activity.data');
+});
+tc('SEC-056', S, 'Medium', 'The log keeps useful non-secret fields', 'Create a broadcast, read the log entry', 'title and priority are stored', async () => {
+    await api('POST', `/broadcasts/course/${F.course.id}`, { token: F.instr.token, body: { title: 'Logged-' + uid(), message: 'Body', priority: 'important' } });
+    await sleep(150);
+    const row = await models.Activity.findOne({ user: F.instr.id, action: 'Broadcast Created' }).sort({ createdAt: -1 }).lean();
+    eq(row.data.priority, 'important', 'priority');
+    ok(!('message' in row.data), 'message body was stored');
 });
 
 const E = 'Error handling';

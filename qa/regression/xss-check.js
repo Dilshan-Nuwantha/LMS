@@ -54,18 +54,30 @@ const main = async () => {
         await sleep(2500);
         await page.evaluate(`localStorage.setItem('token', ${JSON.stringify(login.token)})`);
         await page.send('Page.navigate', { url: `http://localhost:5199/course/${info.courseId}?tab=resources` });
-        await sleep(4000);
 
         const expected = login.token.slice(0, 12);
-        const rect = await page.evaluate(`(() => {
-            const b = [...document.querySelectorAll('button')].find(x => (x.title || x.innerText).includes('Open Link'));
-            if (!b) return null;
-            b.scrollIntoView({ block: 'center' });
-            const r = b.getBoundingClientRect();
+        let rect = null;
+        for (let i = 0; i < 30 && !rect; i++) {
+            await sleep(1000);
+            rect = await page.evaluate(`(() => {
+                const b = [...document.querySelectorAll('button')].find(x => (x.title || x.innerText).includes('Open Link'));
+                if (!b) return null;
+                b.scrollIntoView({ block: 'center' });
+                const r = b.getBoundingClientRect();
+                return { x: r.x + r.width / 2, y: r.y + r.height / 2 };
+            })()`);
+        }
+        console.log('Open Link button found:', !!rect);
+        if (!rect) {
+            console.log(await page.evaluate(`location.pathname + location.search + ' | ' + document.body.innerText.slice(0, 300).replace(/\\s+/g, ' ')`));
+            return;
+        }
+        await sleep(500);
+        const refreshed = await page.evaluate(`(() => {
+            const r = [...document.querySelectorAll('button')].find(x => (x.title || x.innerText).includes('Open Link')).getBoundingClientRect();
             return { x: r.x + r.width / 2, y: r.y + r.height / 2 };
         })()`);
-        console.log('Open Link button found:', !!rect);
-        if (!rect) return;
+        rect = refreshed;
 
         for (const type of ['mousePressed', 'mouseReleased']) {
             await page.send('Input.dispatchMouseEvent', { type, x: rect.x, y: rect.y, button: 'left', clickCount: 1 });
@@ -77,11 +89,37 @@ const main = async () => {
         console.log('Browser tabs after click:', pages.length);
         console.log('Page title after click:', title.slice(0, 30));
         console.log('Script read the login token:', title === `XSS-${expected}`);
+
+        // A normal link must still open. It is the newest resource, so its button comes first.
+        const form = new FormData();
+        form.append('url', 'http://localhost:5199/marketplace');
+        form.append('title', 'QA normal link');
+        await fetch(`${info.api}/resources/${info.courseId}`, { method: 'POST', headers: { Authorization: `Bearer ${login.token}` }, body: form });
+        await page.send('Page.navigate', { url: `http://localhost:5199/course/${info.courseId}?tab=resources` });
+        await sleep(4000);
+        const normal = await page.evaluate(`(() => {
+            const r = [...document.querySelectorAll('button')].find(x => (x.title || x.innerText).includes('Open Link')).getBoundingClientRect();
+            return { x: r.x + r.width / 2, y: r.y + r.height / 2 };
+        })()`);
+        for (const type of ['mousePressed', 'mouseReleased']) {
+            await page.send('Input.dispatchMouseEvent', { type, x: normal.x, y: normal.y, button: 'left', clickCount: 1 });
+        }
+        await sleep(2000);
+        const opened = (await (await fetch(`http://127.0.0.1:${PORT}/json`)).json()).filter(t => t.type === 'page');
+        console.log('Normal link opened a new tab:', opened.some(t => t.url.includes('/marketplace')));
+
+        await page.send('Page.navigate', { url: 'http://localhost:5199/admin/register' });
+        await sleep(3000);
+        const adminPage = await page.evaluate('document.body.innerText');
+        console.log('Admin register form shown:', /Create Admin Account|Admin Registration/.test(adminPage));
+        console.log('404 page shown:', /404/.test(adminPage));
         page.ws.close();
     } finally {
         chrome.kill();
         await sleep(800);
-        fs.rmSync(profile, { recursive: true, force: true, maxRetries: 3 });
+        try {
+            fs.rmSync(profile, { recursive: true, force: true, maxRetries: 3 });
+        } catch { /* Chrome can hold a temp file for a moment on Windows */ }
     }
 };
 

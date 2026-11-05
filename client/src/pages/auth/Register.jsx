@@ -3,7 +3,7 @@ import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { useGoogleLogin } from '@react-oauth/google';
 import AuthContext from '../../context/AuthContext';
 import { showSuccess, showError } from '../../utils/toast';
-import { FaCheckCircle, FaBookOpen, FaShieldAlt, FaChalkboardTeacher, FaEye, FaEyeSlash, FaFacebook, FaYoutube } from 'react-icons/fa';
+import { FaCheckCircle, FaBookOpen, FaChalkboardTeacher, FaEye, FaEyeSlash, FaFacebook, FaYoutube } from 'react-icons/fa';
 import { SiTiktok } from 'react-icons/si';
 
 const GoogleIcon = () => (
@@ -38,14 +38,6 @@ const teacherPerks = [
     'Broadcast updates and announcements instantly',
     'Use AI notes and quiz tools to save time',
     'Set up your instructor profile and start teaching',
-];
-
-const adminPerks = [
-    'Oversee platform safety and activity logs',
-    'Manage users, instructor profiles, and warnings',
-    'Configure payment settings and payouts',
-    'Monitor broadcasts and platform-wide updates',
-    'Admin controls and system analytics included',
 ];
 
 const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
@@ -102,10 +94,9 @@ const Register = () => {
     const navigate = useNavigate();
     const location = useLocation();
     const isTeacherRegister = location.pathname.startsWith('/teacher/register');
-    const isAdminRegister = location.pathname.startsWith('/admin/register');
-    const isStudentRegister = !isTeacherRegister && !isAdminRegister;
-    const perks = isAdminRegister ? adminPerks : (isTeacherRegister ? teacherPerks : studentPerks);
-    const targetRole = isAdminRegister ? 'admin' : (isTeacherRegister ? 'instructor' : 'student');
+    const isStudentRegister = !isTeacherRegister;
+    const perks = isTeacherRegister ? teacherPerks : studentPerks;
+    const targetRole = isTeacherRegister ? 'instructor' : 'student';
 
     const { name, email, password } = formData;
     const onChange = (e) => setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
@@ -167,41 +158,31 @@ const Register = () => {
         }
     };
 
-    const panelBg = isAdminRegister
-        ? 'from-slate-800 to-slate-900'
-        : isTeacherRegister
-            ? 'from-blue-700 to-blue-900'
-            : 'from-blue-600 to-blue-800';
+    const panelBg = isTeacherRegister
+        ? 'from-blue-700 to-blue-900'
+        : 'from-blue-600 to-blue-800';
 
-    const accentColor = isAdminRegister ? 'bg-slate-700' : isTeacherRegister ? 'bg-blue-600' : 'bg-blue-500';
-    const accentHover = isAdminRegister ? 'hover:bg-slate-600' : isTeacherRegister ? 'hover:bg-blue-500' : 'hover:bg-blue-600';
-    const accentText = isAdminRegister ? 'text-slate-600' : isTeacherRegister ? 'text-blue-600' : 'text-blue-500';
-    const accentHoverText = isAdminRegister ? 'hover:text-slate-500' : isTeacherRegister ? 'hover:text-blue-500' : 'hover:text-blue-600';
-    const accentCheckColor = isAdminRegister ? 'text-slate-400' : isTeacherRegister ? 'text-blue-400' : 'text-blue-300';
+    const accentColor = isTeacherRegister ? 'bg-blue-600' : 'bg-blue-500';
+    const accentHover = isTeacherRegister ? 'hover:bg-blue-500' : 'hover:bg-blue-600';
+    const accentText = isTeacherRegister ? 'text-blue-600' : 'text-blue-500';
+    const accentHoverText = isTeacherRegister ? 'hover:text-blue-500' : 'hover:text-blue-600';
+    const accentCheckColor = isTeacherRegister ? 'text-blue-400' : 'text-blue-300';
 
-    const panelTitle = isAdminRegister
-        ? 'Admin Control Center'
-        : isTeacherRegister
-            ? 'Start Teaching Today'
-            : 'Everything You Need';
+    const panelTitle = isTeacherRegister
+        ? 'Start Teaching Today'
+        : 'Everything You Need';
 
-    const panelSubtitle = isAdminRegister
-        ? 'Manage your platform with full administrative control'
-        : isTeacherRegister
-            ? 'Build courses and inspire thousands of learners'
-            : 'Join thousands of students and educators on Tenz Learn';
+    const panelSubtitle = isTeacherRegister
+        ? 'Build courses and inspire thousands of learners'
+        : 'Join thousands of students and educators on Tenz Learn';
 
-    const formTitle = isAdminRegister
-        ? 'Admin Registration'
-        : isTeacherRegister
-            ? 'Teacher Registration'
-            : 'Create Account';
+    const formTitle = isTeacherRegister
+        ? 'Teacher Registration'
+        : 'Create Account';
 
-    const formSubtitle = isAdminRegister
-        ? 'Create an admin account to configure and oversee portal features'
-        : isTeacherRegister
-            ? 'Create an instructor account to manage and publish courses'
-            : 'Start your learning journey — it\'s completely free';
+    const formSubtitle = isTeacherRegister
+        ? 'Create an instructor account to manage and publish courses'
+        : 'Start your learning journey — it\'s completely free';
 
     return (
         <div className="min-h-screen flex flex-col lg:flex-row bg-white font-sans">
@@ -218,7 +199,7 @@ const Register = () => {
                     {/* Logo */}
                     <div className="flex items-center gap-2">
                         <div className="w-9 h-9 bg-white/20 rounded-lg flex items-center justify-center backdrop-blur-sm">
-                            {isAdminRegister ? <FaShieldAlt className="text-white text-base" /> : isTeacherRegister ? <FaChalkboardTeacher className="text-white text-base" /> : <FaBookOpen className="text-white text-base" />}
+                            {isTeacherRegister ? <FaChalkboardTeacher className="text-white text-base" /> : <FaBookOpen className="text-white text-base" />}
                         </div>
                         <span className="text-white font-bold text-xl tracking-tight">Tenz Learn</span>
                     </div>
@@ -375,9 +356,9 @@ const Register = () => {
                                             <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                                             <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                                         </svg>
-                                        {isAdminRegister ? 'Creating admin account...' : isTeacherRegister ? 'Creating teacher account...' : 'Creating account...'}
+                                        {isTeacherRegister ? 'Creating teacher account...' : 'Creating account...'}
                                     </>
-                                ) : (isAdminRegister ? 'Create Admin Account' : isTeacherRegister ? 'Create Teacher Account' : 'Create Account')}
+                                ) : (isTeacherRegister ? 'Create Teacher Account' : 'Create Account')}
                             </button>
                         </form>
 
@@ -395,14 +376,6 @@ const Register = () => {
                                 <p>
                                     Already have a teacher account?{' '}
                                     <Link to="/teacher/login" className={`font-semibold ${accentText} ${accentHoverText} transition-colors`}>
-                                        Sign In
-                                    </Link>
-                                </p>
-                            )}
-                            {isAdminRegister && (
-                                <p>
-                                    Already have an admin account?{' '}
-                                    <Link to="/admin/login" className={`font-semibold ${accentText} ${accentHoverText} transition-colors`}>
                                         Sign In
                                     </Link>
                                 </p>

@@ -10,7 +10,7 @@ require('./cases-commerce');
 require('./cases-learning');
 require('./cases-security');
 require('./manual-cases');
-const { bugs, manualResults } = require('./bugs');
+const { bugs, manualResults, retested } = require('./bugs');
 
 const RESULTS = path.resolve(__dirname, '../results');
 const RUN_DATE = '2026-11-05';
@@ -40,6 +40,8 @@ const actual = (id) => {
     if (status === 'PASS') return text || 'As expected';
     return text.replace(/ - \{.*$/, '').slice(0, 220);
 };
+// Only these browser and build checks were not repeated after the fixes
+const uiOnEarlierCommit = new Set(cases.filter(c => !c.fn && !retested.includes(c.id)).map(c => c.id));
 const developer = (where) => (/^client\//.test(where) ? 'Frontend Developer' : 'Backend Developer');
 
 const bugRows = bugs.map(b => {
@@ -47,7 +49,7 @@ const bugRows = bugs.map(b => {
     return [
         sheetId[b.id], MODULE[test.module], `[${b.type}] ${b.title}`,
         `${test.steps}. Failed tests: ${b.tests.map(t => `TC-REG-${t}`).join(', ')}. Location: ${b.where}`,
-        b.severity, b.severity, 'QA / Tester', 'Open', developer(b.where), 'Local',
+        b.severity, b.severity, 'QA / Tester', b.status, developer(b.where), 'Local',
         b.fix, b.problem, RUN_DATE, '', '', '', '', '', ''
     ].map(clean);
 });
@@ -57,7 +59,7 @@ const testRows = cases.map(c => [
     c.fn ? 'Local regression stack running' : 'Client and API running locally', c.steps, c.expected, actual(c.id),
     result[c.id][0] === 'PASS' ? 'Pass' : 'Fail', c.fn ? 'Automated' : 'Manual', c.priority,
     'Claude Code', RUN_DATE, (bugsFor[c.id] || []).join(', '),
-    `Regression run on commit ${c.fn ? 'cd8554b' : '4280b9e'} (${c.id})`
+    `Regression run on ${uiOnEarlierCommit.has(c.id) ? 'commit 4280b9e' : 'cd8554b plus critical fixes'} (${c.id})`
 ].map(clean));
 
 fs.writeFileSync(path.join(RESULTS, 'workbook-rows.json'), JSON.stringify({ bugRows, testRows }));

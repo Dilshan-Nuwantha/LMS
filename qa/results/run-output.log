@@ -1,17 +1,13 @@
 FAIL AUTH-032 Reset request does not reveal Google-only accounts
      expected HTTP 200, got 400 - {"message":"This account uses Google sign-in. Please log in with Google.","stack":"Error: This account uses Google sign-in. Please log in with Google.\n at C:\\Users\\pri
 FAIL AUTH-033 Password change ends existing sessions
-     expected HTTP 401, got 200 - {"_id":"6aecc5eece0fbf706965ab4e","name":"QA sess","email":"sess.2836857d@qa.test","googleId":null,"role":"student","bio":"","profileImage":"","stripeAccountId":"","otpHa
+     expected HTTP 401, got 200 - {"_id":"6aecc98ce2fc3f0675870382","name":"QA sess","email":"sess.12ae6320@qa.test","googleId":null,"role":"student","bio":"","profileImage":"","stripeAccountId":"","otpHa
 FAIL AUTH-036 Unverified Google email cannot link to an existing account
      account was linked and a session issued (HTTP 200)
 FAIL AUTH-037 Blank name is a validation error
      expected HTTP 400, got 500 - {"message":"User validation failed: name: Please add a name","stack":"ValidationError: User validation failed: name: Please add a name\n at Document.invalidate (C:\\Users
 FAIL AUTH-038 Oversized profile data is handled cleanly
      got HTTP 500
-FAIL AUTH-039 Existing accounts with capitals in the email can still log in
-     expected HTTP 200, got 400 - {"message":"Invalid credentials","stack":"Error: Invalid credentials\n at C:\\Users\\priya\\AppData\\Local\\Temp\\claude\\D--Tenze---StartUp-LMS\\71553799-c395-40b4-882f-
-FAIL AUTH-040 Existing accounts with capitals can reset their password
-     no reset email was sent although the API reported success
 FAIL AUTH-041 Login does not reveal Google-only accounts
      message: expected "Invalid credentials", got "This account uses Google sign-in. Please log in with Google."
 FAIL CRS-008 Reject an invalid section importance
@@ -35,15 +31,15 @@ FAIL PRG-006 Student analytics exclude hidden lectures
 FAIL PRG-007 Completing lectures builds a streak
      currentStreak: expected 1, got 0
 FAIL PRG-008 Editing notes keeps the completion time
-     completedAt: expected "2026-11-05T18:07:44.906Z", got "2026-11-05T18:07:45.114Z"
+     completedAt: expected "2026-11-05T18:23:11.903Z", got "2026-11-05T18:23:12.161Z"
 FAIL PRG-009 Status must be one of the course labels
-     expected HTTP 400, got 200 - {"_id":"6aecc5ebce0fbf706965aadf","student":"6aecc5eace0fbf706965aa65","course":"6aecc5eace0fbf706965aa6f","completedLectures":[{"lecture":"6aecc5eace0fbf706965aaa2","sta
+     expected HTTP 400, got 200 - {"_id":"6aecc988e2fc3f0675870301","student":"6aecc988e2fc3f0675870286","course":"6aecc988e2fc3f0675870291","completedLectures":[{"lecture":"6aecc988e2fc3f06758702c4","sta
 FAIL TCH-006 manage_content can edit lectures
      expected HTTP 200, got 403 - {"message":"Not authorized to access this lecture","stack":"Error: Not authorized to access this lecture\n at C:\\Users\\priya\\AppData\\Local\\Temp\\claude\\D--Tenze---S
 FAIL TCH-007 manage_content can delete lectures
      expected HTTP 200, got 403 - {"message":"Not authorized to access this lecture","stack":"Error: Not authorized to access this lecture\n at C:\\Users\\priya\\AppData\\Local\\Temp\\claude\\D--Tenze---S
 FAIL TCH-014 A co-instructor cannot delete the course
-     expected HTTP 403, got 200 - {"id":"6aecc5f1ce0fbf706965aec8","message":"Course deleted successfully"}
+     expected HTTP 403, got 200 - {"id":"6aecc991e2fc3f0675870712","message":"Course deleted successfully"}
 FAIL MKT-004 Filter by language
      courses returned for an unused language: expected 0, got 2
 FAIL MKT-010 Language is listed on course cards
@@ -63,13 +59,13 @@ FAIL PAY-030 A sold course cannot be deleted
 FAIL PAY-031 Bought course stays available after archiving
      paid course disappeared
 FAIL CPN-017 Reject a negative fixed discount
-     expected HTTP 400, got 201 - {"code":"QA5AD46E46","course":"6aecc5f7ce0fbf706965b47f","instructor":"6aecc5e9ce0fbf706965aa56","discountType":"fixed","discountValue":-500,"maxUses":null,"usedCount":0,
+     expected HTTP 400, got 201 - {"code":"QA14CB189F","course":"6aecc999e2fc3f0675870cda","instructor":"6aecc987e2fc3f0675870274","discountType":"fixed","discountValue":-500,"maxUses":null,"usedCount":0,
 FAIL CPN-018 Update applies the same limits as create
-     expected HTTP 400, got 200 - {"_id":"6aecc5f8ce0fbf706965b5e9","code":"QAEA0D4F33","course":"6aecc5f7ce0fbf706965b47f","instructor":"6aecc5e9ce0fbf706965aa56","discountType":"percentage","discountVal
+     expected HTTP 400, got 200 - {"_id":"6aecc99be2fc3f0675870e48","code":"QA4193E55F","course":"6aecc999e2fc3f0675870cda","instructor":"6aecc987e2fc3f0675870274","discountType":"percentage","discountVal
 FAIL CPN-019 maxUses 0 does not mean unlimited
      stored maxUses is null (unlimited)
 FAIL CPN-020 Reject a coupon that is already expired
-     expected HTTP 400, got 201 - {"code":"QA6B3A7900","course":"6aecc5f7ce0fbf706965b47f","instructor":"6aecc5e9ce0fbf706965aa56","discountType":"percentage","discountValue":10,"maxUses":null,"usedCount"
+     expected HTTP 400, got 201 - {"code":"QA0E000E83","course":"6aecc999e2fc3f0675870cda","instructor":"6aecc987e2fc3f0675870274","discountType":"percentage","discountValue":10,"maxUses":null,"usedCount"
 FAIL CPN-021 Usage limit holds under parallel use
      maxUses 1 was redeemed 4 times
 FAIL CPN-022 Percentage discount keeps cents on USD courses
@@ -81,9 +77,9 @@ FAIL ADM-007 Invalid warning index changes nothing
 FAIL ADM-009 Non-numeric warning limit is rejected
      expected HTTP 400, got 500 - {"message":"User validation failed: maxWarnings: Cast to Number failed for value \"abc\" (type string) at path \"maxWarnings\"","stack":"ValidationError: User validation 
 FAIL ADM-019 Payout amount must be positive
-     expected HTTP 400, got 201 - {"instructor":{"_id":"6aecc5f9ce0fbf706965b6fc","name":"QA earn","email":"earn.ccb76a69@qa.test"},"amount":-500,"currency":"LKR","method":"bank_transfer","transactionId":
+     expected HTTP 400, got 201 - {"instructor":{"_id":"6aecc9a1e2fc3f0675870f61","name":"QA earn","email":"earn.500c8c4f@qa.test"},"amount":-500,"currency":"LKR","method":"bank_transfer","transactionId":
 FAIL ADM-023 Admin cannot lock themselves out
-     expected HTTP 400, got 200 - {"_id":"6aecc5fa8a59658dcbdddf66","name":"A2","email":"admin2.86e8d4d2@qa.test","googleId":null,"role":"admin","bio":"","profileImage":"","stripeAccountId":"","otpHash":n
+     expected HTTP 400, got 200 - {"_id":"6aecc9a7d47719a0e58e22d2","name":"A2","email":"admin2.9cfb3552@qa.test","googleId":null,"role":"admin","bio":"","profileImage":"","stripeAccountId":"","otpHash":n
 FAIL ADM-024 Role change cannot demote an admin
      admin was demoted
 FAIL QZ-018 Repeating one answer cannot inflate a score
@@ -101,7 +97,7 @@ FAIL QZ-023 Passing score of 0 is kept
 FAIL QZ-024 AI-generated true/false questions can be answered
      percentage: expected 100, got 0
 FAIL QZ-025 Reject a negative time limit
-     expected HTTP 400, got 201 - {"course":"6aecc5eace0fbf706965aa6f","section":null,"title":"T","description":"","questions":[],"passingScore":70,"timeLimit":-5,"attemptsAllowed":-1,"isRequired":false,"
+     expected HTTP 400, got 201 - {"course":"6aecc988e2fc3f0675870291","section":null,"title":"T","description":"","questions":[],"passingScore":70,"timeLimit":-5,"attemptsAllowed":-1,"isRequired":false,"
 FAIL AI-008 Generating without a key is a client error
      expected HTTP 400, got 500 - {"message":"No AI configuration found. Please set up your API key in AI Settings.","stack":"Error: No AI configuration found. Please set up your API key in AI Settings.\n
 FAIL AI-009 Cannot generate for another course
@@ -129,7 +125,7 @@ FAIL RES-014 Admin can open course resources
 FAIL REV-012 A user can vote helpful only once
      helpful: expected 1, got 3
 FAIL REV-013 Private courses need enrollment to review
-     expected HTTP 403, got 201 - {"user":{"_id":"6aecc5eace0fbf706965aa6a","name":"QA outsider","profileImage":""},"course":"6aecc5ffce0fbf706965bf6c","rating":5,"comment":"Good","helpful":0,"_id":"6aecc
+     expected HTTP 403, got 201 - {"user":{"_id":"6aecc988e2fc3f067587028c","name":"QA outsider","profileImage":""},"course":"6aecc9c5e2fc3f06758717d7","rating":5,"comment":"Good","helpful":0,"_id":"6aecc
 FAIL REV-014 Non-numeric rating is a client error
      expected HTTP 400, got 500 - {"message":"Review validation failed: rating: Cast to Number failed for value \"abc\" (type string) at path \"rating\"","stack":"ValidationError: Review validation failed
 FAIL NTF-008 Progress milestone notification
@@ -144,30 +140,16 @@ FAIL ACT-007 Removing a warning is labelled correctly
      labelled User Warned
 FAIL ACT-008 Client IP is recorded
      ip is empty
-FAIL SEC-001 Public admin registration is closed
-     an admin account was created by a guest (HTTP 201, role admin)
-FAIL SEC-002 Self-registered admin has no admin access
-     guest-created admin read 64 user records
-FAIL SEC-003 Role in the register body is ignored
-     role: expected "student", got "admin"
-FAIL SEC-004 Google sign-in cannot create an admin
-     role admin created
-FAIL SEC-006 Passwords never reach the activity log
-     plaintext old and new passwords are stored in Activity.data
-FAIL SEC-007 AI keys never reach the activity log
-     plaintext AI key is stored in Activity.data, bypassing AES encryption
-FAIL SEC-008 Bank details never reach the activity log
-     account number stored in Activity.data
 FAIL SEC-009 A reset token is not a login token
-     expected HTTP 401, got 200 - {"_id":"6aecc603ce0fbf706965c1da","name":"QA rt","email":"rt.5348b771@qa.test","googleId":null,"role":"student","bio":"","profileImage":"","stripeAccountId":"","otpHash":
+     expected HTTP 401, got 200 - {"_id":"6aecc9d4e2fc3f0675871a46","name":"QA rt","email":"rt.d10b327b@qa.test","googleId":null,"role":"student","bio":"","profileImage":"","stripeAccountId":"","otpHash":
 FAIL SEC-010 OTP hash is not exposed
      otpHash returned; a 6-digit code can be cracked offline
 FAIL SEC-011 Reset code locks after repeated failures
-     expected HTTP 400, got 200 - {"resetToken":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjZhZWNjNjA0Y2UwZmJmNzA2OTY1YzFlYiIsInB1cnBvc2UiOiJwYXNzd29yZC1yZXNldCIsImlhdCI6MTc5MzkwMjA4NSwiZXhwIjoxNzkzOT
+     expected HTTP 400, got 200 - {"resetToken":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjZhZWNjOWQ2ZTJmYzNmMDY3NTg3MWE1OSIsInB1cnBvc2UiOiJwYXNzd29yZC1yZXNldCIsImlhdCI6MTc5MzkwMzA2NSwiZXhwIjoxNzkzOT
 FAIL SEC-016 Rate limit cannot be dodged with a header
      8 attempts, none limited
 FAIL SEC-017 Marketplace course creation is rate limited
-     expected HTTP 429, got 201 - {"title":"T","description":"D","status":"Draft","lectureStatuses":[{"label":"Not Started","color":"#64748b","_id":"6aecc607d060774fc0b10ae1","id":"6aecc607d060774fc0b10ae
+     expected HTTP 429, got 201 - {"title":"T","description":"D","status":"Draft","lectureStatuses":[{"label":"Not Started","color":"#64748b","_id":"6aecc9ddc69830b5827b5817","id":"6aecc9ddc69830b5827b581
 FAIL SEC-019 Production errors hide internals
      message: Cast to ObjectId failed for value "not-an-id" (type string) at path "_id" for model "Course"
 FAIL SEC-020 Security headers are set
@@ -181,21 +163,19 @@ FAIL SEC-029 Instructors cannot change another course's settings
 FAIL SEC-030 Course list shows only what the user may see
      returned 38 courses, including other users' drafts
 FAIL SEC-031 Broadcasts are for course members
-     expected HTTP 403, got 200 - {"broadcasts":[{"_id":"6aecc5fdce0fbf706965bcda","course":"6aecc5eace0fbf706965aa6f","createdBy":{"_id":"6aecc5e9ce0fbf706965aa56","name":"QA owner","email":"owner.cd7399
+     expected HTTP 403, got 200 - {"broadcasts":[{"_id":"6aecc9bee2fc3f0675871543","course":"6aecc988e2fc3f0675870291","createdBy":{"_id":"6aecc987e2fc3f0675870274","name":"QA owner","email":"owner.d349a6
 FAIL SEC-032 Only members can read or post comments
-     post: expected HTTP 403, got 201 - {"user":"6aecc5eace0fbf706965aa6a","course":"6aecc5eace0fbf706965aa6f","lecture":"6aecc5eace0fbf706965aaa2","action":"Comment","method":"POST","url":"/api/courses/lecture
+     post: expected HTTP 403, got 201 - {"user":"6aecc988e2fc3f067587028c","course":"6aecc988e2fc3f0675870291","lecture":"6aecc988e2fc3f06758702c4","action":"Comment","method":"POST","url":"/api/courses/lecture
 FAIL SEC-033 Paywall: quiz questions are for members
-     expected HTTP 403, got 200 - {"_id":"6aecc5face0fbf706965b8ce","course":"6aecc5eace0fbf706965aa6f","section":null,"title":"Quiz 2cf1e487","description":"","questions":[{"questionText":"Pick B","quest
-FAIL SEC-034 Script links are rejected
-     resource: expected HTTP 400, got 201 - {"course":"6aecc5eace0fbf706965aa6f","uploadedBy":{"_id":"6aecc5e9ce0fbf706965aa56","name":"QA owner","email":"owner.cd739921@qa.test"},"title":"XSS","description":"","fi
+     expected HTTP 403, got 200 - {"_id":"6aecc9aae2fc3f0675871135","course":"6aecc988e2fc3f0675870291","section":null,"title":"Quiz 79ed0322","description":"","questions":[{"questionText":"Pick B","quest
 FAIL SEC-035 Upload filter cannot be bypassed
-     expected HTTP 400, got 201 - {"course":"6aecc5eace0fbf706965aa6f","uploadedBy":{"_id":"6aecc5e9ce0fbf706965aa56","name":"QA owner","email":"owner.cd739921@qa.test"},"title":"x","description":"","file
+     expected HTTP 400, got 201 - {"course":"6aecc988e2fc3f0675870291","uploadedBy":{"_id":"6aecc987e2fc3f0675870274","name":"QA owner","email":"owner.d349a659@qa.test"},"title":"x","description":"","file
 FAIL SEC-036 Audit log cannot be evaded
      the invalid courseId made the log write fail silently
 FAIL SEC-037 Impersonation sessions are short
      token lasts 30 days
 FAIL SEC-038 Impersonated actions stay out of the personal log
-     the action appears as if the student did it
+     entries in the student log: expected 2, got 3
 FAIL SEC-039 Student notes stay private from teachers
      notes returned to the teacher
 FAIL SEC-040 Peer progress is anonymous
@@ -225,4 +205,4 @@ FAIL ERR-004 Unknown API route returns JSON
 FAIL ERR-005 Validation failures are client errors
      expected HTTP 400, got 500 - {"message":"Course validation failed: level: `Banana` is not a valid enum value for path `level`.","stack":"ValidationError: Course validation failed: level: `Banana` is 
 
-350 run, 237 passed, 113 failed, 0 outbound calls blocked
+358 run, 255 passed, 103 failed, 0 outbound calls blocked

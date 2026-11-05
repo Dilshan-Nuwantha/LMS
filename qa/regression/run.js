@@ -56,9 +56,13 @@ const writeReports = () => {
 
     const unmapped = cases.filter(c => result[c.id]?.[0] === 'FAIL' && !bugFor[c.id]).map(c => c.id);
     const missing = cases.filter(c => !result[c.id]).map(c => c.id);
-    const passingLinked = Object.keys(bugFor).filter(id => result[id]?.[0] !== 'FAIL');
-    if (unmapped.length || missing.length || passingLinked.length) {
-        throw new Error(`Report check failed. Unmapped: ${unmapped}. No result: ${missing}. Linked but not failing: ${passingLinked}`);
+    const open = bugs.filter(b => b.status === 'Open');
+    const fixed = bugs.filter(b => b.status === 'Fixed');
+    const passingLinked = open.flatMap(b => b.tests).filter(id => result[id]?.[0] !== 'FAIL');
+    const failingFixed = fixed.flatMap(b => b.tests).filter(id => result[id]?.[0] !== 'PASS');
+    const unlinkedFail = cases.filter(c => result[c.id]?.[0] === 'FAIL' && !open.some(b => b.tests.includes(c.id))).map(c => c.id);
+    if (unmapped.length || missing.length || passingLinked.length || failingFixed.length || unlinkedFail.length) {
+        throw new Error(`Report check failed. Unmapped: ${unmapped}. No result: ${missing}. Open but passing: ${passingLinked}. Fixed but failing: ${failingFixed}. Failing with no open bug: ${unlinkedFail}`);
     }
 
     writeCaseDocument((c) => [result[c.id][0], (bugFor[c.id] || []).join(', ') || '-']);
@@ -66,19 +70,19 @@ const writeReports = () => {
     const severities = ['Critical', 'High', 'Medium', 'Low'];
     const types = ['Security', 'Vulnerability', 'Bug'];
     const typeName = { Security: 'Security issues', Vulnerability: 'Vulnerabilities', Bug: 'Bugs' };
-    const n = (f) => bugs.filter(f).length;
+    const n = (f) => open.filter(f).length;
     const pass = cases.filter(c => result[c.id][0] === 'PASS').length;
     const out = [
         '# Tenz Learn - Regression Bug Report', '',
-        `**Branch:** develop at commit cd8554b  `,
+        `**Branch:** develop at commit cd8554b, plus the uncommitted fixes for LMS-001 to LMS-004  `,
         `**Run date:** ${api.ranAt.slice(0, 10)}  `,
         `**Result:** ${cases.length} test cases, ${pass} passed, ${cases.length - pass} failed  `,
-        `**Findings:** ${bugs.length} (${severities.map(s => `${n(b => b.severity === s)} ${s}`).join(', ')})`, '',
-        '**Recommendation: do not release this branch.** LMS-001 to LMS-004 need fixing first. LMS-001 gives any visitor full admin access, and LMS-004 locks out existing users.', '',
+        `**Open findings:** ${open.length} (${severities.map(s => `${n(b => b.severity === s)} ${s}`).join(', ')}). **Fixed:** ${fixed.length}`, '',
+        `**Recommendation: do not release yet.** All Critical findings are fixed, but the workbook's Production Gate needs zero High bugs and ${n(b => b.severity === 'High')} remain open. The fixes also need the database steps listed under Fixed.`, '',
         '## Summary', '',
         '| Severity | Security issues | Vulnerabilities | Bugs | Total |', '|---|---|---|---|---|',
         ...severities.map(s => `| ${s} | ${types.map(t => n(b => b.severity === s && b.type === t)).join(' | ')} | ${n(b => b.severity === s)} |`),
-        `| **Total** | ${types.map(t => `**${n(b => b.type === t)}**`).join(' | ')} | **${bugs.length}** |`, '',
+        `| **Total** | ${types.map(t => `**${n(b => b.type === t)}**`).join(' | ')} | **${open.length}** |`, '',
         '- **Security issue:** a flaw in the app\'s own access control or data handling.',
         '- **Vulnerability:** an exploitable weakness, such as XSS, or a known flaw in a dependency.',
         '- **Bug:** the app does not behave as the SRS or the user would expect.', '',
@@ -103,10 +107,47 @@ const writeReports = () => {
 
     severities.forEach(s => {
         out.push(`## ${s}`, '');
-        bugs.filter(b => b.severity === s).forEach(b => {
+        open.filter(b => b.severity === s).forEach(b => {
             out.push(`### ${b.id}: ${b.title}`, '', `**Type:** ${b.type}  `, `**Where:** ${b.where}  `, `**Failed tests:** ${b.tests.join(', ')}`, '', b.problem, '', `**Fix:** ${b.fix}`, '');
         });
     });
+
+    out.push('## Fixed', '', 'These fixes are not committed yet. Their tests now pass.', '');
+    fixed.forEach(b => {
+        out.push(`### ${b.id}: ${b.title}`, '', `**Type:** ${b.type}  `, `**Tests now passing:** ${b.tests.join(', ')}`, '', b.problem, '', `**Fix:** ${b.fix}`, '');
+    });
+    out.push(
+        '### Database steps to run after deploying', '',
+        'Run these from `server/`. Each script only reports until you add `--apply`, and none of them has been run on the hosted database.', '',
+        '1. `node scripts/createAdmin.js --list`: check every admin. Anyone could create one before this fix, so remove any you do not recognise.',
+        '2. `node scripts/purgeActivitySecrets.js --apply`: removes stored passwords, AI keys and bank details from old log records. Then ask affected users to change those passwords and AI keys.',
+        '3. `node scripts/normalizeUserEmails.js --apply`: lowercases old emails and lists any pairs that differ only by case for you to resolve. Login already works for these accounts without it.', ''
+    );
+
+    out.push(
+        '## Workbook test cases replaced', '',
+        'At the team\'s request, 18 of the 22 original test cases in the QA Test Cases tab were removed because a case in this run covers them. Where the original expected something different from what the app does, that decision is still open.', '',
+        '| Removed | Covered by | Original expectation that differs |', '|---|---|---|',
+        '| TC-AUTH-001 | AUTH-001 | |',
+        '| TC-AUTH-002 | AUTH-002 | Expected HTTP 409; the app returns 400 |',
+        '| TC-AUTH-003 | AUTH-006 | Expected HTTP 401; the app returns 400 |',
+        '| TC-AUTH-004 | AUTH-028, AUTH-029 | |',
+        '| TC-RBAC-001 | SEC-023, SEC-024 | |',
+        '| TC-RBAC-003 | AUTH-034 | |',
+        '| TC-CRS-001 | CRS-002 | |',
+        '| TC-CRS-002 | CRS-003, MKT-001, MKT-002 | |',
+        '| TC-ENR-001 | CRS-011 | |',
+        '| TC-CONT-001 | CRS-016 | |',
+        '| TC-QUIZ-001 | QZ-008, QZ-010 | Used 4 of 5 correct (80%); this run used all right and all wrong |',
+        '| TC-QUIZ-002 | QZ-011 | |',
+        '| TC-PAY-001 | PAY-001 | Used a real Stripe test key; this run used a local stand-in |',
+        '| TC-PAY-002 | PAY-002 | Named payment_intent.succeeded; the app handles checkout.session.completed |',
+        '| TC-PAY-003 | PAY-016, PAY-024 | |',
+        '| TC-COUP-001 | CPN-013, CPN-015 | |',
+        '| TC-SEC-001 | SEC-021 | |',
+        '| TC-SEC-003 | SEC-015 | Expected a limit of 100 requests; the app allows 300 |', '',
+        'Still in the tab as Not Run, because this run did not cover them: TC-RBAC-002, TC-NOTIF-001, TC-INT-001 and TC-SEC-002.', ''
+    );
 
     out.push(
         '## Other observations', '', 'These are not counted as bugs.', '',
@@ -158,9 +199,10 @@ const serve = async () => {
     const { F } = fixtures;
     const { api, newUser } = lib;
     await api('PUT', `/resources/${F.course.id}/toggle-student-uploads`, { token: F.instr.token });
+    // Written straight to the database, as a link saved before the server check existed would be
     const xss = "javascript:document.title='XSS-'+localStorage.getItem('token').slice(0,12);window.opener&&(window.opener.document.title='XSS-'+localStorage.getItem('token').slice(0,12))";
-    await api('POST', `/resources/${F.course.id}`, { token: F.instr.token, form: lib.multipart({ url: xss, title: 'QA script link' }) });
-    await api('PUT', `/courses/lectures/${F.L2}`, { token: F.instr.token, body: { resourceUrl: xss } });
+    await fixtures.models.Resource.create({ course: F.course.id, uploadedBy: F.instr.id, title: 'QA script link', fileType: 'link', url: xss, uploaderRole: 'teacher' });
+    await fixtures.models.Lecture.updateOne({ _id: F.L2 }, { resourceUrl: xss });
     const info = { api: env.DEV, courseId: F.course.id, lecture: F.L2, student: { email: F.s1.email, password: F.s1.password } };
     fs.writeFileSync(path.join(QA, 'results', 'serve-info.json'), JSON.stringify(info, null, 2));
     console.log('Test stack ready');

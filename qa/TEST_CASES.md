@@ -2,7 +2,7 @@
 
 **Branch under test:** fix/payment-gateway  
 **Requirements source:** SRS.md v1.0  
-**Total cases:** 370 (Critical 48, High 175, Medium 123, Low 24)
+**Total cases:** 378 (Critical 50, High 180, Medium 124, Low 24)
 
 ## How to run
 
@@ -16,7 +16,7 @@ Run `npm install` in `server/` first. The run starts its own local MongoDB and t
 
 | Module | Cases |
 |---|---|
-| Authentication | 41 |
+| Authentication | 43 |
 | Course management | 25 |
 | Lecture progress | 11 |
 | Co-instructors | 14 |
@@ -32,7 +32,7 @@ Run `npm install` in `server/` first. The run starts its own local MongoDB and t
 | Reviews | 15 |
 | Notifications | 9 |
 | Activity log | 8 |
-| Security | 50 |
+| Security | 56 |
 | Error handling | 5 |
 | Build and dependencies | 7 |
 | User interface | 13 |
@@ -79,9 +79,11 @@ Run `npm install` in `server/` first. The run starts its own local MongoDB and t
 | AUTH-036 | Medium | Unverified Google email cannot link to an existing account | Google login with email_verified=false for an existing email | Login is refused | FAIL | LMS-025 |
 | AUTH-037 | Low | Blank name is a validation error | PUT /auth/profile with name set to spaces | HTTP 400 | FAIL | LMS-036 |
 | AUTH-038 | Medium | Oversized profile data is handled cleanly | PUT /auth/profile with a 200 KB profileImage | HTTP 200 if accepted, or HTTP 413 if too large; never a 500 | FAIL | LMS-035 |
-| AUTH-039 | Critical | Existing accounts with capitals in the email can still log in | Create a stored account as Legacy.x@QA.test (as older versions did), then log in with that exact email | HTTP 200 | FAIL | LMS-004 |
-| AUTH-040 | High | Existing accounts with capitals can reset their password | Request a reset for a stored account with capitals in the email | A reset code is emailed | FAIL | LMS-004 |
+| AUTH-039 | Critical | Existing accounts with capitals in the email can still log in | Create a stored account as Legacy.x@QA.test (as older versions did), then log in with that exact email | HTTP 200 | PASS | LMS-004 |
+| AUTH-040 | High | Existing accounts with capitals can reset their password | Request a reset for a stored account with capitals in the email | A reset code is emailed | PASS | LMS-004 |
 | AUTH-041 | Low | Login does not reveal Google-only accounts | Log in to a Google-only account with any password | Same "Invalid credentials" message as a wrong password | FAIL | LMS-059 |
+| AUTH-042 | High | A new account cannot duplicate an existing capitalised email | Register the lowercase form of a stored Legacy.x@QA.test account | HTTP 400 | PASS | - |
+| AUTH-043 | High | Google login finds an existing capitalised account | Sign in with Google using the lowercase form of a stored Legacy.x@QA.test account | The existing account is used and no second account is created | PASS | - |
 
 ## Course management
 
@@ -416,14 +418,14 @@ Run `npm install` in `server/` first. The run starts its own local MongoDB and t
 
 | ID | Priority | Test case | Steps | Expected result | Result | Bug |
 |---|---|---|---|---|---|---|
-| SEC-001 | Critical | Public admin registration is closed | POST /auth/admin/register with no credentials | Refused; SRS 10.2 says there is no admin self-registration | FAIL | LMS-001 |
-| SEC-002 | Critical | Self-registered admin has no admin access | Call GET /admin/users with the token from SEC-001 | Denied | FAIL | LMS-001 |
-| SEC-003 | Critical | Role in the register body is ignored | POST /auth/register with role admin | Created as student | FAIL | LMS-001 |
-| SEC-004 | Critical | Google sign-in cannot create an admin | POST /auth/admin/google with a new identity | Refused | FAIL | LMS-001 |
+| SEC-001 | Critical | Public admin registration is closed | POST /auth/admin/register with no credentials | Refused; SRS 10.2 says there is no admin self-registration | PASS | LMS-001 |
+| SEC-002 | Critical | Self-registered admin has no admin access | Call GET /admin/users with the token from SEC-001 | Denied | PASS | LMS-001 |
+| SEC-003 | Critical | Role in the register body is ignored | POST /auth/register with role admin | Created as student | PASS | LMS-001 |
+| SEC-004 | Critical | Google sign-in cannot create an admin | POST /auth/admin/google with a new identity | Refused | PASS | LMS-001 |
 | SEC-005 | High | Login rejects database operators | POST /auth/login with email {"$regex":"^student1"} and a valid password | HTTP 400 | PASS | - |
-| SEC-006 | Critical | Passwords never reach the activity log | Change a password, read the log entry | No password value stored | FAIL | LMS-002 |
-| SEC-007 | Critical | AI keys never reach the activity log | Save an AI key, read the log entry | No key value stored | FAIL | LMS-002 |
-| SEC-008 | High | Bank details never reach the activity log | Save bank details, read the log entry | No account number stored | FAIL | LMS-002 |
+| SEC-006 | Critical | Passwords never reach the activity log | Change a password, read the log entry | No password value stored | PASS | LMS-002 |
+| SEC-007 | Critical | AI keys never reach the activity log | Save an AI key, read the log entry | No key value stored | PASS | LMS-002 |
+| SEC-008 | High | Bank details never reach the activity log | Save bank details, read the log entry | No account number stored | PASS | LMS-002 |
 | SEC-009 | High | A reset token is not a login token | Use a resetToken as a Bearer token | HTTP 401 | FAIL | LMS-024 |
 | SEC-010 | Medium | OTP hash is not exposed | Request a reset, then GET /auth/me | No otpHash field | FAIL | LMS-026 |
 | SEC-011 | High | Reset code locks after repeated failures | Send 12 wrong codes from different IPs, then the right code | The code is locked or invalidated | FAIL | LMS-010 |
@@ -449,7 +451,7 @@ Run `npm install` in `server/` first. The run starts its own local MongoDB and t
 | SEC-031 | Medium | Broadcasts are for course members | GET active broadcasts as a non-enrolled user | HTTP 403 | FAIL | LMS-012 |
 | SEC-032 | Medium | Only members can read or post comments | POST and GET comments as a non-enrolled user | HTTP 403 | FAIL | LMS-012 |
 | SEC-033 | High | Paywall: quiz questions are for members | GET /quizzes/:id and /quizzes/course/:id as a non-enrolled user | HTTP 403 | FAIL | LMS-012 |
-| SEC-034 | Critical | Script links are rejected | Add a resource link and a lecture URL using javascript: | HTTP 400 each | FAIL | LMS-003 |
+| SEC-034 | Critical | Script links are rejected | Add a resource link and a lecture URL using javascript: | HTTP 400 each | PASS | LMS-003 |
 | SEC-035 | Medium | Upload filter cannot be bypassed | Upload HTML declared as "text/html; csv" | HTTP 400 | FAIL | LMS-062 |
 | SEC-036 | Medium | Audit log cannot be evaded | Send a logged action with courseId "x" in the body | The action is still logged | FAIL | LMS-033 |
 | SEC-037 | Medium | Impersonation sessions are short | Read the expiry of an impersonation token | One hour or less (SRS: temporary token) | FAIL | LMS-011 |
@@ -466,6 +468,12 @@ Run `npm install` in `server/` first. The run starts its own local MongoDB and t
 | SEC-048 | High | Course update cannot lift an admin block | PUT /courses/:id with isAdminBlocked false on a blocked course | The block stays | PASS | - |
 | SEC-049 | Medium | Admins cannot be impersonated | POST /admin/impersonate with another admin email | Refused | FAIL | LMS-029 |
 | SEC-050 | Low | Login does not reveal blocked status without the password | Log in to a blocked account with a wrong password | HTTP 400 "Invalid credentials" | FAIL | LMS-059 |
+| SEC-051 | Critical | Role in the Google sign-in body is ignored | POST /auth/google with a new identity and role admin in the body | Refused, and no admin account is created | PASS | - |
+| SEC-052 | High | Existing admins can still sign in | Log in at /auth/admin/login and with Google at /auth/admin/google | HTTP 200 for both | PASS | - |
+| SEC-053 | Critical | Disguised script links are rejected | Add links using mixed case, spaces, a newline, data: and vbscript: | HTTP 400 for each | PASS | - |
+| SEC-054 | High | Normal links still work | Add https, http and no-scheme links, and clear a lecture URL | All are accepted | PASS | - |
+| SEC-055 | High | Google sign-in codes never reach the activity log | Sign in with Google, read the log entry | No code stored | PASS | - |
+| SEC-056 | Medium | The log keeps useful non-secret fields | Create a broadcast, read the log entry | title and priority are stored | PASS | - |
 
 ## Error handling
 
@@ -487,7 +495,7 @@ Run `npm install` in `server/` first. The run starts its own local MongoDB and t
 | BLD-004 | High | Client dependency audit | Run npm audit --omit=dev in client/ | No high or critical advisories | FAIL | LMS-021 |
 | BLD-005 | Critical | No secrets in git history | Search all branches for .env files and live keys | Nothing found | PASS | - |
 | BLD-006 | Low | Every import has a declared dependency | Compare client imports with package.json | All imports resolve to declared packages | FAIL | LMS-070 |
-| BLD-007 | High | Existing auth test suite | Run server/tests/auth.test.js with MONGO_URI set to a local database | All tests pass | PASS | - |
+| BLD-007 | High | Existing team test suites | Run the tests in server/tests with MONGO_URI and MONGO_TEST_URI set to a local database | All tests pass | PASS | - |
 
 ## User interface
 
@@ -502,7 +510,7 @@ Run `npm install` in `server/` first. The run starts its own local MongoDB and t
 | UI-007 | Medium | Theme toggle | Switch between light and dark | Theme changes and survives a reload (NFR-USE-01) | PASS | - |
 | UI-008 | Medium | Mobile layout at 375px | Open home and marketplace at 375px | No horizontal page scroll (NFR-USE-02) | PASS | - |
 | UI-009 | High | Course landing page | Open a marketplace course | Title, price and curriculum render | PASS | - |
-| UI-010 | Critical | Stored script link does not run | A javascript: resource link is clicked by a student in the course | The script does not run and the login token cannot be read | FAIL | LMS-003 |
+| UI-010 | Critical | Stored script link does not run | A javascript: resource link is clicked by a student in the course | The script does not run and the login token cannot be read | PASS | LMS-003 |
 | UI-011 | High | Lecture script link does not run | A lecture has a javascript: resource URL; open it as a student | The link is inert | PASS | - |
-| UI-012 | Critical | Admin register page is not public | Open /admin/register as a guest | The page is not available | FAIL | LMS-001 |
+| UI-012 | Critical | Admin register page is not public | Open /admin/register as a guest | The page is not available | PASS | LMS-001 |
 | UI-013 | Medium | Page title uses the product name | Read the browser tab title | Title says Tenz Learn | FAIL | LMS-057 |

@@ -173,7 +173,9 @@ const legacyUser = async () => {
     // Accounts created before commit 4280b9e kept the email exactly as typed
     const email = `Legacy.${uid()}@QA.test`;
     const password = 'Legacy-pass-123';
-    await models.User.create({ name: 'Legacy', email, password });
+    // Raw insert: the model would lowercase the email, which is exactly what old records lack
+    const hash = await serverRequire('bcryptjs').hash(password, 10);
+    await models.User.collection.insertOne({ name: 'Legacy', email, password: hash, role: 'student', warnings: [], isBlocked: false, googleId: null });
     return { email, password };
 };
 tc('AUTH-039', M, 'Critical', 'Existing accounts with capitals in the email can still log in', 'Create a stored account as Legacy.x@QA.test (as older versions did), then log in with that exact email', 'HTTP 200', async () => {
@@ -189,6 +191,16 @@ tc('AUTH-041', M, 'Low', 'Login does not reveal Google-only accounts', 'Log in t
     const email = `g.${uid()}@qa.test`;
     await google(email, 'g' + uid());
     eq((await api('POST', '/auth/login', { body: { email, password: 'whatever1' } })).json.message, 'Invalid credentials', 'message');
+});
+tc('AUTH-042', M, 'High', 'A new account cannot duplicate an existing capitalised email', 'Register the lowercase form of a stored Legacy.x@QA.test account', 'HTTP 400', async () => {
+    const u = await legacyUser();
+    is(await reg({ name: 'Dup', email: u.email.toLowerCase(), password: 'Secret123!' }), 400);
+});
+tc('AUTH-043', M, 'High', 'Google login finds an existing capitalised account', 'Sign in with Google using the lowercase form of a stored Legacy.x@QA.test account', 'The existing account is used and no second account is created', async () => {
+    const u = await legacyUser();
+    const r = await google(u.email.toLowerCase(), 'g' + uid());
+    is(r, 200);
+    eq(await models.User.collection.countDocuments({ email: { $regex: `^${u.email}$`, $options: 'i' } }), 1, 'accounts');
 });
 
 const C = 'Course management';

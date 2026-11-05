@@ -21,7 +21,7 @@ const setRole = (role) => (req, res, next) => {
 };
 
 // Generic endpoints
-router.post('/register', registerLimiter, registerUser);
+router.post('/register', registerLimiter, setRole('student'), registerUser);
 router.post('/login', authLimiter, loginUser);
 router.post('/google', authLimiter, googleLogin);
 
@@ -35,8 +35,7 @@ router.post('/teacher/register', registerLimiter, setRole('instructor'), registe
 router.post('/teacher/login', authLimiter, setRole('instructor'), loginUser);
 router.post('/teacher/google', authLimiter, setRole('instructor'), googleLogin);
 
-// Admin API set
-router.post('/admin/register', registerLimiter, setRole('admin'), registerUser);
+// Admin API set (no register route: admins are created with scripts/createAdmin.js)
 router.post('/admin/login', authLimiter, setRole('admin'), loginUser);
 router.post('/admin/google', authLimiter, setRole('admin'), googleLogin);
 
