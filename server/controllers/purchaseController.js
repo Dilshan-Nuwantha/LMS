@@ -5,6 +5,10 @@ const Purchase = require('../models/Purchase');
 const Progress = require('../models/Progress');
 const Coupon = require('../models/Coupon');
 const { generateInvoicePDF } = require('../services/invoiceService');
+const {
+    createPurchaseWithInvoice,
+    isDuplicateKey
+} = require('../services/purchaseService');
 
 const requireStripe = () => {
     if (!stripe) {
@@ -14,31 +18,6 @@ const requireStripe = () => {
     }
 
     return stripe;
-};
-
-const isDuplicateKey = (err, field) =>
-    err?.code === 11000 && (!field || Object.keys(err.keyPattern || {}).includes(field));
-
-// Invoice numbers are sequential, so two checkouts at the same moment can pick
-// the same number. Retry with a fresh number when that happens.
-const createPurchaseWithInvoice = async (data) => {
-    // Only one record per user + course is allowed, so buying again after a refund reuses
-    // the refunded record (it keeps the refunded payment id, see handleSuccessfulPayment)
-    const refunded = await Purchase.findOne({ user: data.user, course: data.course, status: 'refunded' });
-
-    for (let attempt = 0; attempt < 5; attempt++) {
-        const invoiceNumber = await Purchase.generateInvoiceNumber();
-        try {
-            if (refunded) {
-                return await Object.assign(refunded, data, { invoiceNumber }).save();
-            }
-            return await Purchase.create({ ...data, invoiceNumber });
-        } catch (err) {
-            if (!isDuplicateKey(err, 'invoiceNumber')) throw err;
-        }
-    }
-
-    throw new Error('Could not allocate an invoice number, please try again');
 };
 
 // Enroll the student once a purchase is completed (paid or free)
