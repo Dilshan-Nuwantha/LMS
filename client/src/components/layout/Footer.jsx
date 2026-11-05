@@ -42,7 +42,7 @@ const Footer = () => {
                                 <FaTwitter />
                             </a>
                             <a
-                                href="#"
+                                href="https://www.linkedin.com/company/linkedin.com-company-tenze/posts"
                                 className="w-8 h-8 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 flex items-center justify-center text-slate-600 dark:text-slate-300 hover:bg-primary hover:text-white hover:border-primary transition-all text-xs"
                             >
                                 <FaLinkedinIn />
