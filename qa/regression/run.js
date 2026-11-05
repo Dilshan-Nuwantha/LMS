@@ -70,7 +70,7 @@ const writeReports = () => {
     const pass = cases.filter(c => result[c.id][0] === 'PASS').length;
     const out = [
         '# Tenz Learn - Regression Bug Report', '',
-        `**Branch:** fix/payment-gateway at commit 4280b9e  `,
+        `**Branch:** develop at commit cd8554b  `,
         `**Run date:** ${api.ranAt.slice(0, 10)}  `,
         `**Result:** ${cases.length} test cases, ${pass} passed, ${cases.length - pass} failed  `,
         `**Findings:** ${bugs.length} (${severities.map(s => `${n(b => b.severity === s)} ${s}`).join(', ')})`, '',
@@ -90,10 +90,10 @@ const writeReports = () => {
             return `| ${m} | ${list.length} | ${p} | ${list.length - p} |`;
         }), '',
         '## How this was tested', '',
-        `- The API suite ran ${api.results.length} cases against the real server code at commit 4280b9e, using a temporary local MongoDB. The hosted lms-dev database was not used.`,
+        `- The API suite ran ${api.results.length} cases against the real server code at commit cd8554b on develop, using a temporary local MongoDB. The hosted lms-dev database was not used.`,
         '- Stripe, email, Google sign-in and the AI providers were local stand-ins, so **no real payment, email or AI request was made**. Stripe webhook signatures were verified for real. Outbound calls blocked: ' + api.blockedOutbound.length + '.',
         '- Production-only behaviour (rate limits, stack traces, cron secret) ran against a second instance with NODE_ENV=production.',
-        '- UI checks used the app in a browser, and LMS-003 was confirmed in real Chrome with a temporary profile.', '',
+        '- UI checks ran on commit 4280b9e and were not repeated on cd8554b. LMS-003 was confirmed in real Chrome with a temporary profile, and its code has not changed since.', '',
         '### Not covered', '',
         '- A real Stripe checkout page, real Google sign-in, real email delivery and real AI provider responses.',
         '- Load and performance targets (NFR-PERF), and uptime.',
@@ -110,6 +110,7 @@ const writeReports = () => {
 
     out.push(
         '## Other observations', '', 'These are not counted as bugs.', '',
+        '- Fixed on develop since the first run: LMS-063 (blocked and deleted users got wrong auth responses) and LMS-064 (wrong role returned 401). They are removed from this report, so those numbers are skipped.',
         '- `server/node_modules` on this machine has no `nodemailer`, so the server will not start until `npm install` is run in `server/`.',
         '- `server/.env` has no `EMAIL_USER` or `EMAIL_PASS`, so password reset emails cannot be sent with this configuration, and no `server/.env.example` exists.',
         '- `CRON_SECRET` is needed in production for the due date reminders; it is not in `server/.env`.',

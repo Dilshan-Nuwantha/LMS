@@ -1,9 +1,9 @@
 # Tenz Learn - Regression Bug Report
 
-**Branch:** fix/payment-gateway at commit 4280b9e  
+**Branch:** develop at commit cd8554b  
 **Run date:** 2026-11-05  
-**Result:** 370 test cases, 246 passed, 124 failed  
-**Findings:** 71 (4 Critical, 17 High, 36 Medium, 14 Low)
+**Result:** 370 test cases, 249 passed, 121 failed  
+**Findings:** 69 (4 Critical, 17 High, 36 Medium, 12 Low)
 
 **Recommendation: do not release this branch.** LMS-001 to LMS-004 need fixing first. LMS-001 gives any visitor full admin access, and LMS-004 locks out existing users.
 
@@ -14,8 +14,8 @@
 | Critical | 2 | 1 | 1 | 4 |
 | High | 8 | 2 | 7 | 17 |
 | Medium | 13 | 0 | 23 | 36 |
-| Low | 4 | 1 | 9 | 14 |
-| **Total** | **27** | **4** | **40** | **71** |
+| Low | 4 | 1 | 7 | 12 |
+| **Total** | **27** | **4** | **38** | **69** |
 
 - **Security issue:** a flaw in the app's own access control or data handling.
 - **Vulnerability:** an exploitable weakness, such as XSS, or a known flaw in a dependency.
@@ -25,7 +25,7 @@
 
 | Module | Cases | Passed | Failed |
 |---|---|---|---|
-| Authentication | 41 | 31 | 10 |
+| Authentication | 41 | 33 | 8 |
 | Course management | 25 | 18 | 7 |
 | Lecture progress | 11 | 6 | 5 |
 | Co-instructors | 14 | 11 | 3 |
@@ -41,17 +41,17 @@
 | Reviews | 15 | 12 | 3 |
 | Notifications | 9 | 7 | 2 |
 | Activity log | 8 | 4 | 4 |
-| Security | 50 | 13 | 37 |
+| Security | 50 | 14 | 36 |
 | Error handling | 5 | 1 | 4 |
 | Build and dependencies | 7 | 3 | 4 |
 | User interface | 13 | 9 | 4 |
 
 ## How this was tested
 
-- The API suite ran 350 cases against the real server code at commit 4280b9e, using a temporary local MongoDB. The hosted lms-dev database was not used.
+- The API suite ran 350 cases against the real server code at commit cd8554b on develop, using a temporary local MongoDB. The hosted lms-dev database was not used.
 - Stripe, email, Google sign-in and the AI providers were local stand-ins, so **no real payment, email or AI request was made**. Stripe webhook signatures were verified for real. Outbound calls blocked: 0.
 - Production-only behaviour (rate limits, stack traces, cron secret) ran against a second instance with NODE_ENV=production.
-- UI checks used the app in a browser, and LMS-003 was confirmed in real Chrome with a temporary profile.
+- UI checks ran on commit 4280b9e and were not repeated on cd8554b. LMS-003 was confirmed in real Chrome with a temporary profile, and its code has not changed since.
 
 ### Not covered
 
@@ -147,7 +147,7 @@ Creating a conversation does not check enrollment. Any logged-in user can open o
 ### LMS-009: Admin-blocked courses stay open and can still be sold
 
 **Type:** Security  
-**Where:** server/controllers/courseController.js:88, :452; server/controllers/purchaseController.js:77-81  
+**Where:** server/controllers/courseController.js:88, :452; server/controllers/purchaseController.js:56-60  
 **Failed tests:** CRS-021, PAY-026
 
 Blocking hides a course from the marketplace only. Enrolled students can still open the course and its lectures, and a Stripe checkout session is still created. This breaks FR-COURSE-02 and FR-ADMIN-03.
@@ -207,7 +207,7 @@ A payout of -500 is accepted and recorded as completed, which raises the pending
 ### LMS-015: Coupon usage limit fails under parallel checkouts
 
 **Type:** Bug  
-**Where:** server/controllers/purchaseController.js:122, :46  
+**Where:** server/controllers/purchaseController.js:101, :27  
 **Failed tests:** CPN-021
 
 The limit is read first and updated later. Four parallel checkouts redeemed a maxUses 1 coupon four times.
@@ -299,7 +299,7 @@ A student with no key silently falls back to the instructor key even with useIns
 ### LMS-024: Reset token works as a normal login token
 
 **Type:** Security  
-**Where:** server/middleware/authMiddleware.js:17  
+**Where:** server/middleware/authMiddleware.js:16  
 **Failed tests:** SEC-009
 
 protect does not check the token purpose, so a reset token gives API access for 15 minutes.
@@ -319,7 +319,7 @@ email_verified is not checked before an account is matched by email. Tested with
 ### LMS-026: Reset code hash is returned by the API
 
 **Type:** Security  
-**Where:** server/middleware/authMiddleware.js:20; server/controllers/adminController.js:107, :212  
+**Where:** server/middleware/authMiddleware.js:18; server/controllers/adminController.js:107, :212  
 **Failed tests:** SEC-010
 
 Only the password is excluded, so otpHash is returned by /auth/me and admin user lists. A six-digit code can be cracked offline from its hash.
@@ -459,7 +459,7 @@ Discounts round to whole units, so 1 percent of USD 19.99 is 0 instead of 0.20.
 ### LMS-040: Students who already have access can be charged
 
 **Type:** Bug  
-**Where:** server/controllers/purchaseController.js:88-98  
+**Where:** server/controllers/purchaseController.js:68-78  
 **Failed tests:** PAY-027
 
 Checkout checks purchases but not enrollment, so a manually enrolled student can still pay.
@@ -688,26 +688,6 @@ Any type containing "csv" passes, so HTML declared as "text/html; csv" is stored
 
 **Fix:** Compare exact types, and always send a safe type with nosniff.
 
-### LMS-063: Blocked and deleted users get wrong auth responses
-
-**Type:** Bug  
-**Where:** server/middleware/authMiddleware.js:19-29  
-**Failed tests:** AUTH-034, AUTH-035
-
-The block message is replaced by a 401, and a deleted user's token still returns HTTP 200 with null.
-
-**Fix:** Reject a missing user with 401, and keep the 403 for blocked users.
-
-### LMS-064: Wrong role returns 401 instead of 403
-
-**Type:** Bug  
-**Where:** server/middleware/authMiddleware.js:45, :54  
-**Failed tests:** SEC-024
-
-A logged-in user who lacks a role gets 401, and the client shows "session expired".
-
-**Fix:** Return 403.
-
 ### LMS-065: Lecture fields cannot be cleared
 
 **Type:** Bug  
@@ -782,6 +762,7 @@ The filter select renders options without a key and logs a console error.
 
 These are not counted as bugs.
 
+- Fixed on develop since the first run: LMS-063 (blocked and deleted users got wrong auth responses) and LMS-064 (wrong role returned 401). They are removed from this report, so those numbers are skipped.
 - `server/node_modules` on this machine has no `nodemailer`, so the server will not start until `npm install` is run in `server/`.
 - `server/.env` has no `EMAIL_USER` or `EMAIL_PASS`, so password reset emails cannot be sent with this configuration, and no `server/.env.example` exists.
 - `CRON_SECRET` is needed in production for the due date reminders; it is not in `server/.env`.

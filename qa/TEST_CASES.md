@@ -74,8 +74,8 @@ Run `npm install` in `server/` first. The run starts its own local MongoDB and t
 | AUTH-031 | Medium | Reset request does not reveal unknown emails | POST /auth/forgot-password with an unknown email | Same HTTP 200 message as a known email | PASS | - |
 | AUTH-032 | Low | Reset request does not reveal Google-only accounts | POST /auth/forgot-password for a Google-only account | Same generic HTTP 200 message | FAIL | LMS-059 |
 | AUTH-033 | High | Password change ends existing sessions | Change the password, then reuse the old token | HTTP 401 | FAIL | LMS-011 |
-| AUTH-034 | Low | Blocked user sees the block message on API calls | Block a user, then call /auth/me with their token | HTTP 403 with the block message | FAIL | LMS-063 |
-| AUTH-035 | Medium | Token of a deleted user is rejected | Delete the user record, then call /auth/me | HTTP 401 | FAIL | LMS-063 |
+| AUTH-034 | Low | Blocked user sees the block message on API calls | Block a user, then call /auth/me with their token | HTTP 403 with the block message | PASS | - |
+| AUTH-035 | Medium | Token of a deleted user is rejected | Delete the user record, then call /auth/me | HTTP 401 | PASS | - |
 | AUTH-036 | Medium | Unverified Google email cannot link to an existing account | Google login with email_verified=false for an existing email | Login is refused | FAIL | LMS-025 |
 | AUTH-037 | Low | Blank name is a validation error | PUT /auth/profile with name set to spaces | HTTP 400 | FAIL | LMS-036 |
 | AUTH-038 | Medium | Oversized profile data is handled cleanly | PUT /auth/profile with a 200 KB profileImage | HTTP 200 if accepted, or HTTP 413 if too large; never a 500 | FAIL | LMS-035 |
@@ -439,7 +439,7 @@ Run `npm install` in `server/` first. The run starts its own local MongoDB and t
 | SEC-021 | High | CORS allows only the client origin | Send a request with Origin https://evil.test | That origin is not reflected | PASS | - |
 | SEC-022 | Critical | Unsigned and wrongly signed tokens are rejected | Use an alg:none token and one signed with another secret | HTTP 401 each | PASS | - |
 | SEC-023 | Critical | Non-admins are refused on admin routes | Call each admin route as a student and an instructor | Denied every time | PASS | - |
-| SEC-024 | Low | Wrong role gets 403, not 401 | GET /admin/dashboard as a student | HTTP 403; 401 means "not logged in", and the client shows "session expired" | FAIL | LMS-064 |
+| SEC-024 | Low | Wrong role gets 403, not 401 | GET /admin/dashboard as a student | HTTP 403; 401 means "not logged in", and the client shows "session expired" | PASS | - |
 | SEC-025 | Critical | Guests are refused on protected routes | Call a sample of protected routes with no token | HTTP 401 each | PASS | - |
 | SEC-026 | High | Cron endpoint needs its secret in production | Production mode: GET /cron/due-reminders with and without the secret | HTTP 401 without, HTTP 200 with | PASS | - |
 | SEC-027 | High | Instructors cannot message another instructor's students | POST /notifications/course/:id/send as an unrelated instructor | HTTP 403 | FAIL | LMS-007 |

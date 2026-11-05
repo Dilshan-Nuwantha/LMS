@@ -1,765 +1,763 @@
 {
-  "ranAt": "2026-11-05T17:21:18.342Z",
+  "ranAt": "2026-11-05T18:08:09.217Z",
   "blockedOutbound": [],
   "results": [
     {
       "id": "AUTH-001",
       "status": "PASS",
-      "ms": 446
+      "ms": 139
     },
     {
       "id": "AUTH-002",
       "status": "PASS",
-      "ms": 611
+      "ms": 150
     },
     {
       "id": "AUTH-003",
       "status": "PASS",
-      "ms": 11
+      "ms": 6
     },
     {
       "id": "AUTH-004",
       "status": "PASS",
-      "ms": 56
+      "ms": 40
     },
     {
       "id": "AUTH-005",
       "status": "PASS",
-      "ms": 559
+      "ms": 263
     },
     {
       "id": "AUTH-006",
       "status": "PASS",
-      "ms": 707
+      "ms": 92
     },
     {
       "id": "AUTH-007",
       "status": "PASS",
-      "ms": 6
+      "ms": 3
     },
     {
       "id": "AUTH-008",
       "status": "PASS",
-      "ms": 731
+      "ms": 115
     },
     {
       "id": "AUTH-009",
       "status": "PASS",
-      "ms": 8
+      "ms": 6
     },
     {
       "id": "AUTH-010",
       "status": "PASS",
-      "ms": 3
+      "ms": 2
     },
     {
       "id": "AUTH-011",
       "status": "PASS",
-      "ms": 12
+      "ms": 4
     },
     {
       "id": "AUTH-012",
       "status": "PASS",
-      "ms": 53
+      "ms": 8
     },
     {
       "id": "AUTH-013",
       "status": "PASS",
-      "ms": 2692
+      "ms": 753
     },
     {
       "id": "AUTH-014",
       "status": "PASS",
-      "ms": 338
+      "ms": 120
     },
     {
       "id": "AUTH-015",
       "status": "PASS",
-      "ms": 31
+      "ms": 11
     },
     {
       "id": "AUTH-016",
       "status": "PASS",
-      "ms": 8
+      "ms": 2
     },
     {
       "id": "AUTH-017",
       "status": "PASS",
-      "ms": 9
+      "ms": 3
     },
     {
       "id": "AUTH-018",
       "status": "PASS",
-      "ms": 343
+      "ms": 160
     },
     {
       "id": "AUTH-019",
       "status": "PASS",
-      "ms": 9
+      "ms": 4
     },
     {
       "id": "AUTH-020",
       "status": "PASS",
-      "ms": 35
+      "ms": 24
     },
     {
       "id": "AUTH-021",
       "status": "PASS",
-      "ms": 18
+      "ms": 17
     },
     {
       "id": "AUTH-022",
       "status": "PASS",
-      "ms": 45
+      "ms": 31
     },
     {
       "id": "AUTH-023",
       "status": "PASS",
-      "ms": 691
+      "ms": 271
     },
     {
       "id": "AUTH-024",
       "status": "PASS",
-      "ms": 298
+      "ms": 158
     },
     {
       "id": "AUTH-025",
       "status": "PASS",
-      "ms": 234
+      "ms": 98
     },
     {
       "id": "AUTH-026",
       "status": "PASS",
-      "ms": 5
+      "ms": 4
     },
     {
       "id": "AUTH-027",
       "status": "PASS",
-      "ms": 595
+      "ms": 275
     },
     {
       "id": "AUTH-028",
       "status": "PASS",
-      "ms": 16
+      "ms": 5
     },
     {
       "id": "AUTH-029",
       "status": "PASS",
-      "ms": 627
+      "ms": 210
     },
     {
       "id": "AUTH-030",
       "status": "PASS",
-      "ms": 783
+      "ms": 243
     },
     {
       "id": "AUTH-031",
       "status": "PASS",
-      "ms": 15
+      "ms": 4
     },
     {
       "id": "AUTH-032",
       "status": "FAIL",
       "actual": "expected HTTP 200, got 400 - {\"message\":\"This account uses Google sign-in. Please log in with Google.\",\"stack\":\"Error: This account uses Google sign-in. Please log in with Google.\\n at C:\\\\Users\\\\pri",
-      "ms": 60
+      "ms": 11
     },
     {
       "id": "AUTH-033",
       "status": "FAIL",
-      "actual": "expected HTTP 401, got 200 - {\"_id\":\"6aecbad8141c03690093ba8f\",\"name\":\"QA sess\",\"email\":\"sess.b49c10bd@qa.test\",\"googleId\":null,\"role\":\"student\",\"bio\":\"\",\"profileImage\":\"\",\"stripeAccountId\":\"\",\"otpHa",
-      "ms": 1274
+      "actual": "expected HTTP 401, got 200 - {\"_id\":\"6aecc5eece0fbf706965ab4e\",\"name\":\"QA sess\",\"email\":\"sess.2836857d@qa.test\",\"googleId\":null,\"role\":\"student\",\"bio\":\"\",\"profileImage\":\"\",\"stripeAccountId\":\"\",\"otpHa",
+      "ms": 342
     },
     {
       "id": "AUTH-034",
-      "status": "FAIL",
-      "actual": "expected HTTP 403, got 401 - {\"message\":\"Not authorized\",\"stack\":\"Error: Not authorized\\n at C:\\\\Users\\\\priya\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\D--Tenze---StartUp-LMS\\\\71553799-c395-40b4-882f-cad8bdbd94",
-      "ms": 432
+      "status": "PASS",
+      "ms": 133
     },
     {
       "id": "AUTH-035",
-      "status": "FAIL",
-      "actual": "expected HTTP 401, got 200 - null",
-      "ms": 341
+      "status": "PASS",
+      "ms": 180
     },
     {
       "id": "AUTH-036",
       "status": "FAIL",
       "actual": "account was linked and a session issued (HTTP 200)",
-      "ms": 31
+      "ms": 23
     },
     {
       "id": "AUTH-037",
       "status": "FAIL",
       "actual": "expected HTTP 400, got 500 - {\"message\":\"User validation failed: name: Please add a name\",\"stack\":\"ValidationError: User validation failed: name: Please add a name\\n at Document.invalidate (C:\\\\Users",
-      "ms": 27
+      "ms": 15
     },
     {
       "id": "AUTH-038",
       "status": "FAIL",
       "actual": "got HTTP 500",
-      "ms": 11
+      "ms": 13
     },
     {
       "id": "AUTH-039",
       "status": "FAIL",
       "actual": "expected HTTP 200, got 400 - {\"message\":\"Invalid credentials\",\"stack\":\"Error: Invalid credentials\\n at C:\\\\Users\\\\priya\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\D--Tenze---StartUp-LMS\\\\71553799-c395-40b4-882f-",
-      "ms": 665
+      "ms": 214
     },
     {
       "id": "AUTH-040",
       "status": "FAIL",
       "actual": "no reset email was sent although the API reported success",
-      "ms": 719
+      "ms": 113
     },
     {
       "id": "AUTH-041",
       "status": "FAIL",
       "actual": "message: expected \"Invalid credentials\", got \"This account uses Google sign-in. Please log in with Google.\"",
-      "ms": 58
+      "ms": 9
     },
     {
       "id": "CRS-001",
       "status": "PASS",
-      "ms": 46
+      "ms": 6
     },
     {
       "id": "CRS-002",
       "status": "PASS",
-      "ms": 40
+      "ms": 4
     },
     {
       "id": "CRS-003",
       "status": "PASS",
-      "ms": 87
+      "ms": 8
     },
     {
       "id": "CRS-004",
       "status": "PASS",
-      "ms": 71
+      "ms": 8
     },
     {
       "id": "CRS-005",
       "status": "PASS",
-      "ms": 84
+      "ms": 6
     },
     {
       "id": "CRS-006",
       "status": "PASS",
-      "ms": 289
+      "ms": 30
     },
     {
       "id": "CRS-007",
       "status": "PASS",
-      "ms": 442
+      "ms": 37
     },
     {
       "id": "CRS-008",
       "status": "FAIL",
       "actual": "expected HTTP 400, got 500 - {\"message\":\"Course validation failed: sections.1.importance: `Banana` is not a valid enum value for path `importance`.\",\"stack\":\"ValidationError: Course validation failed",
-      "ms": 188
+      "ms": 18
     },
     {
       "id": "CRS-009",
       "status": "FAIL",
       "actual": "description: expected \"\", got \"Public lecture body\"",
-      "ms": 131
+      "ms": 8
     },
     {
       "id": "CRS-010",
       "status": "PASS",
-      "ms": 768
+      "ms": 152
     },
     {
       "id": "CRS-011",
       "status": "PASS",
-      "ms": 165
+      "ms": 8
     },
     {
       "id": "CRS-012",
       "status": "PASS",
-      "ms": 97
+      "ms": 8
     },
     {
       "id": "CRS-013",
       "status": "PASS",
-      "ms": 208
+      "ms": 21
     },
     {
       "id": "CRS-014",
       "status": "PASS",
-      "ms": 159
+      "ms": 135
     },
     {
       "id": "CRS-015",
       "status": "PASS",
-      "ms": 70
+      "ms": 61
     },
     {
       "id": "CRS-016",
       "status": "PASS",
-      "ms": 143
+      "ms": 82
     },
     {
       "id": "CRS-017",
       "status": "PASS",
-      "ms": 61
+      "ms": 31
     },
     {
       "id": "CRS-018",
       "status": "PASS",
-      "ms": 100
+      "ms": 51
     },
     {
       "id": "CRS-019",
       "status": "PASS",
-      "ms": 62
+      "ms": 42
     },
     {
       "id": "CRS-020",
       "status": "PASS",
-      "ms": 161
+      "ms": 108
     },
     {
       "id": "CRS-021",
       "status": "FAIL",
       "actual": "course HTTP 200, lecture HTTP 200",
-      "ms": 522
+      "ms": 118
     },
     {
       "id": "CRS-022",
       "status": "FAIL",
       "actual": "orphaned quizzes: expected 0, got 1",
-      "ms": 738
+      "ms": 79
     },
     {
       "id": "CRS-023",
       "status": "FAIL",
       "actual": "audit records were deleted",
-      "ms": 652
+      "ms": 322
     },
     {
       "id": "CRS-024",
       "status": "FAIL",
       "actual": "student listed a course for sale (HTTP 200)",
-      "ms": 263
+      "ms": 49
     },
     {
       "id": "CRS-025",
       "status": "FAIL",
       "actual": "expected HTTP 400, got 200 - {\"notificationSettings\":{\"newContent\":false,\"newBroadcast\":false,\"newQuiz\":false,\"dueDateReminder\":false,\"aiAccessChange\":false,\"progressMilestone\":false},\"rating\":{\"aver",
-      "ms": 109
+      "ms": 20
     },
     {
       "id": "PRG-001",
       "status": "PASS",
-      "ms": 96
+      "ms": 29
     },
     {
       "id": "PRG-002",
       "status": "PASS",
-      "ms": 98
+      "ms": 14
     },
     {
       "id": "PRG-003",
       "status": "PASS",
-      "ms": 147
+      "ms": 38
     },
     {
       "id": "PRG-004",
       "status": "PASS",
-      "ms": 48
+      "ms": 18
     },
     {
       "id": "PRG-005",
       "status": "FAIL",
       "actual": "totalLectures: expected 2, got 3",
-      "ms": 114
+      "ms": 20
     },
     {
       "id": "PRG-006",
       "status": "FAIL",
       "actual": "totalLectures: expected 2, got 4",
-      "ms": 139
+      "ms": 45
     },
     {
       "id": "PRG-007",
       "status": "FAIL",
       "actual": "currentStreak: expected 1, got 0",
-      "ms": 51
+      "ms": 10
     },
     {
       "id": "PRG-008",
       "status": "FAIL",
-      "actual": "completedAt: expected \"2026-11-05T17:20:33.578Z\", got \"2026-11-05T17:20:34.336Z\"",
-      "ms": 196
+      "actual": "completedAt: expected \"2026-11-05T18:07:44.906Z\", got \"2026-11-05T18:07:45.114Z\"",
+      "ms": 58
     },
     {
       "id": "PRG-009",
       "status": "FAIL",
-      "actual": "expected HTTP 400, got 200 - {\"_id\":\"6aecbace141c03690093ba20\",\"student\":\"6aecbacd141c03690093b9a6\",\"course\":\"6aecbacd141c03690093b9b0\",\"completedLectures\":[{\"lecture\":\"6aecbacd141c03690093b9e3\",\"sta",
-      "ms": 138
+      "actual": "expected HTTP 400, got 200 - {\"_id\":\"6aecc5ebce0fbf706965aadf\",\"student\":\"6aecc5eace0fbf706965aa65\",\"course\":\"6aecc5eace0fbf706965aa6f\",\"completedLectures\":[{\"lecture\":\"6aecc5eace0fbf706965aaa2\",\"sta",
+      "ms": 16
     },
     {
       "id": "PRG-010",
       "status": "PASS",
-      "ms": 135
+      "ms": 20
     },
     {
       "id": "PRG-011",
       "status": "PASS",
-      "ms": 27
+      "ms": 10
     },
     {
       "id": "TCH-001",
       "status": "PASS",
-      "ms": 858
+      "ms": 139
     },
     {
       "id": "TCH-002",
       "status": "PASS",
-      "ms": 61
+      "ms": 19
     },
     {
       "id": "TCH-003",
       "status": "PASS",
-      "ms": 60
+      "ms": 16
     },
     {
       "id": "TCH-004",
       "status": "PASS",
-      "ms": 88
+      "ms": 16
     },
     {
       "id": "TCH-005",
       "status": "PASS",
-      "ms": 114
+      "ms": 18
     },
     {
       "id": "TCH-006",
       "status": "FAIL",
       "actual": "expected HTTP 200, got 403 - {\"message\":\"Not authorized to access this lecture\",\"stack\":\"Error: Not authorized to access this lecture\\n at C:\\\\Users\\\\priya\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\D--Tenze---S",
-      "ms": 65
+      "ms": 18
     },
     {
       "id": "TCH-007",
       "status": "FAIL",
       "actual": "expected HTTP 200, got 403 - {\"message\":\"Not authorized to access this lecture\",\"stack\":\"Error: Not authorized to access this lecture\\n at C:\\\\Users\\\\priya\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\D--Tenze---S",
-      "ms": 107
+      "ms": 33
     },
     {
       "id": "TCH-008",
       "status": "PASS",
-      "ms": 71
+      "ms": 13
     },
     {
       "id": "TCH-009",
       "status": "PASS",
-      "ms": 156
+      "ms": 25
     },
     {
       "id": "TCH-010",
       "status": "PASS",
-      "ms": 1010
+      "ms": 184
     },
     {
       "id": "TCH-011",
       "status": "PASS",
-      "ms": 90
+      "ms": 17
     },
     {
       "id": "TCH-012",
       "status": "PASS",
-      "ms": 18
+      "ms": 6
     },
     {
       "id": "TCH-013",
       "status": "PASS",
-      "ms": 713
+      "ms": 111
     },
     {
       "id": "TCH-014",
       "status": "FAIL",
-      "actual": "expected HTTP 403, got 200 - {\"id\":\"6aecbae6141c03690093be09\",\"message\":\"Course deleted successfully\"}",
-      "ms": 1360
+      "actual": "expected HTTP 403, got 200 - {\"id\":\"6aecc5f1ce0fbf706965aec8\",\"message\":\"Course deleted successfully\"}",
+      "ms": 266
     },
     {
       "id": "MKT-001",
       "status": "PASS",
-      "ms": 47
+      "ms": 22
     },
     {
       "id": "MKT-002",
       "status": "PASS",
-      "ms": 322
+      "ms": 63
     },
     {
       "id": "MKT-003",
       "status": "PASS",
-      "ms": 236
+      "ms": 75
     },
     {
       "id": "MKT-004",
       "status": "FAIL",
       "actual": "courses returned for an unused language: expected 0, got 2",
-      "ms": 53
+      "ms": 28
     },
     {
       "id": "MKT-005",
       "status": "PASS",
-      "ms": 63
+      "ms": 26
     },
     {
       "id": "MKT-006",
       "status": "PASS",
-      "ms": 88
+      "ms": 30
     },
     {
       "id": "MKT-007",
       "status": "PASS",
-      "ms": 3
+      "ms": 6
     },
     {
       "id": "MKT-008",
       "status": "PASS",
-      "ms": 55
+      "ms": 41
     },
     {
       "id": "MKT-009",
       "status": "PASS",
-      "ms": 12
+      "ms": 23
     },
     {
       "id": "MKT-010",
       "status": "FAIL",
       "actual": "language field missing",
-      "ms": 71
+      "ms": 33
     },
     {
       "id": "PAY-001",
       "status": "PASS",
-      "ms": 1352
+      "ms": 316
     },
     {
       "id": "PAY-002",
       "status": "PASS",
-      "ms": 298
+      "ms": 83
     },
     {
       "id": "PAY-003",
       "status": "PASS",
-      "ms": 101
+      "ms": 29
     },
     {
       "id": "PAY-004",
       "status": "PASS",
-      "ms": 36
+      "ms": 9
     },
     {
       "id": "PAY-005",
       "status": "PASS",
-      "ms": 29
+      "ms": 6
     },
     {
       "id": "PAY-006",
       "status": "PASS",
-      "ms": 96
+      "ms": 26
     },
     {
       "id": "PAY-007",
       "status": "PASS",
-      "ms": 67
+      "ms": 21
     },
     {
       "id": "PAY-008",
       "status": "PASS",
-      "ms": 14
+      "ms": 16
     },
     {
       "id": "PAY-009",
       "status": "PASS",
-      "ms": 460
+      "ms": 160
     },
     {
       "id": "PAY-010",
       "status": "PASS",
-      "ms": 1853
+      "ms": 258
     },
     {
       "id": "PAY-011",
       "status": "PASS",
-      "ms": 47
+      "ms": 6
     },
     {
       "id": "PAY-012",
       "status": "PASS",
-      "ms": 1047
+      "ms": 153
     },
     {
       "id": "PAY-013",
       "status": "PASS",
-      "ms": 959
+      "ms": 224
     },
     {
       "id": "PAY-014",
       "status": "PASS",
-      "ms": 21
+      "ms": 8
     },
     {
       "id": "PAY-015",
       "status": "PASS",
-      "ms": 2237
+      "ms": 547
     },
     {
       "id": "PAY-016",
       "status": "PASS",
-      "ms": 6272
+      "ms": 681
     },
     {
       "id": "PAY-017",
       "status": "PASS",
-      "ms": 237
+      "ms": 91
     },
     {
       "id": "PAY-018",
       "status": "PASS",
-      "ms": 743
+      "ms": 170
     },
     {
       "id": "PAY-019",
       "status": "PASS",
-      "ms": 23
+      "ms": 10
     },
     {
       "id": "PAY-020",
       "status": "PASS",
-      "ms": 120
+      "ms": 62
     },
     {
       "id": "PAY-021",
       "status": "PASS",
-      "ms": 616
+      "ms": 184
     },
     {
       "id": "PAY-022",
       "status": "PASS",
-      "ms": 68
+      "ms": 25
     },
     {
       "id": "PAY-023",
       "status": "PASS",
-      "ms": 118
+      "ms": 39
     },
     {
       "id": "PAY-024",
       "status": "PASS",
-      "ms": 240
+      "ms": 138
     },
     {
       "id": "PAY-025",
       "status": "FAIL",
       "actual": "invoice header reads \"Skill Path\"",
-      "ms": 1810
+      "ms": 1077
     },
     {
       "id": "PAY-026",
       "status": "FAIL",
       "actual": "a Stripe payment session was created for a blocked course",
-      "ms": 226
+      "ms": 60
     },
     {
       "id": "PAY-027",
       "status": "FAIL",
       "actual": "student who already has access can still be charged",
-      "ms": 258
+      "ms": 79
     },
     {
       "id": "PAY-028",
       "status": "FAIL",
       "actual": "student paid, has no access and cannot rebuy: HTTP 400 You have already purchased this course",
-      "ms": 732
+      "ms": 217
     },
     {
       "id": "PAY-029",
       "status": "FAIL",
       "actual": "enrollmentCount: expected 0, got 1",
-      "ms": 911
+      "ms": 211
     },
     {
       "id": "PAY-030",
       "status": "FAIL",
       "actual": "course with paying students was deleted",
-      "ms": 685
+      "ms": 383
     },
     {
       "id": "PAY-031",
       "status": "FAIL",
       "actual": "paid course disappeared",
-      "ms": 778
+      "ms": 186
     },
     {
       "id": "CPN-001",
       "status": "PASS",
-      "ms": 104
+      "ms": 70
     },
     {
       "id": "CPN-002",
       "status": "PASS",
-      "ms": 14
+      "ms": 7
     },
     {
       "id": "CPN-003",
       "status": "PASS",
-      "ms": 9
+      "ms": 6
     },
     {
       "id": "CPN-004",
       "status": "PASS",
-      "ms": 5
+      "ms": 7
     },
     {
       "id": "CPN-005",
       "status": "PASS",
-      "ms": 7
+      "ms": 5
     },
     {
       "id": "CPN-006",
       "status": "PASS",
-      "ms": 9
+      "ms": 5
     },
     {
       "id": "CPN-007",
       "status": "PASS",
-      "ms": 14
+      "ms": 9
     },
     {
       "id": "CPN-008",
       "status": "PASS",
-      "ms": 9
+      "ms": 4
     },
     {
       "id": "CPN-009",
       "status": "PASS",
-      "ms": 9
+      "ms": 5
     },
     {
       "id": "CPN-010",
       "status": "PASS",
-      "ms": 34
+      "ms": 24
     },
     {
       "id": "CPN-011",
       "status": "PASS",
-      "ms": 34
+      "ms": 21
     },
     {
       "id": "CPN-012",
       "status": "PASS",
-      "ms": 280
+      "ms": 419
     },
     {
       "id": "CPN-013",
       "status": "PASS",
-      "ms": 137
+      "ms": 118
     },
     {
       "id": "CPN-014",
@@ -769,23 +767,23 @@
     {
       "id": "CPN-015",
       "status": "PASS",
-      "ms": 136
+      "ms": 120
     },
     {
       "id": "CPN-016",
       "status": "PASS",
-      "ms": 39
+      "ms": 32
     },
     {
       "id": "CPN-017",
       "status": "FAIL",
-      "actual": "expected HTTP 400, got 201 - {\"code\":\"QA115BE339\",\"course\":\"6aecbafe141c03690093c390\",\"instructor\":\"6aecbacb141c03690093b997\",\"discountType\":\"fixed\",\"discountValue\":-500,\"maxUses\":null,\"usedCount\":0,",
-      "ms": 11
+      "actual": "expected HTTP 400, got 201 - {\"code\":\"QA5AD46E46\",\"course\":\"6aecc5f7ce0fbf706965b47f\",\"instructor\":\"6aecc5e9ce0fbf706965aa56\",\"discountType\":\"fixed\",\"discountValue\":-500,\"maxUses\":null,\"usedCount\":0,",
+      "ms": 10
     },
     {
       "id": "CPN-018",
       "status": "FAIL",
-      "actual": "expected HTTP 400, got 200 - {\"_id\":\"6aecbaff141c03690093c4f1\",\"code\":\"QA28BE470F\",\"course\":\"6aecbafe141c03690093c390\",\"instructor\":\"6aecbacb141c03690093b997\",\"discountType\":\"percentage\",\"discountVal",
+      "actual": "expected HTTP 400, got 200 - {\"_id\":\"6aecc5f8ce0fbf706965b5e9\",\"code\":\"QAEA0D4F33\",\"course\":\"6aecc5f7ce0fbf706965b47f\",\"instructor\":\"6aecc5e9ce0fbf706965aa56\",\"discountType\":\"percentage\",\"discountVal",
       "ms": 22
     },
     {
@@ -797,20 +795,20 @@
     {
       "id": "CPN-020",
       "status": "FAIL",
-      "actual": "expected HTTP 400, got 201 - {\"code\":\"QA32B153B6\",\"course\":\"6aecbafe141c03690093c390\",\"instructor\":\"6aecbacb141c03690093b997\",\"discountType\":\"percentage\",\"discountValue\":10,\"maxUses\":null,\"usedCount\"",
-      "ms": 8
+      "actual": "expected HTTP 400, got 201 - {\"code\":\"QA6B3A7900\",\"course\":\"6aecc5f7ce0fbf706965b47f\",\"instructor\":\"6aecc5e9ce0fbf706965aa56\",\"discountType\":\"percentage\",\"discountValue\":10,\"maxUses\":null,\"usedCount\"",
+      "ms": 23
     },
     {
       "id": "CPN-021",
       "status": "FAIL",
       "actual": "maxUses 1 was redeemed 4 times",
-      "ms": 423
+      "ms": 519
     },
     {
       "id": "CPN-022",
       "status": "FAIL",
       "actual": "discountAmount: expected 0.2, got 0",
-      "ms": 43
+      "ms": 47
     },
     {
       "id": "CPN-023",
@@ -821,362 +819,362 @@
     {
       "id": "INS-001",
       "status": "PASS",
-      "ms": 94
+      "ms": 90
     },
     {
       "id": "INS-002",
       "status": "PASS",
-      "ms": 213
+      "ms": 163
     },
     {
       "id": "INS-003",
       "status": "PASS",
-      "ms": 215
+      "ms": 52
     },
     {
       "id": "INS-004",
       "status": "PASS",
-      "ms": 36
+      "ms": 11
     },
     {
       "id": "INS-005",
       "status": "PASS",
-      "ms": 32
+      "ms": 8
     },
     {
       "id": "INS-006",
       "status": "PASS",
-      "ms": 7
+      "ms": 3
     },
     {
       "id": "INS-007",
       "status": "PASS",
-      "ms": 8
+      "ms": 3
     },
     {
       "id": "INS-008",
       "status": "PASS",
-      "ms": 15
+      "ms": 3
     },
     {
       "id": "ADM-001",
       "status": "PASS",
-      "ms": 24
+      "ms": 9
     },
     {
       "id": "ADM-002",
       "status": "PASS",
-      "ms": 20
+      "ms": 7
     },
     {
       "id": "ADM-003",
       "status": "PASS",
-      "ms": 183
+      "ms": 92
     },
     {
       "id": "ADM-004",
       "status": "PASS",
-      "ms": 4
+      "ms": 3
     },
     {
       "id": "ADM-005",
       "status": "PASS",
-      "ms": 15
+      "ms": 7
     },
     {
       "id": "ADM-006",
       "status": "PASS",
-      "ms": 23
+      "ms": 6
     },
     {
       "id": "ADM-007",
       "status": "FAIL",
       "actual": "HTTP 200, 0 warning(s) left",
-      "ms": 20
+      "ms": 7
     },
     {
       "id": "ADM-008",
       "status": "PASS",
-      "ms": 9
+      "ms": 5
     },
     {
       "id": "ADM-009",
       "status": "FAIL",
       "actual": "expected HTTP 400, got 500 - {\"message\":\"User validation failed: maxWarnings: Cast to Number failed for value \\\"abc\\\" (type string) at path \\\"maxWarnings\\\"\",\"stack\":\"ValidationError: User validation ",
-      "ms": 32
+      "ms": 16
     },
     {
       "id": "ADM-010",
       "status": "PASS",
-      "ms": 189
+      "ms": 228
     },
     {
       "id": "ADM-011",
       "status": "PASS",
-      "ms": 4
+      "ms": 9
     },
     {
       "id": "ADM-012",
       "status": "PASS",
-      "ms": 140
+      "ms": 162
     },
     {
       "id": "ADM-013",
       "status": "PASS",
-      "ms": 11
+      "ms": 6
     },
     {
       "id": "ADM-014",
       "status": "PASS",
-      "ms": 5
+      "ms": 3
     },
     {
       "id": "ADM-015",
       "status": "PASS",
-      "ms": 86
+      "ms": 47
     },
     {
       "id": "ADM-016",
       "status": "PASS",
-      "ms": 22
+      "ms": 15
     },
     {
       "id": "ADM-017",
       "status": "PASS",
-      "ms": 29
+      "ms": 18
     },
     {
       "id": "ADM-018",
       "status": "PASS",
-      "ms": 15
+      "ms": 8
     },
     {
       "id": "ADM-019",
       "status": "FAIL",
-      "actual": "expected HTTP 400, got 201 - {\"instructor\":{\"_id\":\"6aecbb00141c03690093c601\",\"name\":\"QA earn\",\"email\":\"earn.5fe6526f@qa.test\"},\"amount\":-500,\"currency\":\"LKR\",\"method\":\"bank_transfer\",\"transactionId\":",
-      "ms": 14
+      "actual": "expected HTTP 400, got 201 - {\"instructor\":{\"_id\":\"6aecc5f9ce0fbf706965b6fc\",\"name\":\"QA earn\",\"email\":\"earn.ccb76a69@qa.test\"},\"amount\":-500,\"currency\":\"LKR\",\"method\":\"bank_transfer\",\"transactionId\":",
+      "ms": 16
     },
     {
       "id": "ADM-020",
       "status": "PASS",
-      "ms": 10
+      "ms": 8
     },
     {
       "id": "ADM-021",
       "status": "PASS",
-      "ms": 11
+      "ms": 12
     },
     {
       "id": "ADM-022",
       "status": "PASS",
-      "ms": 6
+      "ms": 5
     },
     {
       "id": "ADM-023",
       "status": "FAIL",
-      "actual": "expected HTTP 400, got 200 - {\"_id\":\"6aecbb01f03e3d271a5354a6\",\"name\":\"A2\",\"email\":\"admin2.5fb7c0ea@qa.test\",\"googleId\":null,\"role\":\"admin\",\"bio\":\"\",\"profileImage\":\"\",\"stripeAccountId\":\"\",\"otpHash\":n",
-      "ms": 259
+      "actual": "expected HTTP 400, got 200 - {\"_id\":\"6aecc5fa8a59658dcbdddf66\",\"name\":\"A2\",\"email\":\"admin2.86e8d4d2@qa.test\",\"googleId\":null,\"role\":\"admin\",\"bio\":\"\",\"profileImage\":\"\",\"stripeAccountId\":\"\",\"otpHash\":n",
+      "ms": 224
     },
     {
       "id": "ADM-024",
       "status": "FAIL",
       "actual": "admin was demoted",
-      "ms": 165
+      "ms": 95
     },
     {
       "id": "QZ-001",
       "status": "PASS",
-      "ms": 22
+      "ms": 7
     },
     {
       "id": "QZ-002",
       "status": "PASS",
-      "ms": 21
+      "ms": 5
     },
     {
       "id": "QZ-003",
       "status": "PASS",
-      "ms": 80
+      "ms": 22
     },
     {
       "id": "QZ-004",
       "status": "PASS",
-      "ms": 21
+      "ms": 4
     },
     {
       "id": "QZ-005",
       "status": "PASS",
-      "ms": 30
+      "ms": 7
     },
     {
       "id": "QZ-006",
       "status": "PASS",
-      "ms": 29
+      "ms": 6
     },
     {
       "id": "QZ-007",
       "status": "PASS",
-      "ms": 7
+      "ms": 4
     },
     {
       "id": "QZ-008",
       "status": "PASS",
-      "ms": 8
+      "ms": 17
     },
     {
       "id": "QZ-009",
       "status": "PASS",
-      "ms": 6
+      "ms": 10
     },
     {
       "id": "QZ-010",
       "status": "PASS",
-      "ms": 16
+      "ms": 45
     },
     {
       "id": "QZ-011",
       "status": "PASS",
-      "ms": 63
+      "ms": 84
     },
     {
       "id": "QZ-012",
       "status": "PASS",
-      "ms": 44
+      "ms": 89
     },
     {
       "id": "QZ-013",
       "status": "PASS",
-      "ms": 34
+      "ms": 90
     },
     {
       "id": "QZ-014",
       "status": "PASS",
-      "ms": 15
+      "ms": 30
     },
     {
       "id": "QZ-015",
       "status": "PASS",
-      "ms": 4
+      "ms": 9
     },
     {
       "id": "QZ-016",
       "status": "PASS",
-      "ms": 8
+      "ms": 21
     },
     {
       "id": "QZ-017",
       "status": "PASS",
-      "ms": 23
+      "ms": 85
     },
     {
       "id": "QZ-018",
       "status": "FAIL",
       "actual": "percentage: expected 33, got 100",
-      "ms": 20
+      "ms": 80
     },
     {
       "id": "QZ-019",
       "status": "FAIL",
       "actual": "the answer key is returned during the attempt",
-      "ms": 22
+      "ms": 110
     },
     {
       "id": "QZ-020",
       "status": "FAIL",
       "actual": "the answer key is returned after an empty attempt, and the student can retake",
-      "ms": 21
+      "ms": 78
     },
     {
       "id": "QZ-021",
       "status": "FAIL",
       "actual": "expected HTTP 400, got 500 - {\"message\":\"Cannot read properties of undefined (reading 'forEach')\",\"stack\":\"TypeError: Cannot read properties of undefined (reading 'forEach')\\n at C:\\\\Users\\\\priya\\\\Ap",
-      "ms": 19
+      "ms": 67
     },
     {
       "id": "QZ-022",
       "status": "FAIL",
       "actual": "expected HTTP 200, got 500 - {\"message\":\"ans.answer?.toLowerCase is not a function\",\"stack\":\"TypeError: ans.answer?.toLowerCase is not a function\\n at C:\\\\Users\\\\priya\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\",
-      "ms": 22
+      "ms": 73
     },
     {
       "id": "QZ-023",
       "status": "FAIL",
       "actual": "passingScore: expected 0, got 70",
-      "ms": 7
+      "ms": 38
     },
     {
       "id": "QZ-024",
       "status": "FAIL",
       "actual": "percentage: expected 100, got 0",
-      "ms": 18
+      "ms": 103
     },
     {
       "id": "QZ-025",
       "status": "FAIL",
-      "actual": "expected HTTP 400, got 201 - {\"course\":\"6aecbacd141c03690093b9b0\",\"section\":null,\"title\":\"T\",\"description\":\"\",\"questions\":[],\"passingScore\":70,\"timeLimit\":-5,\"attemptsAllowed\":-1,\"isRequired\":false,\"",
-      "ms": 8
+      "actual": "expected HTTP 400, got 201 - {\"course\":\"6aecc5eace0fbf706965aa6f\",\"section\":null,\"title\":\"T\",\"description\":\"\",\"questions\":[],\"passingScore\":70,\"timeLimit\":-5,\"attemptsAllowed\":-1,\"isRequired\":false,\"",
+      "ms": 35
     },
     {
       "id": "AI-001",
       "status": "PASS",
-      "ms": 9
+      "ms": 33
     },
     {
       "id": "AI-002",
       "status": "PASS",
-      "ms": 3
+      "ms": 14
     },
     {
       "id": "AI-003",
       "status": "PASS",
-      "ms": 3
+      "ms": 14
     },
     {
       "id": "AI-004",
       "status": "PASS",
-      "ms": 35
+      "ms": 74
     },
     {
       "id": "AI-005",
       "status": "PASS",
-      "ms": 3
+      "ms": 6
     },
     {
       "id": "AI-006",
       "status": "PASS",
-      "ms": 5
+      "ms": 12
     },
     {
       "id": "AI-007",
       "status": "PASS",
-      "ms": 5
+      "ms": 14
     },
     {
       "id": "AI-008",
       "status": "FAIL",
       "actual": "expected HTTP 400, got 500 - {\"message\":\"No AI configuration found. Please set up your API key in AI Settings.\",\"stack\":\"Error: No AI configuration found. Please set up your API key in AI Settings.\\n",
-      "ms": 120
+      "ms": 154
     },
     {
       "id": "AI-009",
       "status": "FAIL",
       "actual": "expected HTTP 403, got 500 - {\"message\":\"Not authorized to generate content for this course\",\"stack\":\"Error: Not authorized to generate content for this course\\n at verifyCourseAccess (C:\\\\Users\\\\pri",
-      "ms": 6
+      "ms": 7
     },
     {
       "id": "AI-010",
       "status": "PASS",
-      "ms": 48
+      "ms": 50
     },
     {
       "id": "AI-011",
       "status": "PASS",
-      "ms": 9
+      "ms": 11
     },
     {
       "id": "AI-012",
       "status": "PASS",
-      "ms": 40
+      "ms": 34
     },
     {
       "id": "AI-013",
@@ -1187,101 +1185,101 @@
       "id": "AI-014",
       "status": "FAIL",
       "actual": "expected HTTP 400, got 500 - {\"message\":\"No AI configuration found. Set up your API key in AI Chat Settings.\",\"stack\":\"Error: No AI configuration found. Set up your API key in AI Chat Settings.\\n at ",
-      "ms": 49
+      "ms": 36
     },
     {
       "id": "AI-015",
       "status": "PASS",
-      "ms": 25
+      "ms": 42
     },
     {
       "id": "AI-016",
       "status": "PASS",
-      "ms": 67
+      "ms": 76
     },
     {
       "id": "AI-017",
       "status": "PASS",
-      "ms": 16
+      "ms": 12
     },
     {
       "id": "AI-018",
       "status": "PASS",
-      "ms": 19
+      "ms": 29
     },
     {
       "id": "AI-019",
       "status": "FAIL",
       "actual": "useInstructorKey: expected true, got false",
-      "ms": 11
+      "ms": 12
     },
     {
       "id": "AI-020",
       "status": "FAIL",
       "actual": "expected HTTP 403, got 500 - {\"message\":\"Your access to the instructor's AI has been restricted for this course. Please contact your instructor.\",\"stack\":\"Error: Your access to the instructor's AI ha",
-      "ms": 44
+      "ms": 46
     },
     {
       "id": "AI-021",
       "status": "PASS",
-      "ms": 15
+      "ms": 14
     },
     {
       "id": "AI-022",
       "status": "FAIL",
       "actual": "outsider spent the instructor key (HTTP 200, source instructor)",
-      "ms": 24
+      "ms": 44
     },
     {
       "id": "AI-023",
       "status": "FAIL",
       "actual": "key source \"instructor\" used, then the conversation was deleted (HTTP 200)",
-      "ms": 147
+      "ms": 137
     },
     {
       "id": "AI-024",
       "status": "PASS",
-      "ms": 531
+      "ms": 702
     },
     {
       "id": "AI-025",
       "status": "PASS",
-      "ms": 24
+      "ms": 119
     },
     {
       "id": "AI-026",
       "status": "PASS",
-      "ms": 10
+      "ms": 32
     },
     {
       "id": "AI-027",
       "status": "PASS",
-      "ms": 7
+      "ms": 15
     },
     {
       "id": "BRD-001",
       "status": "PASS",
-      "ms": 8
+      "ms": 10
     },
     {
       "id": "BRD-002",
       "status": "PASS",
-      "ms": 5
+      "ms": 4
     },
     {
       "id": "BRD-003",
       "status": "PASS",
-      "ms": 6
+      "ms": 8
     },
     {
       "id": "BRD-004",
       "status": "PASS",
-      "ms": 17
+      "ms": 50
     },
     {
       "id": "BRD-005",
       "status": "PASS",
-      "ms": 6
+      "ms": 13
     },
     {
       "id": "BRD-006",
@@ -1291,91 +1289,91 @@
     {
       "id": "BRD-007",
       "status": "PASS",
-      "ms": 15
+      "ms": 12
     },
     {
       "id": "BRD-008",
       "status": "PASS",
-      "ms": 5
+      "ms": 6
     },
     {
       "id": "BRD-009",
       "status": "FAIL",
       "actual": "expected HTTP 400, got 500 - {\"message\":\"Broadcast validation failed: priority: `mega` is not a valid enum value for path `priority`.\",\"stack\":\"ValidationError: Broadcast validation failed: priority:",
-      "ms": 7
+      "ms": 4
     },
     {
       "id": "BRD-010",
       "status": "FAIL",
       "actual": "no broadcast was generated",
-      "ms": 36
+      "ms": 30
     },
     {
       "id": "RES-001",
       "status": "PASS",
-      "ms": 12
+      "ms": 9
     },
     {
       "id": "RES-002",
       "status": "PASS",
-      "ms": 10
+      "ms": 8
     },
     {
       "id": "RES-003",
       "status": "PASS",
-      "ms": 11
+      "ms": 9
     },
     {
       "id": "RES-004",
       "status": "PASS",
-      "ms": 16
+      "ms": 12
     },
     {
       "id": "RES-005",
       "status": "PASS",
-      "ms": 18
+      "ms": 15
     },
     {
       "id": "RES-006",
       "status": "PASS",
-      "ms": 8
+      "ms": 7
     },
     {
       "id": "RES-007",
       "status": "PASS",
-      "ms": 15
+      "ms": 13
     },
     {
       "id": "RES-008",
       "status": "PASS",
-      "ms": 7
+      "ms": 6
     },
     {
       "id": "RES-009",
       "status": "PASS",
-      "ms": 19
+      "ms": 13
     },
     {
       "id": "RES-010",
       "status": "PASS",
-      "ms": 8
+      "ms": 5
     },
     {
       "id": "RES-011",
       "status": "FAIL",
       "actual": "expected HTTP 413, got 500 - {\"message\":\"File too large\",\"stack\":\"MulterError: File too large\\n at abortWithCode (C:\\\\Users\\\\priya\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\D--Tenze---StartUp-LMS\\\\71553799-c395",
-      "ms": 57
+      "ms": 54
     },
     {
       "id": "RES-012",
       "status": "PASS",
-      "ms": 28
+      "ms": 34
     },
     {
       "id": "RES-013",
       "status": "FAIL",
       "actual": "fileName: expected \"පාඩම.pdf\", got \"à¶´à·à¶©à¶¸.pdf\"",
-      "ms": 10
+      "ms": 11
     },
     {
       "id": "RES-014",
@@ -1386,95 +1384,95 @@
     {
       "id": "REV-001",
       "status": "PASS",
-      "ms": 14
+      "ms": 13
     },
     {
       "id": "REV-002",
       "status": "PASS",
-      "ms": 9
+      "ms": 16
     },
     {
       "id": "REV-003",
       "status": "PASS",
-      "ms": 8
+      "ms": 6
     },
     {
       "id": "REV-004",
       "status": "PASS",
-      "ms": 4
+      "ms": 6
     },
     {
       "id": "REV-005",
       "status": "PASS",
-      "ms": 146
+      "ms": 234
     },
     {
       "id": "REV-006",
       "status": "PASS",
-      "ms": 331
+      "ms": 289
     },
     {
       "id": "REV-007",
       "status": "PASS",
-      "ms": 186
+      "ms": 184
     },
     {
       "id": "REV-008",
       "status": "PASS",
-      "ms": 36
+      "ms": 38
     },
     {
       "id": "REV-009",
       "status": "PASS",
-      "ms": 181
+      "ms": 177
     },
     {
       "id": "REV-010",
       "status": "PASS",
-      "ms": 39
+      "ms": 67
     },
     {
       "id": "REV-011",
       "status": "PASS",
-      "ms": 18
+      "ms": 19
     },
     {
       "id": "REV-012",
       "status": "FAIL",
       "actual": "helpful: expected 1, got 3",
-      "ms": 30
+      "ms": 39
     },
     {
       "id": "REV-013",
       "status": "FAIL",
-      "actual": "expected HTTP 403, got 201 - {\"user\":{\"_id\":\"6aecbacd141c03690093b9ab\",\"name\":\"QA outsider\",\"profileImage\":\"\"},\"course\":\"6aecbb05141c03690093ce65\",\"rating\":5,\"comment\":\"Good\",\"helpful\":0,\"_id\":\"6aecb",
-      "ms": 38
+      "actual": "expected HTTP 403, got 201 - {\"user\":{\"_id\":\"6aecc5eace0fbf706965aa6a\",\"name\":\"QA outsider\",\"profileImage\":\"\"},\"course\":\"6aecc5ffce0fbf706965bf6c\",\"rating\":5,\"comment\":\"Good\",\"helpful\":0,\"_id\":\"6aecc",
+      "ms": 53
     },
     {
       "id": "REV-014",
       "status": "FAIL",
       "actual": "expected HTTP 400, got 500 - {\"message\":\"Review validation failed: rating: Cast to Number failed for value \\\"abc\\\" (type string) at path \\\"rating\\\"\",\"stack\":\"ValidationError: Review validation failed",
-      "ms": 154
+      "ms": 171
     },
     {
       "id": "REV-015",
       "status": "PASS",
-      "ms": 170
+      "ms": 193
     },
     {
       "id": "NTF-001",
       "status": "PASS",
-      "ms": 187
+      "ms": 238
     },
     {
       "id": "NTF-002",
       "status": "PASS",
-      "ms": 17
+      "ms": 56
     },
     {
       "id": "NTF-003",
       "status": "PASS",
-      "ms": 9
+      "ms": 16
     },
     {
       "id": "NTF-004",
@@ -1484,97 +1482,97 @@
     {
       "id": "NTF-005",
       "status": "PASS",
-      "ms": 17
+      "ms": 13
     },
     {
       "id": "NTF-006",
       "status": "PASS",
-      "ms": 72
+      "ms": 82
     },
     {
       "id": "NTF-007",
       "status": "PASS",
-      "ms": 221
+      "ms": 212
     },
     {
       "id": "NTF-008",
       "status": "FAIL",
       "actual": "no milestone notification exists",
-      "ms": 236
+      "ms": 305
     },
     {
       "id": "NTF-009",
       "status": "FAIL",
       "actual": "server error",
-      "ms": 12
+      "ms": 40
     },
     {
       "id": "ACT-001",
       "status": "PASS",
-      "ms": 16
+      "ms": 11
     },
     {
       "id": "ACT-002",
       "status": "PASS",
-      "ms": 19
+      "ms": 10
     },
     {
       "id": "ACT-003",
       "status": "PASS",
-      "ms": 18
+      "ms": 10
     },
     {
       "id": "ACT-004",
       "status": "PASS",
-      "ms": 187
+      "ms": 165
     },
     {
       "id": "ACT-005",
       "status": "FAIL",
       "actual": "no entry for the student",
-      "ms": 304
+      "ms": 370
     },
     {
       "id": "ACT-006",
       "status": "FAIL",
       "actual": "a 403 was logged as a successful update",
-      "ms": 267
+      "ms": 313
     },
     {
       "id": "ACT-007",
       "status": "FAIL",
       "actual": "labelled User Warned",
-      "ms": 313
+      "ms": 291
     },
     {
       "id": "ACT-008",
       "status": "FAIL",
       "actual": "ip is empty",
-      "ms": 4
+      "ms": 6
     },
     {
       "id": "SEC-001",
       "status": "FAIL",
       "actual": "an admin account was created by a guest (HTTP 201, role admin)",
-      "ms": 97
+      "ms": 247
     },
     {
       "id": "SEC-002",
       "status": "FAIL",
       "actual": "guest-created admin read 64 user records",
-      "ms": 9
+      "ms": 10
     },
     {
       "id": "SEC-003",
       "status": "FAIL",
       "actual": "role: expected \"student\", got \"admin\"",
-      "ms": 96
+      "ms": 98
     },
     {
       "id": "SEC-004",
       "status": "FAIL",
       "actual": "role admin created",
-      "ms": 7
+      "ms": 5
     },
     {
       "id": "SEC-005",
@@ -1585,74 +1583,74 @@
       "id": "SEC-006",
       "status": "FAIL",
       "actual": "plaintext old and new passwords are stored in Activity.data",
-      "ms": 444
+      "ms": 579
     },
     {
       "id": "SEC-007",
       "status": "FAIL",
       "actual": "plaintext AI key is stored in Activity.data, bypassing AES encryption",
-      "ms": 253
+      "ms": 331
     },
     {
       "id": "SEC-008",
       "status": "FAIL",
       "actual": "account number stored in Activity.data",
-      "ms": 299
+      "ms": 326
     },
     {
       "id": "SEC-009",
       "status": "FAIL",
-      "actual": "expected HTTP 401, got 200 - {\"_id\":\"6aecbb09141c03690093d0cd\",\"name\":\"QA rt\",\"email\":\"rt.66bb7777@qa.test\",\"googleId\":null,\"role\":\"student\",\"bio\":\"\",\"profileImage\":\"\",\"stripeAccountId\":\"\",\"otpHash\":",
-      "ms": 326
+      "actual": "expected HTTP 401, got 200 - {\"_id\":\"6aecc603ce0fbf706965c1da\",\"name\":\"QA rt\",\"email\":\"rt.5348b771@qa.test\",\"googleId\":null,\"role\":\"student\",\"bio\":\"\",\"profileImage\":\"\",\"stripeAccountId\":\"\",\"otpHash\":",
+      "ms": 535
     },
     {
       "id": "SEC-010",
       "status": "FAIL",
       "actual": "otpHash returned; a 6-digit code can be cracked offline",
-      "ms": 186
+      "ms": 259
     },
     {
       "id": "SEC-011",
       "status": "FAIL",
-      "actual": "expected HTTP 400, got 200 - {\"resetToken\":\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjZhZWNiYjA5MTQxYzAzNjkwMDkzZDBkZSIsInB1cnBvc2UiOiJwYXNzd29yZC1yZXNldCIsImlhdCI6MTc5Mzg5OTI3NCwiZXhwIjoxNzkzOT",
-      "ms": 1536
+      "actual": "expected HTTP 400, got 200 - {\"resetToken\":\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjZhZWNjNjA0Y2UwZmJmNzA2OTY1YzFlYiIsInB1cnBvc2UiOiJwYXNzd29yZC1yZXNldCIsImlhdCI6MTc5MzkwMjA4NSwiZXhwIjoxNzkzOT",
+      "ms": 1909
     },
     {
       "id": "SEC-012",
       "status": "PASS",
-      "ms": 46
+      "ms": 49
     },
     {
       "id": "SEC-013",
       "status": "PASS",
-      "ms": 331
+      "ms": 587
     },
     {
       "id": "SEC-014",
       "status": "PASS",
-      "ms": 19
+      "ms": 23
     },
     {
       "id": "SEC-015",
       "status": "PASS",
-      "ms": 1393
+      "ms": 1050
     },
     {
       "id": "SEC-016",
       "status": "FAIL",
       "actual": "8 attempts, none limited",
-      "ms": 78
+      "ms": 16
     },
     {
       "id": "SEC-017",
       "status": "FAIL",
-      "actual": "expected HTTP 429, got 201 - {\"title\":\"T\",\"description\":\"D\",\"status\":\"Draft\",\"lectureStatuses\":[{\"label\":\"Not Started\",\"color\":\"#64748b\",\"_id\":\"6aecbb0debc34c0472cb2032\",\"id\":\"6aecbb0debc34c0472cb203",
-      "ms": 243
+      "actual": "expected HTTP 429, got 201 - {\"title\":\"T\",\"description\":\"D\",\"status\":\"Draft\",\"lectureStatuses\":[{\"label\":\"Not Started\",\"color\":\"#64748b\",\"_id\":\"6aecc607d060774fc0b10ae1\",\"id\":\"6aecc607d060774fc0b10ae",
+      "ms": 249
     },
     {
       "id": "SEC-018",
       "status": "PASS",
-      "ms": 5
+      "ms": 4
     },
     {
       "id": "SEC-019",
@@ -1674,23 +1672,22 @@
     {
       "id": "SEC-022",
       "status": "PASS",
-      "ms": 4
+      "ms": 5
     },
     {
       "id": "SEC-023",
       "status": "PASS",
-      "ms": 31
+      "ms": 33
     },
     {
       "id": "SEC-024",
-      "status": "FAIL",
-      "actual": "expected HTTP 403, got 401 - {\"message\":\"Not authorized as an admin\",\"stack\":\"Error: Not authorized as an admin\\n at admin (C:\\\\Users\\\\priya\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\D--Tenze---StartUp-LMS\\\\715",
+      "status": "PASS",
       "ms": 2
     },
     {
       "id": "SEC-025",
       "status": "PASS",
-      "ms": 7
+      "ms": 5
     },
     {
       "id": "SEC-026",
@@ -1707,97 +1704,97 @@
       "id": "SEC-028",
       "status": "FAIL",
       "actual": "notification delivered to a user who is not in the course",
-      "ms": 141
+      "ms": 131
     },
     {
       "id": "SEC-029",
       "status": "FAIL",
       "actual": "expected HTTP 403, got 200 - {\"notificationSettings\":{\"newContent\":false,\"newBroadcast\":false,\"newQuiz\":false,\"dueDateReminder\":false,\"aiAccessChange\":false,\"progressMilestone\":false}}",
-      "ms": 11
+      "ms": 28
     },
     {
       "id": "SEC-030",
       "status": "FAIL",
       "actual": "returned 38 courses, including other users' drafts",
-      "ms": 29
+      "ms": 41
     },
     {
       "id": "SEC-031",
       "status": "FAIL",
-      "actual": "expected HTTP 403, got 200 - {\"broadcasts\":[{\"_id\":\"6aecbb04141c03690093cbd9\",\"course\":\"6aecbacd141c03690093b9b0\",\"createdBy\":{\"_id\":\"6aecbacb141c03690093b997\",\"name\":\"QA owner\",\"email\":\"owner.465905",
-      "ms": 11
+      "actual": "expected HTTP 403, got 200 - {\"broadcasts\":[{\"_id\":\"6aecc5fdce0fbf706965bcda\",\"course\":\"6aecc5eace0fbf706965aa6f\",\"createdBy\":{\"_id\":\"6aecc5e9ce0fbf706965aa56\",\"name\":\"QA owner\",\"email\":\"owner.cd7399",
+      "ms": 16
     },
     {
       "id": "SEC-032",
       "status": "FAIL",
-      "actual": "post: expected HTTP 403, got 201 - {\"user\":\"6aecbacd141c03690093b9ab\",\"course\":\"6aecbacd141c03690093b9b0\",\"lecture\":\"6aecbacd141c03690093b9e3\",\"action\":\"Comment\",\"method\":\"POST\",\"url\":\"/api/courses/lecture",
-      "ms": 10
+      "actual": "post: expected HTTP 403, got 201 - {\"user\":\"6aecc5eace0fbf706965aa6a\",\"course\":\"6aecc5eace0fbf706965aa6f\",\"lecture\":\"6aecc5eace0fbf706965aaa2\",\"action\":\"Comment\",\"method\":\"POST\",\"url\":\"/api/courses/lecture",
+      "ms": 9
     },
     {
       "id": "SEC-033",
       "status": "FAIL",
-      "actual": "expected HTTP 403, got 200 - {\"_id\":\"6aecbb02141c03690093c7cd\",\"course\":\"6aecbacd141c03690093b9b0\",\"section\":null,\"title\":\"Quiz 20c60515\",\"description\":\"\",\"questions\":[{\"questionText\":\"Pick B\",\"quest",
+      "actual": "expected HTTP 403, got 200 - {\"_id\":\"6aecc5face0fbf706965b8ce\",\"course\":\"6aecc5eace0fbf706965aa6f\",\"section\":null,\"title\":\"Quiz 2cf1e487\",\"description\":\"\",\"questions\":[{\"questionText\":\"Pick B\",\"quest",
       "ms": 16
     },
     {
       "id": "SEC-034",
       "status": "FAIL",
-      "actual": "resource: expected HTTP 400, got 201 - {\"course\":\"6aecbacd141c03690093b9b0\",\"uploadedBy\":{\"_id\":\"6aecbacb141c03690093b997\",\"name\":\"QA owner\",\"email\":\"owner.46590508@qa.test\"},\"title\":\"XSS\",\"description\":\"\",\"fi",
+      "actual": "resource: expected HTTP 400, got 201 - {\"course\":\"6aecc5eace0fbf706965aa6f\",\"uploadedBy\":{\"_id\":\"6aecc5e9ce0fbf706965aa56\",\"name\":\"QA owner\",\"email\":\"owner.cd739921@qa.test\"},\"title\":\"XSS\",\"description\":\"\",\"fi",
       "ms": 15
     },
     {
       "id": "SEC-035",
       "status": "FAIL",
-      "actual": "expected HTTP 400, got 201 - {\"course\":\"6aecbacd141c03690093b9b0\",\"uploadedBy\":{\"_id\":\"6aecbacb141c03690093b997\",\"name\":\"QA owner\",\"email\":\"owner.46590508@qa.test\"},\"title\":\"x\",\"description\":\"\",\"file",
-      "ms": 17
+      "actual": "expected HTTP 400, got 201 - {\"course\":\"6aecc5eace0fbf706965aa6f\",\"uploadedBy\":{\"_id\":\"6aecc5e9ce0fbf706965aa56\",\"name\":\"QA owner\",\"email\":\"owner.cd739921@qa.test\"},\"title\":\"x\",\"description\":\"\",\"file",
+      "ms": 13
     },
     {
       "id": "SEC-036",
       "status": "FAIL",
       "actual": "the invalid courseId made the log write fail silently",
-      "ms": 293
+      "ms": 275
     },
     {
       "id": "SEC-037",
       "status": "FAIL",
       "actual": "token lasts 30 days",
-      "ms": 2
+      "ms": 4
     },
     {
       "id": "SEC-038",
       "status": "FAIL",
       "actual": "the action appears as if the student did it",
-      "ms": 228
+      "ms": 198
     },
     {
       "id": "SEC-039",
       "status": "FAIL",
       "actual": "notes returned to the teacher",
-      "ms": 73
+      "ms": 14
     },
     {
       "id": "SEC-040",
       "status": "FAIL",
       "actual": "classmates' emails are exposed",
-      "ms": 42
+      "ms": 12
     },
     {
       "id": "SEC-041",
       "status": "FAIL",
       "actual": "server error from a public endpoint",
-      "ms": 2
+      "ms": 1
     },
     {
       "id": "SEC-042",
       "status": "FAIL",
       "actual": "no cap",
-      "ms": 17
+      "ms": 11
     },
     {
       "id": "SEC-043",
       "status": "FAIL",
       "actual": "page=0 server error",
-      "ms": 4
+      "ms": 2
     },
     {
       "id": "SEC-044",
@@ -1809,35 +1806,35 @@
       "id": "SEC-045",
       "status": "FAIL",
       "actual": "hidden lecture title is public",
-      "ms": 7
+      "ms": 8
     },
     {
       "id": "SEC-046",
       "status": "FAIL",
       "actual": "internal fields are public",
-      "ms": 10
+      "ms": 7
     },
     {
       "id": "SEC-047",
       "status": "PASS",
-      "ms": 11
+      "ms": 9
     },
     {
       "id": "SEC-048",
       "status": "PASS",
-      "ms": 49
+      "ms": 51
     },
     {
       "id": "SEC-049",
       "status": "FAIL",
       "actual": "admin impersonated another admin",
-      "ms": 94
+      "ms": 237
     },
     {
       "id": "SEC-050",
       "status": "FAIL",
       "actual": "expected HTTP 400, got 403 - {\"message\":\"Secret reason\",\"stack\":\"Error: Secret reason\\n at C:\\\\Users\\\\priya\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\D--Tenze---StartUp-LMS\\\\71553799-c395-40b4-882f-cad8bdbd945b",
-      "ms": 109
+      "ms": 129
     },
     {
       "id": "ERR-001",
@@ -1854,13 +1851,13 @@
       "id": "ERR-003",
       "status": "FAIL",
       "actual": "expected HTTP 400, got 500 - {\"message\":\"Expected property name or '}' in JSON at position 1 (line 1 column 2)\",\"stack\":\"SyntaxError: Expected property name or '}' in JSON at position 1 (line 1 colum",
-      "ms": 2
+      "ms": 4
     },
     {
       "id": "ERR-004",
       "status": "FAIL",
       "actual": "HTML response",
-      "ms": 2
+      "ms": 1
     },
     {
       "id": "ERR-005",
