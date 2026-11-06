@@ -139,7 +139,7 @@ const QuizTake = () => {
 
     const getCorrectAnswerDisplay = (question) => {
         if (question.questionType === 'mcq') return question.options[question.correctAnswer];
-        if (question.questionType === 'true-false') return question.correctAnswer ? 'True' : 'False';
+        if (question.questionType === 'true-false') return question.correctAnswer === true || question.correctAnswer === 0 ? 'True' : 'False';
         return question.correctAnswer;
     };
 

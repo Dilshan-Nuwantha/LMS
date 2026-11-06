@@ -202,7 +202,8 @@ const Profile = () => {
         if (newPassword.length < 6) { setPwError('Must be at least 6 characters'); return; }
         setPwLoading(true);
         try {
-            await api.put('/auth/updatepassword', { currentPassword, newPassword });
+            const res = await api.put('/auth/updatepassword', { currentPassword, newPassword });
+            localStorage.setItem('token', res.data.token);
             setPasswords({ currentPassword: '', newPassword: '', confirmPassword: '' });
             showSuccess('Password updated');
         } catch (err) {

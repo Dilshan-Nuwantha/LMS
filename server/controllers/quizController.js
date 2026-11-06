@@ -3,7 +3,10 @@ const Quiz = require('../models/Quiz');
 const QuizAttempt = require('../models/QuizAttempt');
 const Course = require('../models/Course');
 const Progress = require('../models/Progress');
-const { canManage, getTeacherPermissions } = require('../middleware/ownershipMiddleware');
+const { canManage, getTeacherPermissions, isCourseMember } = require('../middleware/ownershipMiddleware');
+
+// AI-generated true/false questions store the option index: 0 is True, 1 is False
+const trueFalseAnswer = (value) => (typeof value === 'number' ? value === 0 : value);
 
 // @desc    Create a new quiz
 // @route   POST /api/quizzes
@@ -85,6 +88,11 @@ const getCourseQuizzes = asyncHandler(async (req, res) => {
     const teacherPerms = await getTeacherPermissions(userId, courseId);
     const isTeacher = !!teacherPerms;
 
+    if (!(await isCourseMember(req.user, course))) {
+        res.status(403);
+        throw new Error('You must be enrolled in this course to view its quizzes');
+    }
+
     // For owners/teachers, get all quizzes; for students, only active ones
     const filter = { course: courseId };
     if (!isOwner && !isTeacher) {
@@ -136,6 +144,11 @@ const getQuiz = asyncHandler(async (req, res) => {
     // For owners/teachers, return full quiz with answers
     if (isOwner || teacherPerms?.manage_content || teacherPerms?.full_access) {
         return res.json(quiz);
+    }
+
+    if (!(await isCourseMember(req.user, course))) {
+        res.status(403);
+        throw new Error('You must be enrolled in this course to view this quiz');
     }
 
     // For students, hide correct answers
@@ -227,6 +240,12 @@ const startQuizAttempt = asyncHandler(async (req, res) => {
     }
 
     const userId = req.user.id;
+
+    const course = await Course.findById(quiz.course).select('isAdminBlocked');
+    if (course?.isAdminBlocked) {
+        res.status(403);
+        throw new Error('This course is currently unavailable');
+    }
 
     // Check if user is enrolled in the course
     const progress = await Progress.findOne({ course: quiz.course, student: userId });
@@ -330,17 +349,20 @@ const submitQuizAttempt = asyncHandler(async (req, res) => {
     // Grade the quiz
     let score = 0;
     const gradedAnswers = [];
+    const gradedIndexes = new Set();
 
     answers.forEach(ans => {
         const question = quiz.questions[ans.questionIndex];
-        if (!question) return;
+        // Each question counts once, so repeating a correct answer can't raise the score
+        if (!question || gradedIndexes.has(ans.questionIndex)) return;
+        gradedIndexes.add(ans.questionIndex);
 
         let isCorrect = false;
 
         if (question.questionType === 'mcq') {
             isCorrect = ans.answer === question.correctAnswer;
         } else if (question.questionType === 'true-false') {
-            isCorrect = ans.answer === question.correctAnswer;
+            isCorrect = ans.answer === trueFalseAnswer(question.correctAnswer);
         } else if (question.questionType === 'short-answer') {
             // Case-insensitive comparison for short answers
             isCorrect = ans.answer?.toLowerCase().trim() === question.correctAnswer?.toLowerCase().trim();
@@ -409,7 +431,14 @@ const getAttemptResult = asyncHandler(async (req, res) => {
         throw new Error('Not authorized to view this attempt');
     }
 
-    res.json(attempt);
+    const result = attempt.toObject();
+
+    // The student must not see the answers while the attempt is still open
+    if (attempt.status === 'in-progress' && !isOwner && !teacherPerms && result.quiz) {
+        result.quiz.questions = result.quiz.questions.map(({ correctAnswer, ...question }) => question);
+    }
+
+    res.json(result);
 });
 
 // @desc    Get student's attempts for a quiz

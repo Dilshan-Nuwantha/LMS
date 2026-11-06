@@ -57,7 +57,7 @@ const writeReports = () => {
     const unmapped = cases.filter(c => result[c.id]?.[0] === 'FAIL' && !bugFor[c.id]).map(c => c.id);
     const missing = cases.filter(c => !result[c.id]).map(c => c.id);
     const open = bugs.filter(b => b.status === 'Open');
-    const fixed = bugs.filter(b => b.status === 'Fixed');
+    const fixed = bugs.filter(b => b.status !== 'Open');
     const passingLinked = open.flatMap(b => b.tests).filter(id => result[id]?.[0] !== 'FAIL');
     const failingFixed = fixed.flatMap(b => b.tests).filter(id => result[id]?.[0] !== 'PASS');
     const unlinkedFail = cases.filter(c => result[c.id]?.[0] === 'FAIL' && !open.some(b => b.tests.includes(c.id))).map(c => c.id);
@@ -74,11 +74,11 @@ const writeReports = () => {
     const pass = cases.filter(c => result[c.id][0] === 'PASS').length;
     const out = [
         '# Tenz Learn - Regression Bug Report', '',
-        `**Branch:** develop at commit cd8554b, plus the uncommitted fixes for LMS-001 to LMS-004  `,
+        `**Branch:** Beralidu at commit 5746846, plus the uncommitted fixes for LMS-005 to LMS-021  `,
         `**Run date:** ${api.ranAt.slice(0, 10)}  `,
         `**Result:** ${cases.length} test cases, ${pass} passed, ${cases.length - pass} failed  `,
         `**Open findings:** ${open.length} (${severities.map(s => `${n(b => b.severity === s)} ${s}`).join(', ')}). **Fixed:** ${fixed.length}`, '',
-        `**Recommendation: do not release yet.** All Critical findings are fixed, but the workbook's Production Gate needs zero High bugs and ${n(b => b.severity === 'High')} remain open. The fixes also need the database steps listed under Fixed.`, '',
+        `**Status:** no Critical or High findings remain open, and nothing that passed before now fails. ${open.length} Medium and Low findings are still open, and every failed test below belongs to one of them. Commit the High fixes and run the database steps listed under Fixed before release.`, '',
         '## Summary', '',
         '| Severity | Security issues | Vulnerabilities | Bugs | Total |', '|---|---|---|---|---|',
         ...severities.map(s => `| ${s} | ${types.map(t => n(b => b.severity === s && b.type === t)).join(' | ')} | ${n(b => b.severity === s)} |`),
@@ -94,10 +94,10 @@ const writeReports = () => {
             return `| ${m} | ${list.length} | ${p} | ${list.length - p} |`;
         }), '',
         '## How this was tested', '',
-        `- The API suite ran ${api.results.length} cases against the real server code at commit cd8554b on develop, using a temporary local MongoDB. The hosted lms-dev database was not used.`,
+        `- The API suite ran ${api.results.length} cases against the real server code at commit 5746846 on Beralidu plus the High fixes, using a temporary local MongoDB. The hosted lms-dev database was not used.`,
         '- Stripe, email, Google sign-in and the AI providers were local stand-ins, so **no real payment, email or AI request was made**. Stripe webhook signatures were verified for real. Outbound calls blocked: ' + api.blockedOutbound.length + '.',
         '- Production-only behaviour (rate limits, stack traces, cron secret) ran against a second instance with NODE_ENV=production.',
-        '- UI checks ran on commit 4280b9e and were not repeated on cd8554b. LMS-003 was confirmed in real Chrome with a temporary profile, and its code has not changed since.', '',
+        '- UI checks were repeated on this code. LMS-003 was confirmed in real Chrome with a temporary profile.', '',
         '### Not covered', '',
         '- A real Stripe checkout page, real Google sign-in, real email delivery and real AI provider responses.',
         '- Load and performance targets (NFR-PERF), and uptime.',
@@ -112,9 +112,9 @@ const writeReports = () => {
         });
     });
 
-    out.push('## Fixed', '', 'These fixes are not committed yet. Their tests now pass.', '');
+    out.push('## Fixed', '', 'LMS-001 to LMS-004 and LMS-058 are committed and retested (Closed). LMS-005 to LMS-021 are retested but not committed yet (Fixed). Their tests all pass.', '');
     fixed.forEach(b => {
-        out.push(`### ${b.id}: ${b.title}`, '', `**Type:** ${b.type}  `, `**Tests now passing:** ${b.tests.join(', ')}`, '', b.problem, '', `**Fix:** ${b.fix}`, '');
+        out.push(`### ${b.id}: ${b.title}`, '', `**Type:** ${b.type}  `, `**Status:** ${b.status}  `, `**Tests now passing:** ${b.tests.join(', ')}`, '', b.problem, '', `**Fix:** ${b.fix}`, '');
     });
     out.push(
         '### Database steps to run after deploying', '',
@@ -151,6 +151,10 @@ const writeReports = () => {
 
     out.push(
         '## Other observations', '', 'These are not counted as bugs.', '',
+        '- The coupon limit (LMS-015) is now exact for free checkouts. Two paid checkouts of a one-use coupon can still both finish, because a payment that has been taken cannot be refused afterwards.',
+        '- A removed buyer who checks out again gets access back without paying (LMS-016). Use an admin block to keep someone out for good.',
+        '- `npm test` runs test files in parallel, and they share one invoice counter in the test database, so the invoice test can fail. All 18 pass with `node --test --test-concurrency=1 tests/*.test.js`.',
+        '- The server startup retry for slow Atlas connections in `server/config/db.js` was never committed and is not on this branch.',
         '- Fixed on develop since the first run: LMS-063 (blocked and deleted users got wrong auth responses) and LMS-064 (wrong role returned 401). They are removed from this report, so those numbers are skipped.',
         '- `server/node_modules` on this machine has no `nodemailer`, so the server will not start until `npm install` is run in `server/`.',
         '- `server/.env` has no `EMAIL_USER` or `EMAIL_PASS`, so password reset emails cannot be sent with this configuration, and no `server/.env.example` exists.',

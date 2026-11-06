@@ -24,6 +24,13 @@ const protect = asyncHandler(async (req, res, next) => {
                 });
             }
 
+            if ((decoded.v ?? 0) !== (req.user.tokenVersion ?? 0)) {
+                return res.status(401).json({
+                    code: 'SESSION_REVOKED',
+                    message: 'Your session has expired. Please log in again.'
+                });
+            }
+
             if (req.user.isBlocked) {
                 return res.status(403).json({
                     code: 'ACCOUNT_BLOCKED',

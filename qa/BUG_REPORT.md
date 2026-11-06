@@ -1,21 +1,21 @@
 # Tenz Learn - Regression Bug Report
 
-**Branch:** develop at commit cd8554b, plus the uncommitted fixes for LMS-001 to LMS-004  
-**Run date:** 2026-11-05  
-**Result:** 378 test cases, 269 passed, 109 failed  
-**Open findings:** 65 (0 Critical, 17 High, 36 Medium, 12 Low). **Fixed:** 4
+**Branch:** Beralidu at commit 5746846, plus the uncommitted fixes for LMS-005 to LMS-021  
+**Run date:** 2026-11-06  
+**Result:** 389 test cases, 307 passed, 82 failed  
+**Open findings:** 47 (0 Critical, 0 High, 36 Medium, 11 Low). **Fixed:** 22
 
-**Recommendation: do not release yet.** All Critical findings are fixed, but the workbook's Production Gate needs zero High bugs and 17 remain open. The fixes also need the database steps listed under Fixed.
+**Status:** no Critical or High findings remain open, and nothing that passed before now fails. 47 Medium and Low findings are still open, and every failed test below belongs to one of them. Commit the High fixes and run the database steps listed under Fixed before release.
 
 ## Summary
 
 | Severity | Security issues | Vulnerabilities | Bugs | Total |
 |---|---|---|---|---|
 | Critical | 0 | 0 | 0 | 0 |
-| High | 8 | 2 | 7 | 17 |
+| High | 0 | 0 | 0 | 0 |
 | Medium | 13 | 0 | 23 | 36 |
-| Low | 4 | 1 | 7 | 12 |
-| **Total** | **25** | **3** | **37** | **65** |
+| Low | 3 | 1 | 7 | 11 |
+| **Total** | **16** | **1** | **30** | **47** |
 
 - **Security issue:** a flaw in the app's own access control or data handling.
 - **Vulnerability:** an exploitable weakness, such as XSS, or a known flaw in a dependency.
@@ -25,33 +25,33 @@
 
 | Module | Cases | Passed | Failed |
 |---|---|---|---|
-| Authentication | 43 | 37 | 6 |
-| Course management | 25 | 18 | 7 |
+| Authentication | 43 | 38 | 5 |
+| Course management | 25 | 20 | 5 |
 | Lecture progress | 11 | 6 | 5 |
-| Co-instructors | 14 | 11 | 3 |
+| Co-instructors | 15 | 14 | 1 |
 | Marketplace | 10 | 8 | 2 |
-| Payments | 31 | 24 | 7 |
-| Coupons | 23 | 16 | 7 |
+| Payments | 33 | 31 | 2 |
+| Coupons | 23 | 17 | 6 |
 | Instructor tools | 8 | 8 | 0 |
-| Admin | 24 | 19 | 5 |
-| Quizzes | 25 | 17 | 8 |
-| AI features | 27 | 20 | 7 |
+| Admin | 24 | 20 | 4 |
+| Quizzes | 26 | 21 | 5 |
+| AI features | 28 | 22 | 6 |
 | Broadcasts | 10 | 8 | 2 |
 | Resources | 14 | 11 | 3 |
 | Reviews | 15 | 12 | 3 |
-| Notifications | 9 | 7 | 2 |
+| Notifications | 10 | 8 | 2 |
 | Activity log | 8 | 4 | 4 |
-| Security | 56 | 28 | 28 |
+| Security | 61 | 42 | 19 |
 | Error handling | 5 | 1 | 4 |
-| Build and dependencies | 7 | 3 | 4 |
+| Build and dependencies | 7 | 5 | 2 |
 | User interface | 13 | 11 | 2 |
 
 ## How this was tested
 
-- The API suite ran 358 cases against the real server code at commit cd8554b on develop, using a temporary local MongoDB. The hosted lms-dev database was not used.
+- The API suite ran 369 cases against the real server code at commit 5746846 on Beralidu plus the High fixes, using a temporary local MongoDB. The hosted lms-dev database was not used.
 - Stripe, email, Google sign-in and the AI providers were local stand-ins, so **no real payment, email or AI request was made**. Stripe webhook signatures were verified for real. Outbound calls blocked: 0.
 - Production-only behaviour (rate limits, stack traces, cron secret) ran against a second instance with NODE_ENV=production.
-- UI checks ran on commit 4280b9e and were not repeated on cd8554b. LMS-003 was confirmed in real Chrome with a temporary profile, and its code has not changed since.
+- UI checks were repeated on this code. LMS-003 was confirmed in real Chrome with a temporary profile.
 
 ### Not covered
 
@@ -63,176 +63,6 @@
 ## Critical
 
 ## High
-
-### LMS-005: Students can read quiz answers during an attempt
-
-**Type:** Security  
-**Where:** server/controllers/quizController.js:393-413  
-**Failed tests:** QZ-019
-
-GET /quizzes/attempts/:id populates the whole quiz, including correctAnswer, while the attempt is still in progress.
-
-**Fix:** Remove correct answers from this response unless the attempt is finished.
-
-### LMS-006: Repeating one correct answer gives a full score
-
-**Type:** Bug  
-**Where:** server/controllers/quizController.js:334-359  
-**Failed tests:** QZ-018
-
-Answers are not de-duplicated. Sending one correct answer three times on a three-question quiz scored 100 percent instead of 33 percent.
-
-**Fix:** Grade each question once, by looping over quiz.questions rather than the submitted list.
-
-### LMS-007: Any instructor can message any course and change its notification settings
-
-**Type:** Security  
-**Where:** server/controllers/notificationController.js:122, :156  
-**Failed tests:** SEC-027, SEC-028, SEC-029
-
-These routes check the instructor role but not course ownership. Any instructor can notify another course's students, send to any user id, or change that course's settings. Anyone can become an instructor through /instructor/become, which makes this a phishing route.
-
-**Fix:** Add course ownership or permission checks, and accept only student ids enrolled in that course.
-
-### LMS-008: Non-enrolled users can spend the instructor's AI key
-
-**Type:** Security  
-**Where:** server/controllers/studentAiController.js:13-44, :157-171  
-**Failed tests:** AI-022
-
-Creating a conversation does not check enrollment. Any logged-in user can open one on a course with AI sharing on and use the instructor's paid key.
-
-**Fix:** Require enrollment when creating a conversation and again in getStudentAI.
-
-### LMS-009: Admin-blocked courses stay open and can still be sold
-
-**Type:** Security  
-**Where:** server/controllers/courseController.js:88, :452; server/controllers/purchaseController.js:56-60  
-**Failed tests:** CRS-021, PAY-026
-
-Blocking hides a course from the marketplace only. Enrolled students can still open the course and its lectures, and a Stripe checkout session is still created. This breaks FR-COURSE-02 and FR-ADMIN-03.
-
-**Fix:** Check isAdminBlocked in getCourse, getLecture, quiz start and checkout.
-
-### LMS-010: Password reset codes can be guessed without an account lockout
-
-**Type:** Security  
-**Where:** server/controllers/authController.js:328; verifyOTP  
-**Failed tests:** SEC-011
-
-Wrong codes are limited per IP only (5 per 15 minutes in production). After 12 wrong tries the correct code still worked, so an attacker using many IPs keeps guessing. The code also uses Math.random, although the comment says it is cryptographically random.
-
-**Fix:** Count attempts per account and cancel the code after about 5 failures. Use crypto.randomInt.
-
-### LMS-011: Login sessions survive a password change and last 30 days
-
-**Type:** Security  
-**Where:** server/controllers/authController.js:19; server/controllers/adminController.js:394  
-**Failed tests:** AUTH-033, SEC-037
-
-Old tokens keep working after a password change or reset, so a stolen token cannot be cancelled. Tokens last 30 days, while the SRS and client assume 7. Impersonation tokens also last 30 days, although the SRS calls them temporary.
-
-**Fix:** Add a token version or passwordChangedAt check in protect. Shorten token life, and limit impersonation tokens to about 1 hour.
-
-### LMS-012: Non-members can read quiz questions, broadcasts and comments
-
-**Type:** Security  
-**Where:** server/controllers/quizController.js:125; server/controllers/broadcastController.js:76; server/controllers/courseController.js:611, :670  
-**Failed tests:** SEC-031, SEC-032, SEC-033
-
-These reads have no enrollment check, so a non-buyer can read paid quiz questions and course announcements (including the sender's email), and can read and post lecture comments.
-
-**Fix:** Add one shared course-member check to these routes.
-
-### LMS-013: Peer progress shows classmates' names and emails
-
-**Type:** Security  
-**Where:** server/controllers/courseController.js:805-840, :845-896  
-**Failed tests:** SEC-040
-
-FR-COURSE-11 requires anonymized progress, but the endpoints return each student's real name and email.
-
-**Fix:** Return anonymous labels and totals only.
-
-### LMS-014: Negative payout increases the instructor balance
-
-**Type:** Bug  
-**Where:** server/controllers/adminController.js:138, :158  
-**Failed tests:** ADM-019
-
-A payout of -500 is accepted and recorded as completed, which raises the pending balance by 500.
-
-**Fix:** Require a positive number, and reject anything else with HTTP 400.
-
-### LMS-015: Coupon usage limit fails under parallel checkouts
-
-**Type:** Bug  
-**Where:** server/controllers/purchaseController.js:101, :27  
-**Failed tests:** CPN-021
-
-The limit is read first and updated later. Four parallel checkouts redeemed a maxUses 1 coupon four times.
-
-**Fix:** Reserve the use with one atomic update that also checks usedCount.
-
-### LMS-016: A student removed after paying cannot get back in
-
-**Type:** Bug  
-**Where:** server/controllers/courseController.js:997-1008  
-**Failed tests:** PAY-028, PAY-029
-
-Removal deletes the enrollment but leaves the completed purchase, so checkout says "already purchased" and the student has no access. enrollmentCount also stays too high.
-
-**Fix:** Handle the purchase on removal (refund, or restore access), and decrement enrollmentCount.
-
-### LMS-017: Paid courses can be deleted or disappear from buyers
-
-**Type:** Bug  
-**Where:** server/controllers/courseController.js:1285-1306, :385  
-**Failed tests:** PAY-030, PAY-031
-
-An owner can delete a course that has paying students. Archiving a course also removes it from the buyer's list.
-
-**Fix:** Block deletion when completed purchases exist, and keep archived courses visible to people who bought them.
-
-### LMS-018: AI-generated true/false questions can never be answered correctly
-
-**Type:** Bug  
-**Where:** server/services/aiService.js:106; server/controllers/quizController.js:342; client/src/pages/quiz/QuizManage.jsx:249-260  
-**Failed tests:** QZ-024
-
-The AI prompt stores true/false answers as 0 or 1, but the quiz page submits true or false and grading uses a strict comparison. Every student is marked wrong.
-
-**Fix:** Convert the index to a boolean when AI questions are returned.
-
-### LMS-019: Co-instructors with manage_content cannot edit or delete lectures
-
-**Type:** Bug  
-**Where:** server/middleware/ownershipMiddleware.js:317  
-**Failed tests:** TCH-006, TCH-007
-
-verifyLectureOwnership allows only the owner and admins. SRS 3.4 says this permission covers adding, editing and deleting lectures.
-
-**Fix:** Accept the manage_content and full_access permissions, as verifyCourseContentPermission does.
-
-### LMS-020: Server dependencies have known vulnerabilities
-
-**Type:** Vulnerability  
-**Where:** server/package-lock.json  
-**Failed tests:** BLD-003
-
-npm audit reports 9 issues: 1 critical (proxy-addr), 6 high (body-parser, express-rate-limit, ip-address, mongoose, multer, path-to-regexp) and 2 moderate (nodemailer, qs). The proxy-addr issue concerns subnet-based trust and this app uses a hop count, so it may not apply here, but this was not tested.
-
-**Fix:** Run npm audit fix, then run this regression suite again.
-
-### LMS-021: Client dependency has a known vulnerability
-
-**Type:** Vulnerability  
-**Where:** client/package-lock.json  
-**Failed tests:** BLD-004
-
-npm audit reports follow-redirects (high): credentials may not be stripped on cross-origin redirects. It arrives through axios, and its effect in a browser build is likely limited.
-
-**Fix:** Run npm audit fix in client/.
 
 ## Medium
 
@@ -598,16 +428,6 @@ The invoice PDF and browser titles say "Skill Path", while the product is Tenz L
 
 ## Low
 
-### LMS-058: Students can list marketplace courses
-
-**Type:** Security  
-**Where:** server/controllers/courseController.js:55  
-**Failed tests:** CRS-024
-
-PUT /courses/:id lets a student publish a paid listing. The impact is small because /instructor/become is open to all.
-
-**Fix:** Require the instructor role for marketplace fields.
-
 ### LMS-059: Account status can be discovered without a password
 
 **Type:** Security  
@@ -694,7 +514,7 @@ There is no JSON 404 handler (NFR-REL-03).
 **Where:** client/src/pages/course/ManageCoupons.jsx:13  
 **Failed tests:** BLD-002
 
-Lint reports 91 errors and 35 warnings. That includes 13 conditional hook errors in ManageCoupons, which could crash if courseId were ever missing. Current callers always pass it.
+Lint reports 142 errors and 35 warnings. That includes 13 conditional hook errors in ManageCoupons, which could crash if courseId were ever missing. Current callers always pass it.
 
 **Fix:** Move the early return below the hooks, then clear the lint errors.
 
@@ -720,11 +540,12 @@ The filter select renders options without a key and logs a console error.
 
 ## Fixed
 
-These fixes are not committed yet. Their tests now pass.
+LMS-001 to LMS-004 and LMS-058 are committed and retested (Closed). LMS-005 to LMS-021 are retested but not committed yet (Fixed). Their tests all pass.
 
 ### LMS-001: Anyone can create an admin account
 
 **Type:** Security  
+**Status:** Closed  
 **Tests now passing:** SEC-001, SEC-002, SEC-003, SEC-004, UI-012
 
 A guest can register as admin through /auth/admin/register, /auth/admin/google, the /admin/register page, or by sending role: "admin" to /auth/register. In the test, a guest-created admin read every user record. SRS 10.2 says there is no admin self-registration.
@@ -734,6 +555,7 @@ A guest can register as admin through /auth/admin/register, /auth/admin/google, 
 ### LMS-002: Passwords, AI keys and bank details are stored in plain text in the activity log
 
 **Type:** Security  
+**Status:** Closed  
 **Tests now passing:** SEC-006, SEC-007, SEC-008
 
 The logger removes only `password` and `token`. It keeps currentPassword, newPassword, apiKey and accountNumber in Activity.data, and admins and the user can read them back through the API. This also defeats the AES encryption of AI keys.
@@ -743,6 +565,7 @@ The logger removes only `password` and `token`. It keeps currentPassword, newPas
 ### LMS-003: Stored XSS: a resource link can steal the login token
 
 **Type:** Vulnerability  
+**Status:** Closed  
 **Tests now passing:** SEC-034, UI-010
 
 Resource URLs are not validated, and the client passes them to window.open. In real Chrome, one click on a javascript: link ran the script on the app origin and read the token from localStorage. Instructors can plant this, and so can students when uploads are enabled. An admin impersonating someone also has adminToken in localStorage.
@@ -752,11 +575,192 @@ Resource URLs are not validated, and the client passes them to window.open. In r
 ### LMS-004: Existing accounts with capitals in the email are locked out
 
 **Type:** Bug  
+**Status:** Closed  
 **Tests now passing:** AUTH-039, AUTH-040
 
 Login and password reset now lowercase the email before searching, but older accounts keep the email as typed and no migration exists. Those users get "Invalid credentials", and their reset request reports success without sending anything. This is a regression on this branch.
 
 **Fix:** Before release, count affected users with the filter { email: /[A-Z]/ }, then lowercase stored emails with a migration that handles duplicates (for example Foo@x and foo@x). Add `lowercase: true` to the schema.
+
+### LMS-005: Students can read quiz answers during an attempt
+
+**Type:** Security  
+**Status:** Fixed  
+**Tests now passing:** QZ-019
+
+GET /quizzes/attempts/:id populates the whole quiz, including correctAnswer, while the attempt is still in progress.
+
+**Fix:** Remove correct answers from this response unless the attempt is finished.
+
+### LMS-006: Repeating one correct answer gives a full score
+
+**Type:** Bug  
+**Status:** Fixed  
+**Tests now passing:** QZ-018
+
+Answers are not de-duplicated. Sending one correct answer three times on a three-question quiz scored 100 percent instead of 33 percent.
+
+**Fix:** Grade each question once, by looping over quiz.questions rather than the submitted list.
+
+### LMS-007: Any instructor can message any course and change its notification settings
+
+**Type:** Security  
+**Status:** Fixed  
+**Tests now passing:** SEC-027, SEC-028, SEC-029
+
+These routes check the instructor role but not course ownership. Any instructor can notify another course's students, send to any user id, or change that course's settings. Anyone can become an instructor through /instructor/become, which makes this a phishing route.
+
+**Fix:** Add course ownership or permission checks, and accept only student ids enrolled in that course.
+
+### LMS-008: Non-enrolled users can spend the instructor's AI key
+
+**Type:** Security  
+**Status:** Fixed  
+**Tests now passing:** AI-022
+
+Creating a conversation does not check enrollment. Any logged-in user can open one on a course with AI sharing on and use the instructor's paid key.
+
+**Fix:** Require enrollment when creating a conversation and again in getStudentAI.
+
+### LMS-009: Admin-blocked courses stay open and can still be sold
+
+**Type:** Security  
+**Status:** Fixed  
+**Tests now passing:** CRS-021, PAY-026
+
+Blocking hides a course from the marketplace only. Enrolled students can still open the course and its lectures, and a Stripe checkout session is still created. This breaks FR-COURSE-02 and FR-ADMIN-03.
+
+**Fix:** Check isAdminBlocked in getCourse, getLecture, quiz start and checkout.
+
+### LMS-010: Password reset codes can be guessed without an account lockout
+
+**Type:** Security  
+**Status:** Fixed  
+**Tests now passing:** SEC-011
+
+Wrong codes are limited per IP only (5 per 15 minutes in production). After 12 wrong tries the correct code still worked, so an attacker using many IPs keeps guessing. The code also uses Math.random, although the comment says it is cryptographically random.
+
+**Fix:** Count attempts per account and cancel the code after about 5 failures. Use crypto.randomInt.
+
+### LMS-011: Login sessions survive a password change and last 30 days
+
+**Type:** Security  
+**Status:** Fixed  
+**Tests now passing:** AUTH-033, SEC-037
+
+Old tokens keep working after a password change or reset, so a stolen token cannot be cancelled. Tokens last 30 days, while the SRS and client assume 7. Impersonation tokens also last 30 days, although the SRS calls them temporary.
+
+**Fix:** Add a token version or passwordChangedAt check in protect. Shorten token life, and limit impersonation tokens to about 1 hour.
+
+### LMS-012: Non-members can read quiz questions, broadcasts and comments
+
+**Type:** Security  
+**Status:** Fixed  
+**Tests now passing:** SEC-031, SEC-032, SEC-033
+
+These reads have no enrollment check, so a non-buyer can read paid quiz questions and course announcements (including the sender's email), and can read and post lecture comments.
+
+**Fix:** Add one shared course-member check to these routes.
+
+### LMS-013: Peer progress shows classmates' names and emails
+
+**Type:** Security  
+**Status:** Fixed  
+**Tests now passing:** SEC-040
+
+FR-COURSE-11 requires anonymized progress, but the endpoints return each student's real name and email.
+
+**Fix:** Return anonymous labels and totals only.
+
+### LMS-014: Negative payout increases the instructor balance
+
+**Type:** Bug  
+**Status:** Fixed  
+**Tests now passing:** ADM-019
+
+A payout of -500 is accepted and recorded as completed, which raises the pending balance by 500.
+
+**Fix:** Require a positive number, and reject anything else with HTTP 400.
+
+### LMS-015: Coupon usage limit fails under parallel checkouts
+
+**Type:** Bug  
+**Status:** Fixed  
+**Tests now passing:** CPN-021
+
+The limit is read first and updated later. Four parallel checkouts redeemed a maxUses 1 coupon four times.
+
+**Fix:** Reserve the use with one atomic update that also checks usedCount.
+
+### LMS-016: A student removed after paying cannot get back in
+
+**Type:** Bug  
+**Status:** Fixed  
+**Tests now passing:** PAY-028, PAY-029
+
+Removal deletes the enrollment but leaves the completed purchase, so checkout says "already purchased" and the student has no access. enrollmentCount also stays too high.
+
+**Fix:** Handle the purchase on removal (refund, or restore access), and decrement enrollmentCount.
+
+### LMS-017: Paid courses can be deleted or disappear from buyers
+
+**Type:** Bug  
+**Status:** Fixed  
+**Tests now passing:** PAY-030, PAY-031
+
+An owner can delete a course that has paying students. Archiving a course also removes it from the buyer's list.
+
+**Fix:** Block deletion when completed purchases exist, and keep archived courses visible to people who bought them.
+
+### LMS-018: AI-generated true/false questions can never be answered correctly
+
+**Type:** Bug  
+**Status:** Fixed  
+**Tests now passing:** QZ-024
+
+The AI prompt stores true/false answers as 0 or 1, but the quiz page submits true or false and grading uses a strict comparison. Every student is marked wrong.
+
+**Fix:** Convert the index to a boolean when AI questions are returned.
+
+### LMS-019: Co-instructors with manage_content cannot edit or delete lectures
+
+**Type:** Bug  
+**Status:** Fixed  
+**Tests now passing:** TCH-006, TCH-007
+
+verifyLectureOwnership allows only the owner and admins. SRS 3.4 says this permission covers adding, editing and deleting lectures.
+
+**Fix:** Accept the manage_content and full_access permissions, as verifyCourseContentPermission does.
+
+### LMS-020: Server dependencies have known vulnerabilities
+
+**Type:** Vulnerability  
+**Status:** Fixed  
+**Tests now passing:** BLD-003
+
+npm audit reports 9 issues: 1 critical (proxy-addr), 6 high (body-parser, express-rate-limit, ip-address, mongoose, multer, path-to-regexp) and 2 moderate (nodemailer, qs). The proxy-addr issue concerns subnet-based trust and this app uses a hop count, so it may not apply here, but this was not tested.
+
+**Fix:** Run npm audit fix, then run this regression suite again.
+
+### LMS-021: Client dependency has a known vulnerability
+
+**Type:** Vulnerability  
+**Status:** Fixed  
+**Tests now passing:** BLD-004
+
+npm audit reports follow-redirects (high): credentials may not be stripped on cross-origin redirects. It arrives through axios, and its effect in a browser build is likely limited.
+
+**Fix:** Run npm audit fix in client/.
+
+### LMS-058: Students can list marketplace courses
+
+**Type:** Security  
+**Status:** Closed  
+**Tests now passing:** CRS-024
+
+PUT /courses/:id lets a student publish a paid listing. The impact is small because /instructor/become is open to all.
+
+**Fix:** Require the instructor role for marketplace fields.
 
 ### Database steps to run after deploying
 
@@ -797,6 +801,10 @@ Still in the tab as Not Run, because this run did not cover them: TC-RBAC-002, T
 
 These are not counted as bugs.
 
+- The coupon limit (LMS-015) is now exact for free checkouts. Two paid checkouts of a one-use coupon can still both finish, because a payment that has been taken cannot be refused afterwards.
+- A removed buyer who checks out again gets access back without paying (LMS-016). Use an admin block to keep someone out for good.
+- `npm test` runs test files in parallel, and they share one invoice counter in the test database, so the invoice test can fail. All 18 pass with `node --test --test-concurrency=1 tests/*.test.js`.
+- The server startup retry for slow Atlas connections in `server/config/db.js` was never committed and is not on this branch.
 - Fixed on develop since the first run: LMS-063 (blocked and deleted users got wrong auth responses) and LMS-064 (wrong role returned 401). They are removed from this report, so those numbers are skipped.
 - `server/node_modules` on this machine has no `nodemailer`, so the server will not start until `npm install` is run in `server/`.
 - `server/.env` has no `EMAIL_USER` or `EMAIL_PASS`, so password reset emails cannot be sent with this configuration, and no `server/.env.example` exists.

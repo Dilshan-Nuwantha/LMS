@@ -7,7 +7,8 @@ const Activity = require('../models/Activity');
 const QuizAttempt = require('../models/QuizAttempt');
 const Quiz = require('../models/Quiz');
 const CourseTeacher = require('../models/CourseTeacher');
-const { canManage, getTeacherPermissions } = require('../middleware/ownershipMiddleware');
+const Purchase = require('../models/Purchase');
+const { canManage, getTeacherPermissions, isCourseMember } = require('../middleware/ownershipMiddleware');
 const { isSafeUrl } = require('../utils/url');
 
 // @desc    Create new course
@@ -398,9 +399,15 @@ const getEnrolledCourses = asyncHandler(async (req, res) => {
             select: 'title description status completedStatus sections thumbnail'
         });
 
-    // Only show Published courses to students (hide Draft and Archived)
+    const purchases = await Purchase.find({ user: req.user.id, status: 'completed' }).select('course').lean();
+    const purchasedCourseIds = new Set(purchases.map(p => p.course.toString()));
+
+    // Students see Published courses, plus Archived ones they paid for
     const publishedProgresses = progresses.filter(progress =>
-        progress.course && progress.course.status === 'Published'
+        progress.course && (
+            progress.course.status === 'Published' ||
+            (progress.course.status === 'Archived' && purchasedCourseIds.has(progress.course._id.toString()))
+        )
     );
 
     // Transform data to include lecture counts instead of full lecture data
@@ -633,7 +640,19 @@ const updateLectureProgress = asyncHandler(async (req, res) => {
 // @access  Private
 const addComment = asyncHandler(async (req, res) => {
     const lectureId = req.params.id;
-    const { content, courseId } = req.body;
+    const { content } = req.body;
+
+    const lecture = await Lecture.findById(lectureId);
+    const course = lecture && await Course.findById(lecture.course);
+    if (!course) {
+        res.status(404);
+        throw new Error('Lecture not found');
+    }
+
+    if (!(await isCourseMember(req.user, course))) {
+        res.status(403);
+        throw new Error('You must be enrolled in this course to comment');
+    }
 
     // Use middleware for logging -> automatic if we set nothing?
     // Middleware detects '/comments' in URL and sets 'Comment' action.
@@ -673,7 +692,7 @@ const addComment = asyncHandler(async (req, res) => {
     const activity = await Activity.create({
         user: req.user.id,
         // student: req.user.id, // Optional: Save both for double safety locally during migration? No, let's stick to user.
-        course: courseId,
+        course: course._id,
         lecture: lectureId,
         action: 'Comment',
         method: req.method,
@@ -692,6 +711,18 @@ const addComment = asyncHandler(async (req, res) => {
 // @access  Private
 const getLectureComments = asyncHandler(async (req, res) => {
     const { id } = req.params; // Lecture ID
+
+    const lecture = await Lecture.findById(id);
+    const course = lecture && await Course.findById(lecture.course);
+    if (!course) {
+        res.status(404);
+        throw new Error('Lecture not found');
+    }
+
+    if (!(await isCourseMember(req.user, course))) {
+        res.status(403);
+        throw new Error('You must be enrolled in this course to view comments');
+    }
 
     // Fetch activities for this lecture that are comments
     // Populate 'user' (new field) OR 'student' (old field) to support both if needed,
@@ -834,32 +865,16 @@ const getPeerStudentList = asyncHandler(async (req, res) => {
     const isEnrolled = await Progress.findOne({ course: req.params.id, student: req.user.id });
     if (!isEnrolled) { res.status(403); throw new Error('You are not enrolled in this course'); }
 
-    const { keyword } = req.query;
-    let query = { course: req.params.id };
-
-    if (keyword) {
-        const users = await User.find({
-            $or: [
-                { name: { $regex: keyword, $options: 'i' } },
-                { email: { $regex: keyword, $options: 'i' } }
-            ]
-        }).select('_id');
-        query.student = { $in: users.map(u => u._id) };
-    }
-
+    const keyword = String(req.query.keyword || '').trim().toLowerCase();
     const limit = Math.min(Number(req.query.limit) || 10, 50);
 
-    const students = await Progress.find(query)
-        .select('student')
-        .populate('student', 'name email')
-        .limit(limit)
-        .lean();
+    // Classmates are anonymous, so search works on the label and never on a name or email
+    const students = await Progress.find({ course: req.params.id }).select('student').sort({ _id: 1 }).lean();
+    const peers = students
+        .map((s, index) => ({ _id: s.student, name: `Student ${index + 1}`, email: '' }))
+        .filter(peer => peer.name.toLowerCase().includes(keyword));
 
-    res.status(200).json(students.map(s => ({
-        _id: s.student._id,
-        name: s.student.name,
-        email: s.student.email
-    })));
+    res.status(200).json(peers.slice(0, limit));
 });
 
 // @desc    Get peer student progress detail (student-facing, requires allowPeerProgress)
@@ -878,11 +893,10 @@ const getPeerStudentProgress = asyncHandler(async (req, res) => {
     const isEnrolled = await Progress.findOne({ course: id, student: req.user.id });
     if (!isEnrolled) { res.status(403); throw new Error('You are not enrolled in this course'); }
 
-    const student = await User.findById(studentId).select('name email');
-    if (!student) { res.status(404); throw new Error('Student not found'); }
-
     const progress = await Progress.findOne({ course: id, student: studentId });
     if (!progress) { res.status(404); throw new Error('Student is not enrolled'); }
+
+    const position = await Progress.countDocuments({ course: id, _id: { $lt: progress._id } });
 
     const lectureProgressMap = new Map();
     progress.completedLectures.forEach(lp => {
@@ -911,7 +925,7 @@ const getPeerStudentProgress = asyncHandler(async (req, res) => {
         });
 
     res.status(200).json({
-        student: { _id: student._id, name: student.name, email: student.email },
+        student: { _id: progress.student, name: `Student ${position + 1}`, email: '' },
         course: { _id: course._id, title: course.title, lectureStatuses: course.lectureStatuses },
         progress: { completedLectures, totalLectures, progressPercent: totalLectures > 0 ? Math.round((completedLectures / totalLectures) * 100) : 0 },
         sections: sectionsProgress
@@ -1025,6 +1039,11 @@ const removeStudent = asyncHandler(async (req, res) => {
     if (!progress) {
         res.status(404);
         throw new Error('Student not enrolled');
+    }
+
+    // enrollmentCount only counts purchases, so a manual enrollment leaves it unchanged
+    if (await Purchase.exists({ user: studentId, course: id, status: 'completed' })) {
+        await Course.findByIdAndUpdate(id, { $inc: { enrollmentCount: -1 } });
     }
 
     res.status(200).json({ message: 'Student removed' });
@@ -1308,6 +1327,11 @@ const getCourseAnalytics = asyncHandler(async (req, res) => {
 const deleteCourse = asyncHandler(async (req, res) => {
     // Course is attached by verifyCourseOwnership middleware
     const course = req.course;
+
+    if (await Purchase.exists({ course: course._id, status: 'completed' })) {
+        res.status(400);
+        throw new Error('This course has paying students and cannot be deleted. Archive it instead.');
+    }
 
     // Delete all lectures in all sections
     for (const section of course.sections) {

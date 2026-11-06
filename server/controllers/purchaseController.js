@@ -20,6 +20,12 @@ const requireStripe = () => {
     return stripe;
 };
 
+// Takes one use of a coupon in a single step, so parallel checkouts can't pass its limit
+const reserveCouponUse = (couponId) => Coupon.findOneAndUpdate(
+    { _id: couponId, $or: [{ maxUses: null }, { $expr: { $lt: ['$usedCount', '$maxUses'] } }] },
+    { $inc: { usedCount: 1 } }
+);
+
 // Enroll the student once a purchase is completed (paid or free)
 const grantCourseAccess = async ({ userId, courseId, couponId }) => {
     if (couponId) {
@@ -56,7 +62,8 @@ const createCheckoutSession = asyncHandler(async (req, res) => {
     const course = await Course.findOne({
         _id: courseId,
         isMarketplace: true,
-        status: 'Published'
+        status: 'Published',
+        isAdminBlocked: { $ne: true }
     });
 
     if (!course) {
@@ -72,8 +79,19 @@ const createCheckoutSession = asyncHandler(async (req, res) => {
     });
 
     if (existingPurchase) {
-        res.status(400);
-        throw new Error('You have already purchased this course');
+        const stillEnrolled = await Progress.exists({ student: req.user.id, course: courseId });
+        if (stillEnrolled) {
+            res.status(400);
+            throw new Error('You have already purchased this course');
+        }
+
+        // Paid but removed from the course: give access back without charging again
+        await grantCourseAccess({ userId: req.user.id, courseId });
+
+        return res.status(200).json({
+            enrolled: true,
+            invoiceNumber: existingPurchase.invoiceNumber
+        });
     }
 
     // Check if user is the course owner
@@ -119,6 +137,11 @@ const createCheckoutSession = asyncHandler(async (req, res) => {
 
     // Free course or 100% coupon: enroll directly without Stripe
     if (finalPrice <= 0) {
+        if (couponApplied && !(await reserveCouponUse(couponApplied))) {
+            res.status(400);
+            throw new Error('Coupon usage limit reached');
+        }
+
         const purchase = await createPurchaseWithInvoice({
             user: req.user.id,
             course: courseId,
@@ -133,7 +156,7 @@ const createCheckoutSession = asyncHandler(async (req, res) => {
             invoiceStatus: 'paid'
         });
 
-        await grantCourseAccess({ userId: req.user.id, courseId, couponId: couponApplied });
+        await grantCourseAccess({ userId: req.user.id, courseId });
 
         return res.status(200).json({
             enrolled: true,
@@ -344,10 +367,13 @@ const handleRefund = async (charge) => {
         return;
     }
 
-    await Progress.deleteOne({ student: purchase.user, course: purchase.course });
-    await Course.findByIdAndUpdate(purchase.course, {
-        $inc: { enrollmentCount: -1 }
-    });
+    // A student the instructor already removed was taken off the count at that point
+    const removed = await Progress.deleteOne({ student: purchase.user, course: purchase.course });
+    if (removed.deletedCount > 0) {
+        await Course.findByIdAndUpdate(purchase.course, {
+            $inc: { enrollmentCount: -1 }
+        });
+    }
 
     console.log(`Refund processed for course ${purchase.course} by user ${purchase.user} - access removed`);
 };
