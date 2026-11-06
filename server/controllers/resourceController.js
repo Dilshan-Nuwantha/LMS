@@ -6,6 +6,12 @@ const Progress = require('../models/Progress');
 const CourseTeacher = require('../models/CourseTeacher');
 const { isSafeUrl } = require('../utils/url');
 
+// Headers are limited to Latin characters, so the real name goes in the encoded filename* form
+const contentDisposition = (type, fileName) => {
+    const fallback = String(fileName).replace(/[^\x20-\x7e]|["\\]/g, '_');
+    return `${type}; filename="${fallback}"; filename*=UTF-8''${encodeURIComponent(fileName)}`;
+};
+
 // @desc    Upload a resource (teacher or student)
 // @route   POST /api/resources/:courseId
 const uploadResource = asyncHandler(async (req, res) => {
@@ -174,7 +180,7 @@ const downloadResource = asyncHandler(async (req, res) => {
     const buffer = Buffer.from(resource.fileData, 'base64');
     res.set({
         'Content-Type': resource.mimeType,
-        'Content-Disposition': `attachment; filename="${resource.fileName}"`,
+        'Content-Disposition': contentDisposition('attachment', resource.fileName),
         'Content-Length': buffer.length
     });
     res.send(buffer);
@@ -357,7 +363,7 @@ const viewResource = asyncHandler(async (req, res) => {
     const buffer = Buffer.from(resource.fileData, 'base64');
     res.set({
         'Content-Type': resource.mimeType,
-        'Content-Disposition': `inline; filename="${resource.fileName}"`,
+        'Content-Disposition': contentDisposition('inline', resource.fileName),
         'Content-Length': buffer.length
     });
     res.send(buffer);

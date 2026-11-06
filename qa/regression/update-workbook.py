@@ -19,6 +19,13 @@ ROW_RE = re.compile(r'<row r="(\d+)"([^>]*?)(?:/>|>(.*?)</row>)', re.S)
 CELL_RE = re.compile(r'<c r="([A-Z]+)\d+"([^>]*?)(?:/>|>(.*?)</c>)', re.S)
 BAD_XML = re.compile(r'[\x00-\x08\x0b\x0c\x0e-\x1f]')
 TEST_FIELDS = 'BCDEFGHIJKLMN'
+BUG_COLUMNS = 'ABCDEFGHIJKLMNOPQRS'
+# Existing test rows only get the run results, so team edits to other columns stay
+RESULT_FIELDS = 'GHLMN'
+BOXES = {
+    'bug': ('U', 'V', ['Open', 'Assigned', 'In Progress', 'Fixed', 'Retesting', 'Closed', 'Reopened']),
+    'test': ('P', 'Q', ['Not Run', 'Pass', 'Fail', 'Blocked', 'Skipped']),
+}
 ALLOWED = {
     'bug': {'Open', 'Fixed', 'Closed'},
     'test': {'Pass', 'Fail'},
@@ -113,19 +120,31 @@ def main():
     test_at = {v['A']: n for n, v in tests.items()}
 
     # Bug status: a row is only touched when its title proves it is the same bug
-    bug_changes = {}
+    bug_changes, new_bugs = {}, {}
+    next_bug = max(bugs) + 1
+    bug_even, bug_odd = styles_of(bug, max(bugs) - 1), styles_of(bug, max(bugs))
+    if max(bugs) % 2 == 0:
+        bug_even, bug_odd = bug_odd, bug_even
     for row in DATA['bugRows']:
         n = bug_at.get(row[0])
-        if n is None or bugs[n].get('C') != row[2]:
+        if n is None:
+            values = dict(zip(BUG_COLUMNS, row))
+            new_bugs[next_bug] = (bug_even if next_bug % 2 == 0 else bug_odd, values)
+            bugs[next_bug] = values
+            next_bug += 1
+            continue
+        if bugs[n].get('C') != row[2]:
             sys.exit(f'{row[0]} does not match the workbook, nothing was changed')
+        # An open bug is the team's to move through the lifecycle
+        if row[7] == 'Open':
+            continue
         change = {'H': row[7]}
         if row[14]:
             change['O'] = row[14]
         bug_changes[n] = change
     for bug_id, verified in DATA['closedBugs'].items():
-        if bugs[bug_at[bug_id]].get('H') != 'Fixed':
-            sys.exit(f'{bug_id} is not marked Fixed, nothing was changed')
-        bug_changes[bug_at[bug_id]] = {'H': 'Closed', 'O': verified}
+        if bugs[bug_at[bug_id]].get('H') == 'Fixed':
+            bug_changes[bug_at[bug_id]] = {'H': 'Closed', 'O': verified}
     for n, change in bug_changes.items():
         bugs[n].update(change)
 
@@ -143,10 +162,11 @@ def main():
             tests[next_row] = {'A': row[0], **fields}
             next_row += 1
         else:
-            test_changes[n] = fields
-            tests[n].update(fields)
+            result_fields = {k: v for k, v in fields.items() if k in RESULT_FIELDS}
+            test_changes[n] = result_fields
+            tests[n].update(result_fields)
 
-    bug = patch(bug, bug_changes, {})
+    bug = patch(bug, bug_changes, new_bugs)
     test = patch(test, test_changes, new_rows)
 
     # Stored results, so viewers that do not recalculate still show the right numbers
@@ -164,6 +184,17 @@ def main():
     }
     for ref, value in values.items():
         dash = set_value(dash, ref, value)
+
+    # The status boxes hold formulas too, so their stored results are kept current as well
+    def refresh_box(xml, box, rows):
+        _, count, statuses = box
+        found = [v.get('H') for v in rows.values()]
+        for i, status in enumerate(statuses):
+            xml = set_value(xml, f'{count}{i + 2}', found.count(status))
+        return set_value(xml, f'{count}{len(statuses) + 2}', len(found))
+
+    bug = refresh_box(bug, BOXES['bug'], bugs)
+    test = refresh_box(test, BOXES['test'], tests)
 
     book = re.sub(r'<calcPr[^>]*/>', '<calcPr calcId="191029" fullCalcOnLoad="1"/>', book)
 

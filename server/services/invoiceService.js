@@ -22,7 +22,7 @@ const generateInvoicePDF = (purchase, res) => {
     doc.pipe(res);
 
     // --- Header ---
-    doc.fontSize(24).font('Helvetica-Bold').text('Skill Path', 50, 50);
+    doc.fontSize(24).font('Helvetica-Bold').text('Tenz Learn', 50, 50);
     doc.fontSize(10).font('Helvetica').fillColor('#666666')
         .text('Course Marketplace', 50, 80);
 

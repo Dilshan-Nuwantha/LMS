@@ -122,7 +122,7 @@ const InvoicePage = () => {
                     <div className="px-8 pt-8 pb-6">
                         <div className="flex items-start justify-between">
                             <div>
-                                <h2 className="text-2xl font-bold text-slate-900 dark:text-white">Skill Path</h2>
+                                <h2 className="text-2xl font-bold text-slate-900 dark:text-white">Tenz Learn</h2>
                                 <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Course Marketplace</p>
                             </div>
                             <div className="text-right">

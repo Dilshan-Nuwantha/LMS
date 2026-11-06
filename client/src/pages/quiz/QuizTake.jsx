@@ -247,7 +247,7 @@ const QuizTake = () => {
                                                 </span>
                                             </div>
 
-                                            {!isCorrect && (
+                                            {!isCorrect && q.correctAnswer !== undefined && (
                                                 <div className="flex items-start gap-2 p-3 rounded-lg text-sm bg-green-50 dark:bg-green-900/20">
                                                     <span className="text-xs font-medium text-green-600 dark:text-green-400 mt-0.5">Correct answer:</span>
                                                     <span className="text-green-800 dark:text-green-300">{getCorrectAnswerDisplay(q)}</span>
@@ -350,7 +350,7 @@ const QuizTake = () => {
                                                     <p className={isCorrect ? 'text-green-700 dark:text-green-400' : 'text-red-700 dark:text-red-400'}>
                                                         <span className="font-medium">Your answer:</span> {getAnswerDisplay(q, userAnswer?.answer)}
                                                     </p>
-                                                    {!isCorrect && (
+                                                    {!isCorrect && q.correctAnswer !== undefined && (
                                                         <p className="text-green-700 dark:text-green-400">
                                                             <span className="font-medium">Correct:</span> {getCorrectAnswerDisplay(q)}
                                                         </p>

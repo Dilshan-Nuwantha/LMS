@@ -1,158 +1,24 @@
 FAIL AUTH-032 Reset request does not reveal Google-only accounts
      expected HTTP 200, got 400 - {"message":"This account uses Google sign-in. Please log in with Google.","stack":"Error: This account uses Google sign-in. Please log in with Google.\n at C:\\Users\\pri
-FAIL AUTH-036 Unverified Google email cannot link to an existing account
-     account was linked and a session issued (HTTP 200)
-FAIL AUTH-037 Blank name is a validation error
-     expected HTTP 400, got 500 - {"message":"User validation failed: name: Please add a name","stack":"ValidationError: User validation failed: name: Please add a name\n at model.validate (C:\\Users\\pri
-FAIL AUTH-038 Oversized profile data is handled cleanly
-     got HTTP 500
 FAIL AUTH-041 Login does not reveal Google-only accounts
      message: expected "Invalid credentials", got "This account uses Google sign-in. Please log in with Google."
-FAIL CRS-008 Reject an invalid section importance
-     expected HTTP 400, got 500 - {"message":"Course validation failed: sections.1.importance: `Banana` is not a valid enum value for path `importance`.","stack":"ValidationError: Course validation failed
 FAIL CRS-009 A lecture field can be cleared
      description: expected "", got "Public lecture body"
-FAIL CRS-022 Course delete removes related data
-     orphaned quizzes: expected 0, got 1
-FAIL CRS-023 Course delete keeps the audit trail
-     audit records were deleted
-FAIL CRS-025 Reject a negative course price
-     expected HTTP 400, got 200 - {"notificationSettings":{"newContent":false,"newBroadcast":false,"newQuiz":false,"dueDateReminder":false,"aiAccessChange":false,"progressMilestone":false},"rating":{"aver
-FAIL PRG-005 Progress totals exclude hidden lectures
-     totalLectures: expected 2, got 3
-FAIL PRG-006 Student analytics exclude hidden lectures
-     totalLectures: expected 2, got 4
-FAIL PRG-007 Completing lectures builds a streak
-     currentStreak: expected 1, got 0
-FAIL PRG-008 Editing notes keeps the completion time
-     completedAt: expected "2026-11-06T15:45:06.944Z", got "2026-11-06T15:45:07.178Z"
-FAIL PRG-009 Status must be one of the course labels
-     expected HTTP 400, got 200 - {"_id":"6aedf5fc727dc2dd372fca76","student":"6aedf5fb727dc2dd372fca33","course":"6aedf5fb727dc2dd372fca37","completedLectures":[{"lecture":"6aedf5fb727dc2dd372fca54","sta
-FAIL TCH-014 A co-instructor cannot delete the course
-     expected HTTP 403, got 200 - {"id":"6aedf603727dc2dd372fcc5d","message":"Course deleted successfully"}
-FAIL MKT-004 Filter by language
-     courses returned for an unused language: expected 0, got 1
-FAIL MKT-010 Language is listed on course cards
-     language field missing
-FAIL PAY-025 Invoice shows the product name
-     invoice header reads "Skill Path"
-FAIL PAY-027 Already enrolled student is not charged
-     student who already has access can still be charged
-FAIL CPN-017 Reject a negative fixed discount
-     expected HTTP 400, got 201 - {"code":"QA20FB016F","course":"6aedf60a727dc2dd372fcf35","instructor":"6aedf5fb727dc2dd372fca2d","discountType":"fixed","discountValue":-500,"maxUses":null,"usedCount":0,
-FAIL CPN-018 Update applies the same limits as create
-     expected HTTP 400, got 200 - {"_id":"6aedf60c727dc2dd372fcfe3","code":"QA1ABD2AB5","course":"6aedf60a727dc2dd372fcf35","instructor":"6aedf5fb727dc2dd372fca2d","discountType":"percentage","discountVal
-FAIL CPN-019 maxUses 0 does not mean unlimited
-     stored maxUses is null (unlimited)
-FAIL CPN-020 Reject a coupon that is already expired
-     expected HTTP 400, got 201 - {"code":"QA0D6EABAF","course":"6aedf60a727dc2dd372fcf35","instructor":"6aedf5fb727dc2dd372fca2d","discountType":"percentage","discountValue":10,"maxUses":null,"usedCount"
-FAIL CPN-022 Percentage discount keeps cents on USD courses
-     discountAmount: expected 0.2, got 0
-FAIL CPN-023 Non-text coupon code is a client error
-     expected HTTP 400, got 500 - {"message":"code.toUpperCase is not a function","stack":"TypeError: code.toUpperCase is not a function\n at C:\\Users\\priya\\AppData\\Local\\Temp\\claude\\b4e8c6049af44d
-FAIL ADM-007 Invalid warning index changes nothing
-     HTTP 200, 0 warning(s) left
-FAIL ADM-009 Non-numeric warning limit is rejected
-     expected HTTP 400, got 500 - {"message":"User validation failed: maxWarnings: Cast to Number failed for value \"abc\" (type string) at path \"maxWarnings\" for model \"User\"","stack":"ValidationErro
-FAIL ADM-023 Admin cannot lock themselves out
-     expected HTTP 400, got 200 - {"_id":"6aedf60fd4b1787dc5981b85","name":"A2","email":"admin2.e331a08e@qa.test","googleId":null,"role":"admin","bio":"","profileImage":"","stripeAccountId":"","otpHash":n
-FAIL ADM-024 Role change cannot demote an admin
-     admin was demoted
-FAIL QZ-020 Answer key stays hidden while retries remain
-     the answer key is returned after an empty attempt, and the student can retake
-FAIL QZ-021 Submit without answers is a client error
-     expected HTTP 400, got 500 - {"message":"Cannot read properties of undefined (reading 'forEach')","stack":"TypeError: Cannot read properties of undefined (reading 'forEach')\n at C:\\Users\\priya\\Ap
-FAIL QZ-022 Numeric reply to a short-answer question
-     expected HTTP 200, got 500 - {"message":"ans.answer?.toLowerCase is not a function","stack":"TypeError: ans.answer?.toLowerCase is not a function\n at C:\\Users\\priya\\AppData\\Local\\Temp\\claude\\
 FAIL QZ-023 Passing score of 0 is kept
      passingScore: expected 0, got 70
 FAIL QZ-025 Reject a negative time limit
-     expected HTTP 400, got 201 - {"course":"6aedf5fb727dc2dd372fca37","section":null,"title":"T","description":"","questions":[],"passingScore":70,"timeLimit":-5,"attemptsAllowed":-1,"isRequired":false,"
-FAIL AI-008 Generating without a key is a client error
-     expected HTTP 400, got 500 - {"message":"No AI configuration found. Please set up your API key in AI Settings.","stack":"Error: No AI configuration found. Please set up your API key in AI Settings.\n
-FAIL AI-009 Cannot generate for another course
-     expected HTTP 403, got 500 - {"message":"Not authorized to generate content for this course","stack":"Error: Not authorized to generate content for this course\n at verifyCourseAccess (C:\\Users\\pri
-FAIL AI-014 Instructor key is off by default
-     expected HTTP 400, got 500 - {"message":"No AI configuration found. Set up your API key in AI Chat Settings.","stack":"Error: No AI configuration found. Set up your API key in AI Chat Settings.\n at 
-FAIL AI-019 Conversation list reports the key source
-     useInstructorKey: expected true, got false
-FAIL AI-020 A blocked student cannot use the key
-     expected HTTP 403, got 500 - {"message":"Your access to the instructor's AI has been restricted for this course. Please contact your instructor.","stack":"Error: Your access to the instructor's AI ha
-FAIL AI-023 No silent fallback to the instructor key
-     key source "instructor" used, then the conversation was deleted (HTTP 200)
-FAIL BRD-009 Invalid priority is a client error
-     expected HTTP 400, got 500 - {"message":"Broadcast validation failed: priority: `mega` is not a valid enum value for path `priority`.","stack":"ValidationError: Broadcast validation failed: priority:
-FAIL BRD-010 New lecture creates a broadcast
-     no broadcast was generated
-FAIL RES-011 Oversized file gets a clear error
-     expected HTTP 413, got 500 - {"message":"File too large","stack":"MulterError: File too large\n at abortWithCode (C:\\Users\\priya\\AppData\\Local\\Temp\\claude\\b4e8c6049af44d16\\71553799-c395-40b4-
-FAIL RES-013 Sinhala and Tamil file names are preserved
-     fileName: expected "පාඩම.pdf", got "à¶´à·à¶©à¶¸.pdf"
+     expected HTTP 400, got 201 - {"course":"6aee0fb7819615dc7a9640ed","section":null,"title":"T","description":"","questions":[],"passingScore":70,"timeLimit":-5,"attemptsAllowed":-1,"isRequired":false,"
 FAIL RES-014 Admin can open course resources
      expected HTTP 200, got 403 - {"message":"Not enrolled in this course","stack":"Error: Not enrolled in this course\n at C:\\Users\\priya\\AppData\\Local\\Temp\\claude\\b4e8c6049af44d16\\71553799-c395-
-FAIL REV-012 A user can vote helpful only once
-     helpful: expected 1, got 3
-FAIL REV-013 Private courses need enrollment to review
-     expected HTTP 403, got 201 - {"user":{"_id":"6aedf5fb727dc2dd372fca35","name":"QA outsider","profileImage":""},"course":"6aedf614727dc2dd372fd4a0","rating":5,"comment":"Good","helpful":0,"_id":"6aedf
-FAIL REV-014 Non-numeric rating is a client error
-     expected HTTP 400, got 500 - {"message":"Review validation failed: rating: Cast to Number failed for value \"abc\" (type string) at path \"rating\" for model \"Review\"","stack":"ValidationError: Rev
-FAIL NTF-008 Progress milestone notification
-     no milestone notification exists
-FAIL NTF-009 Invalid page number
-     server error
-FAIL ACT-005 Enrollment appears in the student log
-     no entry for the student
-FAIL ACT-006 Refused actions are not logged as done
-     a 403 was logged as a successful update
-FAIL ACT-007 Removing a warning is labelled correctly
-     labelled User Warned
-FAIL ACT-008 Client IP is recorded
-     ip is empty
-FAIL SEC-009 A reset token is not a login token
-     expected HTTP 401, got 200 - {"_id":"6aedf617727dc2dd372fd5d2","name":"QA rt","email":"rt.063bddaf@qa.test","googleId":null,"role":"student","bio":"","profileImage":"","stripeAccountId":"","otpHash":
-FAIL SEC-010 OTP hash is not exposed
-     otpHash returned; a 6-digit code can be cracked offline
 FAIL SEC-016 Rate limit cannot be dodged with a header
      8 attempts, none limited
 FAIL SEC-017 Marketplace course creation is rate limited
-     expected HTTP 429, got 201 - {"title":"T","description":"D","status":"Draft","lectureStatuses":[{"label":"Not Started","color":"#64748b","_id":"6aedf61befb3bcfd518aeb12","id":"6aedf61befb3bcfd518aeb1
-FAIL SEC-019 Production errors hide internals
-     message: Cast to ObjectId failed for value "not-an-id" (type string) at path "_id" for model "Course"
-FAIL SEC-020 Security headers are set
-     missing: x-content-type-options, strict-transport-security, x-frame-options, x-powered-by is exposed
-FAIL SEC-030 Course list shows only what the user may see
-     returned 40 courses, including other users' drafts
+     expected HTTP 429, got 201 - {"title":"T","description":"D","status":"Draft","lectureStatuses":[{"label":"Not Started","color":"#64748b","_id":"6aee0fcd88643acf4ccbca0f","id":"6aee0fcd88643acf4ccbca0
 FAIL SEC-035 Upload filter cannot be bypassed
-     expected HTTP 400, got 201 - {"course":"6aedf5fb727dc2dd372fca37","uploadedBy":{"_id":"6aedf5fb727dc2dd372fca2d","name":"QA owner","email":"owner.3383b038@qa.test"},"title":"x","description":"","file
-FAIL SEC-036 Audit log cannot be evaded
-     the invalid courseId made the log write fail silently
-FAIL SEC-038 Impersonated actions stay out of the personal log
-     entries in the student log: expected 2, got 3
-FAIL SEC-039 Student notes stay private from teachers
-     notes returned to the teacher
-FAIL SEC-041 Bad regex in public search is handled
-     server error from a public endpoint
-FAIL SEC-042 Page size is capped
-     no cap
-FAIL SEC-043 Bad paging values are handled
-     page=0 server error
-FAIL SEC-044 Draft course landing page is private
-     expected HTTP 404, got 200 - {"course":{"notificationSettings":{"newContent":false,"newBroadcast":false,"newQuiz":false,"dueDateReminder":false,"aiAccessChange":false,"progressMilestone":false},"rati
-FAIL SEC-045 Hidden lecture titles stay hidden
-     hidden lecture title is public
-FAIL SEC-046 Landing page hides internal fields
-     internal fields are public
-FAIL SEC-049 Admins cannot be impersonated
-     admin impersonated another admin
+     expected HTTP 400, got 201 - {"course":"6aee0fb7819615dc7a9640ed","uploadedBy":{"_id":"6aee0fb6819615dc7a9640e3","name":"QA owner","email":"owner.294b5ce8@qa.test"},"title":"x","description":"","file
 FAIL SEC-050 Login does not reveal blocked status without the password
      expected HTTP 400, got 403 - {"message":"Secret reason","stack":"Error: Secret reason\n at C:\\Users\\priya\\AppData\\Local\\Temp\\claude\\b4e8c6049af44d16\\71553799-c395-40b4-882f-cad8bdbd945b\\scra
-FAIL ERR-002 Invalid id is a client error
-     server error
-FAIL ERR-003 Malformed JSON is a client error
-     expected HTTP 400, got 500 - {"message":"Expected property name or '}' in JSON at position 1 (line 1 column 2)","stack":"SyntaxError: Expected property name or '}' in JSON at position 1 (line 1 colum
 FAIL ERR-004 Unknown API route returns JSON
      HTML response
-FAIL ERR-005 Validation failures are client errors
-     expected HTTP 400, got 500 - {"message":"Course validation failed: level: `Banana` is not a valid enum value for path `level`.","stack":"ValidationError: Course validation failed: level: `Banana` is 
 
-369 run, 291 passed, 78 failed, 0 outbound calls blocked
+395 run, 384 passed, 11 failed, 0 outbound calls blocked

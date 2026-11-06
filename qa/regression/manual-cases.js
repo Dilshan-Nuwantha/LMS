@@ -26,3 +26,7 @@ manual('UI-010', U, 'Critical', 'Stored script link does not run', 'A javascript
 manual('UI-011', U, 'High', 'Lecture script link does not run', 'A lecture has a javascript: resource URL; open it as a student', 'The link is inert');
 manual('UI-012', U, 'Critical', 'Admin register page is not public', 'Open /admin/register as a guest', 'The page is not available');
 manual('UI-013', U, 'Medium', 'Page title uses the product name', 'Read the browser tab title', 'Title says Tenz Learn');
+manual('UI-014', U, 'Critical', 'My Learning lists enrolled courses', 'Log in as an enrolled student, open /my-learning, search, then click View Course Lectures', 'The course is listed with its category and level, search filters it, and the link opens the course');
+manual('UI-015', U, 'High', 'Marketplace language filter', 'Open Advanced Filters, choose Sinhala, apply', 'Only Sinhala courses are listed');
+manual('UI-016', U, 'High', 'New lecture is announced once', 'As a teacher on a published course, save one lecture normally and one with a custom announcement', 'One broadcast each, with a direct link, and the chosen priority is kept');
+manual('UI-017', U, 'High', 'Category lists show every category', 'Open the marketplace filter and the navbar Category menu, then pick a category that contains an ampersand', 'All category names show, the courses are filtered, and the filter box shows that category');

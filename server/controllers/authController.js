@@ -229,7 +229,14 @@ const googleLogin = asyncHandler(async (req, res) => {
         audience: process.env.GOOGLE_CLIENT_ID,
     });
 
-    const { sub: googleId, email, name, picture } = ticket.getPayload();
+    const { sub: googleId, email, email_verified: emailVerified, name, picture } = ticket.getPayload();
+
+    // An unverified address could belong to someone else, so it must not reach an account
+    if (!emailVerified) {
+        res.status(403);
+        throw new Error('Please verify your Google email address, then try again.');
+    }
+
     const normalizedEmail = email ? email.toLowerCase().trim() : '';
 
     // Check if user exists by googleId or email
@@ -360,7 +367,7 @@ const verifyOTP = asyncHandler(async (req, res) => {
         throw new Error('Email and OTP are required');
     }
 
-    const user = await User.findByEmail(email);
+    const user = await User.findByEmail(email, '+otpHash +otpExpiry');
 
     if (!user || !user.otpHash || !user.otpExpiry) {
         res.status(400);
@@ -435,7 +442,7 @@ const resetPassword = asyncHandler(async (req, res) => {
         throw new Error('Invalid reset token.');
     }
 
-    const user = await User.findById(decoded.id);
+    const user = await User.findById(decoded.id).select('+otpHash');
     if (!user || !user.otpHash) {
         res.status(400);
         throw new Error('Reset session not found. Please start again.');

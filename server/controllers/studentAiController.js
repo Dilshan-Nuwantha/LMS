@@ -23,8 +23,9 @@ async function getStudentAI(user, courseId = null, useInstructorKey = false) {
         }
     }
 
-    // Use instructor's config if course has allowStudentAI enabled
-    if (courseId) {
+    // Only a conversation opened on the instructor key may use it. That flag is what shows the
+    // warning banner, keeps the chat visible to the instructor and stops it being deleted.
+    if (useInstructorKey && courseId) {
         const course = await Course.findById(courseId).select('user allowStudentAI aiBlockedStudents');
         if (course && course.allowStudentAI) {
             const isBlocked = course.aiBlockedStudents?.some(id => id.toString() === userId.toString());
@@ -185,7 +186,7 @@ const getConversations = asyncHandler(async (req, res) => {
     if (courseId) filter.course = courseId;
 
     const conversations = await Conversation.find(filter)
-        .select('title course updatedAt messages')
+        .select('title course updatedAt messages useInstructorKey')
         .sort({ updatedAt: -1 })
         .lean();
 

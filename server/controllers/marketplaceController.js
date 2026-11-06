@@ -2,6 +2,7 @@ const asyncHandler = require('express-async-handler');
 const Course = require('../models/Course');
 const User = require('../models/User');
 const Review = require('../models/Review');
+const { getPaging, escapeRegex } = require('../utils/query');
 
 // @desc    Get all marketplace courses
 // @route   GET /api/marketplace
@@ -10,13 +11,13 @@ const getMarketplaceCourses = asyncHandler(async (req, res) => {
     const {
         category,
         level,
+        language,
         minPrice,
         maxPrice,
         minRating,
-        sortBy = 'newest',
-        page = 1,
-        limit = 12
+        sortBy = 'newest'
     } = req.query;
+    const { page, limit, skip } = getPaging(req.query, 12);
 
     // Build filter query
     const filter = {
@@ -27,6 +28,7 @@ const getMarketplaceCourses = asyncHandler(async (req, res) => {
 
     if (category) filter.category = category;
     if (level) filter.level = level;
+    if (language) filter.language = language;
     if (minPrice || maxPrice) {
         filter.price = {};
         if (minPrice) filter.price.$gte = Number(minPrice);
@@ -56,11 +58,9 @@ const getMarketplaceCourses = asyncHandler(async (req, res) => {
             sort = { createdAt: -1 };
     }
 
-    const skip = (Number(page) - 1) * Number(limit);
-
     const courses = await Course.find(filter)
         .populate('user', 'name profileImage')
-        .select('title description thumbnail price originalPrice currency category level rating enrollmentCount user createdAt tags')
+        .select('title description thumbnail price originalPrice currency category level language rating enrollmentCount user createdAt tags')
         .sort(sort)
         .skip(skip)
         .limit(Number(limit));
@@ -85,6 +85,7 @@ const getMarketplaceCourse = asyncHandler(async (req, res) => {
     const course = await Course.findOne({
         _id: req.params.id,
         isMarketplace: true,
+        status: 'Published',
         isAdminBlocked: { $ne: true }
     })
         .populate('user', 'name bio profileImage')
@@ -111,15 +112,19 @@ const getMarketplaceCourse = asyncHandler(async (req, res) => {
         totalLectures += section.lectures.length;
     });
 
-    // Prepare response - hide non-public lecture details
-    const courseData = course.toObject();
+    // Prepare response - this page is public, so internal settings are left out
+    const {
+        aiBlockedStudents, notificationSettings, adminBlockReason, isAdminBlocked, allowStudentBroadcasts,
+        allowPeerProgress, allowStudentUploads, allowStudentAI, lectureStatuses, completedStatus,
+        ...courseData
+    } = course.toObject();
 
     // Filter out hidden sections
     courseData.sections = courseData.sections
         .filter(section => section.isPublic)
         .map(section => ({
             ...section,
-            lectures: section.lectures.map(lecture => ({
+            lectures: section.lectures.filter(lecture => lecture.isPublic || lecture.isPreview).map(lecture => ({
                 _id: lecture._id,
                 title: lecture.title,
                 number: lecture.number,
@@ -142,14 +147,15 @@ const getMarketplaceCourse = asyncHandler(async (req, res) => {
 // @route   GET /api/marketplace/search
 // @access  Public
 const searchMarketplace = asyncHandler(async (req, res) => {
-    const { q, page = 1, limit = 12 } = req.query;
+    const q = String(req.query.q ?? '');
+    const { page, limit, skip } = getPaging(req.query, 12);
 
     if (!q || q.trim().length === 0) {
         res.status(400);
         throw new Error('Search query is required');
     }
 
-    const searchRegex = new RegExp(q.trim(), 'i');
+    const searchRegex = new RegExp(escapeRegex(q.trim()), 'i');
 
     const filter = {
         isMarketplace: true,
@@ -163,11 +169,9 @@ const searchMarketplace = asyncHandler(async (req, res) => {
         ]
     };
 
-    const skip = (Number(page) - 1) * Number(limit);
-
     const courses = await Course.find(filter)
         .populate('user', 'name profileImage')
-        .select('title description thumbnail price originalPrice currency category level rating enrollmentCount user createdAt tags')
+        .select('title description thumbnail price originalPrice currency category level language rating enrollmentCount user createdAt tags')
         .sort({ 'rating.average': -1, enrollmentCount: -1 })
         .skip(skip)
         .limit(Number(limit));

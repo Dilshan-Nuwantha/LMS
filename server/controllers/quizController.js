@@ -8,6 +8,23 @@ const { canManage, getTeacherPermissions, isCourseMember } = require('../middlew
 // AI-generated true/false questions store the option index: 0 is True, 1 is False
 const trueFalseAnswer = (value) => (typeof value === 'number' ? value === 0 : value);
 
+const withoutAnswers = (quiz) => ({
+    ...quiz,
+    questions: quiz.questions.map(({ correctAnswer, ...question }) => question)
+});
+
+// A quiz with no attempt limit can always be retaken
+const canRetake = async (quiz, studentId) => {
+    if (quiz.attemptsAllowed <= 0) return true;
+
+    const used = await QuizAttempt.countDocuments({
+        quiz: quiz._id,
+        student: studentId,
+        status: { $in: ['completed', 'timed-out'] }
+    });
+    return used < quiz.attemptsAllowed;
+};
+
 // @desc    Create a new quiz
 // @route   POST /api/quizzes
 // @access  Private (Course owner or teacher with manage_content)
@@ -310,6 +327,11 @@ const startQuizAttempt = asyncHandler(async (req, res) => {
 const submitQuizAttempt = asyncHandler(async (req, res) => {
     const { attemptId, answers } = req.body;
 
+    if (!Array.isArray(answers)) {
+        res.status(400);
+        throw new Error('Answers must be a list');
+    }
+
     const attempt = await QuizAttempt.findById(attemptId);
     if (!attempt) {
         res.status(404);
@@ -352,7 +374,7 @@ const submitQuizAttempt = asyncHandler(async (req, res) => {
     const gradedIndexes = new Set();
 
     answers.forEach(ans => {
-        const question = quiz.questions[ans.questionIndex];
+        const question = quiz.questions[ans?.questionIndex];
         // Each question counts once, so repeating a correct answer can't raise the score
         if (!question || gradedIndexes.has(ans.questionIndex)) return;
         gradedIndexes.add(ans.questionIndex);
@@ -365,7 +387,7 @@ const submitQuizAttempt = asyncHandler(async (req, res) => {
             isCorrect = ans.answer === trueFalseAnswer(question.correctAnswer);
         } else if (question.questionType === 'short-answer') {
             // Case-insensitive comparison for short answers
-            isCorrect = ans.answer?.toLowerCase().trim() === question.correctAnswer?.toLowerCase().trim();
+            isCorrect = String(ans.answer ?? '').toLowerCase().trim() === String(question.correctAnswer ?? '').toLowerCase().trim();
         }
 
         const pointsEarned = isCorrect ? question.points : 0;
@@ -394,10 +416,12 @@ const submitQuizAttempt = asyncHandler(async (req, res) => {
 
     await attempt.save();
 
-    // Return result with correct answers for review
+    // Correct answers are for review only, so they stay hidden while a retake is possible
+    const hideAnswers = await canRetake(quiz, req.user.id);
+
     res.json({
         attempt,
-        quiz: quiz.toObject(),
+        quiz: hideAnswers ? withoutAnswers(quiz.toObject()) : quiz.toObject(),
         result: {
             score,
             totalPoints,
@@ -433,9 +457,11 @@ const getAttemptResult = asyncHandler(async (req, res) => {
 
     const result = attempt.toObject();
 
-    // The student must not see the answers while the attempt is still open
-    if (attempt.status === 'in-progress' && !isOwner && !teacherPerms && result.quiz) {
-        result.quiz.questions = result.quiz.questions.map(({ correctAnswer, ...question }) => question);
+    // The student must not see the answers during an attempt, or while a retake is possible
+    if (!isOwner && !teacherPerms && result.quiz) {
+        if (attempt.status === 'in-progress' || await canRetake(attempt.quiz, attempt.student)) {
+            result.quiz = withoutAnswers(result.quiz);
+        }
     }
 
     res.json(result);

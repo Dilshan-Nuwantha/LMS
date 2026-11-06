@@ -50,7 +50,8 @@ const StudentDashboard = ({ defaultTab }) => {
                     api.get('/courses/my/enrolled'),
                     api.get('/courses/my/created')
                 ]);
-                setEnrolledCourses(enrolledRes.data || []);
+                // Each item is an enrollment, with the course nested inside it
+                setEnrolledCourses((enrolledRes.data || []).map(enrollment => enrollment.course));
                 setCreatedCourses(createdRes.data || []);
             } catch (error) {
                 console.error('Error loading dashboard data:', error);

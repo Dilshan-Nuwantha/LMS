@@ -70,7 +70,7 @@ couponSchema.methods.isValid = function () {
 // Method to calculate discount
 couponSchema.methods.calculateDiscount = function (originalPrice) {
     if (this.discountType === 'percentage') {
-        return Math.round((originalPrice * this.discountValue) / 100);
+        return Math.round(originalPrice * this.discountValue) / 100;
     } else {
         return Math.min(this.discountValue, originalPrice);
     }

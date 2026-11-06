@@ -27,6 +27,7 @@ const Marketplace = () => {
     const [filters, setFilters] = useState({
         category: searchParams.get('category') || '',
         level: searchParams.get('level') || '',
+        language: searchParams.get('language') || '',
         minPrice: searchParams.get('minPrice') || '',
         maxPrice: searchParams.get('maxPrice') || '',
         minRating: searchParams.get('minRating') || '',
@@ -35,6 +36,7 @@ const Marketplace = () => {
     const [searchQuery, setSearchQuery] = useState(searchParams.get('q') || '');
 
     const levels = ['Beginner', 'Intermediate', 'Advanced'];
+    const languages = ['English', 'Sinhala', 'Tamil'];
     const sortOptions = [
         { value: 'newest', label: 'Newest' },
         { value: 'popular', label: 'Most Popular' },
@@ -49,6 +51,8 @@ const Marketplace = () => {
 
     useEffect(() => {
         fetchCourses();
+        // The navbar menu changes the category without reloading this page
+        setFilters(prev => ({ ...prev, category: searchParams.get('category') || '' }));
     }, [searchParams]);
 
     const fetchCategories = async () => {
@@ -69,6 +73,7 @@ const Marketplace = () => {
                 page: searchParams.get('page') || 1,
                 category: searchParams.get('category') || '',
                 level: searchParams.get('level') || '',
+                language: searchParams.get('language') || '',
                 minPrice: searchParams.get('minPrice') || '',
                 maxPrice: searchParams.get('maxPrice') || '',
                 minRating: searchParams.get('minRating') || '',
@@ -109,6 +114,7 @@ const Marketplace = () => {
         if (searchQuery.trim()) newParams.set('q', searchQuery.trim());
         if (filters.category) newParams.set('category', filters.category);
         if (filters.level) newParams.set('level', filters.level);
+        if (filters.language) newParams.set('language', filters.language);
         if (filters.minPrice) newParams.set('minPrice', filters.minPrice);
         if (filters.maxPrice) newParams.set('maxPrice', filters.maxPrice);
         if (filters.minRating) newParams.set('minRating', filters.minRating);
@@ -122,6 +128,7 @@ const Marketplace = () => {
         setFilters({
             category: '',
             level: '',
+            language: '',
             minPrice: '',
             maxPrice: '',
             minRating: '',
@@ -131,7 +138,7 @@ const Marketplace = () => {
         setSearchParams({});
     };
 
-    const hasActiveFilters = searchParams.get('category') || searchParams.get('level') ||
+    const hasActiveFilters = searchParams.get('category') || searchParams.get('level') || searchParams.get('language') ||
         searchParams.get('minPrice') || searchParams.get('maxPrice') || searchParams.get('minRating');
 
     return (
@@ -202,7 +209,7 @@ const Marketplace = () => {
                                         >
                                             <option value="">All Categories</option>
                                             {categories.map((c) => (
-                                                <option key={c._id || c.name} value={c.name}>{c.name}</option>
+                                                <option key={c} value={c}>{c}</option>
                                             ))}
                                         </select>
 
@@ -328,6 +335,20 @@ const Marketplace = () => {
                                     <option value="">All Levels</option>
                                     {levels.map((lvl) => (
                                         <option key={lvl} value={lvl}>{lvl}</option>
+                                    ))}
+                                </select>
+                            </div>
+
+                            <div>
+                                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-2">Language</label>
+                                <select
+                                    value={filters.language}
+                                    onChange={(e) => setFilters({ ...filters, language: e.target.value })}
+                                    className="w-full bg-slate-100 dark:bg-slate-800 text-xs font-medium rounded-xl px-3 py-2.5 outline-none"
+                                >
+                                    <option value="">All Languages</option>
+                                    {languages.map((lang) => (
+                                        <option key={lang} value={lang}>{lang}</option>
                                     ))}
                                 </select>
                             </div>

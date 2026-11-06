@@ -10,6 +10,7 @@ const {
 
 const upload = multer({
     storage: multer.memoryStorage(),
+    defParamCharset: 'utf8',
     limits: { fileSize: 10 * 1024 * 1024 },
     fileFilter: (req, file, cb) => {
         const allowed = ['application/pdf', 'image/png', 'image/jpeg', 'image/gif', 'image/webp'];

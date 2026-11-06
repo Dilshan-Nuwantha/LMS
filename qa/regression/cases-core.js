@@ -97,7 +97,7 @@ tc('AUTH-023', M, 'High', 'Request a password reset code', 'POST /auth/forgot-pa
     is(await api('POST', '/auth/forgot-password', { body: { email: u.email } }), 200);
     const otp = lastOtp(u.email);
     ok(otp, 'no OTP email captured');
-    const db = await models.User.findById(u.id);
+    const db = await models.User.findById(u.id).select('+otpHash');
     ok(db.otpHash?.startsWith('$2'), 'OTP is not hashed');
     F.reset = { ...u, otp };
 });
@@ -317,6 +317,13 @@ tc('CRS-024', C, 'Medium', 'Only instructors can list on the marketplace', 'As a
 });
 tc('CRS-025', C, 'Medium', 'Reject a negative course price', 'PUT /courses/:id with price -100', 'HTTP 400', async () => {
     is(await api('PUT', `/courses/${F.draft}`, { token: F.instr.token, body: { price: -100 } }), 400);
+});
+tc('CRS-026', C, 'High', 'Enrolled course list has what My Learning needs', 'GET /courses/my/enrolled and read a course', 'Course id, title, category and level are returned', async () => {
+    const r = await api('GET', '/courses/my/enrolled', { token: F.s1.token });
+    const { course } = r.json.find(p => p.course._id === F.course.id);
+    ok(course.title, 'title missing');
+    eq(course.category, 'Testing', 'category');
+    eq(course.level, 'Beginner', 'level');
 });
 
 const P = 'Lecture progress';

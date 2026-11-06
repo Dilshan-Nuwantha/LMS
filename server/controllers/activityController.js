@@ -1,13 +1,13 @@
 const Activity = require('../models/Activity');
 const User = require('../models/User'); // Corrected path
+const { getPaging, escapeRegex } = require('../utils/query');
 
 // @desc    Get all activities (admin only)
 // @route   GET /api/activities
 // @access  Private/Admin
 const getGlobalActivities = async (req, res) => {
     try {
-        const page = parseInt(req.query.page) || 1;
-        const limit = parseInt(req.query.limit) || 20;
+        const { page, limit } = getPaging(req.query, 20);
 
         // Build query
         const query = {};
@@ -38,7 +38,7 @@ const getGlobalActivities = async (req, res) => {
 
         // 2. User Filter (Search by name or email)
         if (req.query.user) {
-            const userRegex = new RegExp(req.query.user, 'i');
+            const userRegex = new RegExp(escapeRegex(req.query.user), 'i');
             const users = await User.find({
                 $or: [{ name: userRegex }, { email: userRegex }]
             }).select('_id');
@@ -59,7 +59,7 @@ const getGlobalActivities = async (req, res) => {
 
         // 3. General Search (Action or Details)
         if (req.query.search) {
-            const searchRegex = new RegExp(req.query.search, 'i');
+            const searchRegex = new RegExp(escapeRegex(req.query.search), 'i');
             // If we already have a user query, we must use $and.
             // But simpler is to add logic to the top-level query object.
             // Let's assume general search also searches details.
@@ -116,8 +116,7 @@ const getGlobalActivities = async (req, res) => {
 // @access  Private
 const getMyActivities = async (req, res) => {
     try {
-        const page = parseInt(req.query.page) || 1;
-        const limit = parseInt(req.query.limit) || 20;
+        const { page, limit } = getPaging(req.query, 20);
 
         const query = {
             $or: [{ user: req.user._id }, { student: req.user._id }],
@@ -145,7 +144,7 @@ const getMyActivities = async (req, res) => {
         }
 
         if (req.query.search) {
-            const searchRegex = new RegExp(req.query.search, 'i');
+            const searchRegex = new RegExp(escapeRegex(req.query.search), 'i');
             const searchCondition = { $or: [{ action: searchRegex }, { details: searchRegex }, { url: searchRegex }] };
             query.$and = [{ $or: query.$or }, searchCondition];
             delete query.$or;
