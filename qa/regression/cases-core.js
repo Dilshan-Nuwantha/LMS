@@ -311,10 +311,9 @@ tc('CRS-023', C, 'Medium', 'Course delete keeps the audit trail', 'Delete a cour
     await sleep(100);
     ok(await models.Activity.countDocuments({ course: c.id }) >= before, 'audit records were deleted');
 });
-tc('CRS-024', C, 'Medium', 'Only instructors can list on the marketplace', 'As a student, create a course and set isMarketplace and Published', 'The listing is refused', async () => {
-    const r = await api('POST', '/courses', { token: F.s3.token, body: { title: 'Mine', description: 'D' } });
-    const u = await api('PUT', `/courses/${r.json._id}`, { token: F.s3.token, body: { isMarketplace: true, status: 'Published', price: 100 } });
-    ok(u.status >= 400, `student listed a course for sale (HTTP ${u.status})`);
+tc('CRS-024', C, 'Medium', 'Only instructors can list on the marketplace', 'As a student, POST /courses and POST /instructor/course', 'HTTP 403 for both', async () => {
+    is(await api('POST', '/courses', { token: F.s3.token, body: { title: 'Mine', description: 'D' } }), 403, 'course');
+    is(await api('POST', '/instructor/course', { token: F.s3.token, body: { title: 'Mine', description: 'D', price: 100 } }), 403, 'listing');
 });
 tc('CRS-025', C, 'Medium', 'Reject a negative course price', 'PUT /courses/:id with price -100', 'HTTP 400', async () => {
     is(await api('PUT', `/courses/${F.draft}`, { token: F.instr.token, body: { price: -100 } }), 400);
@@ -447,6 +446,8 @@ tc('MKT-004', K, 'Medium', 'Filter by language', 'GET /marketplace?language=Sinh
     eq((await api('GET', '/marketplace?language=Sinhala')).json.courses.length, 0, 'courses returned for an unused language');
 });
 tc('MKT-005', K, 'Medium', 'Sort and paginate', 'GET /marketplace?sortBy=price-low&limit=1&page=2', 'pagination block is correct', async () => {
+    await mkCourse(F.instr);
+    await mkCourse(F.instr);
     const r = await api('GET', '/marketplace?sortBy=price-low&limit=1&page=2');
     is(r, 200); eq(r.json.pagination.page, 2, 'page'); eq(r.json.courses.length, 1, 'page size');
 });

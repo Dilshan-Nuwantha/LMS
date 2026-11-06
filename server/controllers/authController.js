@@ -1,3 +1,4 @@
+const crypto = require('crypto');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const asyncHandler = require('express-async-handler');
@@ -14,11 +15,13 @@ const googleClient = new OAuth2Client(
 const isBcryptHash = (str) => typeof str === 'string' && /^\$2[aby]\$\d{2}\$[./A-Za-z0-9]{53}$/.test(str);
 
 // Generate JWT
-const generateToken = (id) => {
-    return jwt.sign({ id }, process.env.JWT_SECRET, {
-        expiresIn: '30d',
+const generateToken = (user) => {
+    return jwt.sign({ id: user._id, v: user.tokenVersion || 0 }, process.env.JWT_SECRET, {
+        expiresIn: '7d',
     });
 };
+
+const MAX_OTP_ATTEMPTS = 5;
 
 // @desc    Register new user
 // @route   POST /api/auth/register
@@ -110,7 +113,7 @@ const registerUser = asyncHandler(async (req, res) => {
             name: user.name,
             email: user.email,
             role: user.role,
-            token: generateToken(user._id),
+            token: generateToken(user),
         });
     } else {
         res.status(400);
@@ -168,7 +171,7 @@ const loginUser = asyncHandler(async (req, res) => {
         role: user.role,
         warnings: user.warnings || [],
         maxWarnings: user.maxWarnings || 2,
-        token: generateToken(user._id),
+        token: generateToken(user),
     });
 });
 
@@ -200,8 +203,10 @@ const updatePassword = asyncHandler(async (req, res) => {
     if (user && (await user.matchPassword(currentPassword))) {
         const salt = await bcrypt.genSalt(10);
         user.password = await bcrypt.hash(newPassword, salt);
+        user.tokenVersion = (user.tokenVersion || 0) + 1;
         await user.save();
-        res.json({ message: 'Password updated successfully' });
+        // Older tokens stop working here, so this device gets a new one
+        res.json({ message: 'Password updated successfully', token: generateToken(user) });
     } else {
         res.status(400);
         throw new Error('Invalid current password');
@@ -282,7 +287,7 @@ const googleLogin = asyncHandler(async (req, res) => {
         createdAt: user.createdAt,
         warnings: user.warnings || [],
         maxWarnings: user.maxWarnings || 2,
-        token: generateToken(user._id),
+        token: generateToken(user),
     });
 });
 
@@ -328,7 +333,7 @@ const forgotPassword = asyncHandler(async (req, res) => {
     }
 
     // Generate a cryptographically random 6-digit OTP
-    const otp = String(Math.floor(100000 + Math.random() * 900000));
+    const otp = String(crypto.randomInt(100000, 1000000));
 
     // Hash the OTP before storing (same bcrypt pattern used for passwords)
     const salt = await bcrypt.genSalt(10);
@@ -337,6 +342,7 @@ const forgotPassword = asyncHandler(async (req, res) => {
     // Save hash + 10-minute expiry
     user.otpHash = otpHash;
     user.otpExpiry = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+    user.otpAttempts = 0;
     await user.save({ validateBeforeSave: false });
 
     // Send the email
@@ -371,6 +377,17 @@ const verifyOTP = asyncHandler(async (req, res) => {
         await user.save({ validateBeforeSave: false });
         res.status(400);
         throw new Error('OTP has expired. Please request a new one.');
+    }
+
+    // Count the try before checking it, so parallel guesses can't pass the limit
+    const attempt = await User.findOneAndUpdate(
+        { _id: user._id, otpAttempts: { $not: { $gte: MAX_OTP_ATTEMPTS } } },
+        { $inc: { otpAttempts: 1 } }
+    );
+    if (!attempt) {
+        await User.updateOne({ _id: user._id }, { otpHash: null, otpExpiry: null });
+        res.status(400);
+        throw new Error('Too many incorrect attempts. Please request a new code.');
     }
 
     // Verify OTP against stored hash
@@ -432,6 +449,8 @@ const resetPassword = asyncHandler(async (req, res) => {
     // Invalidate the OTP so the reset link can only be used once
     user.otpHash = null;
     user.otpExpiry = null;
+    user.otpAttempts = 0;
+    user.tokenVersion = (user.tokenVersion || 0) + 1;
     await user.save();
 
     res.json({ message: 'Password reset successfully. You can now log in.' });

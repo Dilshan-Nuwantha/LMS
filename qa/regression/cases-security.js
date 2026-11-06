@@ -1,6 +1,6 @@
 // Security checks and error handling. Rate limit and production checks use the production instance.
-const { tc, api, prod, ok, is, eq, lastOtp, googleCode, newUser, multipart, sleep, uid, lines, serverRequire, env } = require('./lib');
-const { F, models, mkCourse, addLecture, enroll } = require('./fixtures');
+const { tc, api, prod, ok, is, eq, lastOtp, googleCode, newUser, multipart, sleep, uid, lines, webhook, serverRequire, env } = require('./lib');
+const { F, models, mkCourse, addLecture, enroll, buy } = require('./fixtures');
 const jwt = serverRequire('jsonwebtoken');
 
 const S = 'Security';
@@ -274,6 +274,77 @@ tc('SEC-056', S, 'Medium', 'The log keeps useful non-secret fields', 'Create a b
     const row = await models.Activity.findOne({ user: F.instr.id, action: 'Broadcast Created' }).sort({ createdAt: -1 }).lean();
     eq(row.data.priority, 'important', 'priority');
     ok(!('message' in row.data), 'message body was stored');
+});
+tc('SEC-057', S, 'High', 'Peer progress detail is anonymous', 'GET /courses/:id/peers/:studentId/progress as a classmate', 'No real name or email in the response', async () => {
+    const peers = (await api('GET', `/courses/${F.course.id}/peers`, { token: F.s1.token })).json;
+    const r = await api('GET', `/courses/${F.course.id}/peers/${peers[0]._id}/progress`, { token: F.s1.token });
+    is(r, 200);
+    ok(!r.text.includes('@qa.test') && !r.text.includes('QA student'), 'real identity returned');
+});
+tc('SEC-058', S, 'High', 'Enrolled students can still use comments', 'POST and GET lecture comments as an enrolled student', 'HTTP 201 and HTTP 200', async () => {
+    is(await api('POST', `/courses/lectures/${F.L2}/comments`, { token: F.s1.token, body: { content: 'Hello', courseId: F.course.id } }), 201, 'post');
+    is(await api('GET', `/courses/lectures/${F.L2}/comments`, { token: F.s1.token }), 200, 'read');
+});
+tc('SEC-059', S, 'Medium', 'A new reset request clears the lock', 'Lock a code with wrong tries, request a new one, use it', 'The new code works', async () => {
+    const u = await newUser('student', 'relock');
+    await api('POST', '/auth/forgot-password', { body: { email: u.email } });
+    for (let i = 0; i < 6; i++) await api('POST', '/auth/verify-otp', { body: { email: u.email, otp: '000000' } });
+    await api('POST', '/auth/forgot-password', { body: { email: u.email } });
+    is(await api('POST', '/auth/verify-otp', { body: { email: u.email, otp: lastOtp(u.email) } }), 200);
+});
+tc('SEC-060', S, 'High', 'The device that changes the password stays logged in', 'PUT /auth/updatepassword, then use the returned token', 'HTTP 200', async () => {
+    const u = await newUser('student', 'stay');
+    const r = await api('PUT', '/auth/updatepassword', { token: u.token, body: { currentPassword: u.password, newPassword: 'NewSecret123!' } });
+    is(await api('GET', '/auth/me', { token: r.json.token }), 200);
+});
+tc('SEC-061', S, 'Medium', 'Impersonation ends when the user changes password', 'Impersonate a user, change their password, reuse the token', 'HTTP 401', async () => {
+    const u = await newUser('student', 'impend');
+    const imp = await api('POST', '/admin/impersonate', { token: F.admin.token, body: { email: u.email } });
+    await api('PUT', '/auth/updatepassword', { token: u.token, body: { currentPassword: u.password, newPassword: 'NewSecret123!' } });
+    is(await api('GET', '/auth/me', { token: imp.json.token }), 401);
+});
+tc('QZ-026', 'Quizzes', 'High', 'A quiz in a blocked course cannot be started', 'Block a course, then start its quiz as an enrolled student', 'HTTP 403', async () => {
+    const c = await mkCourse(F.instr);
+    await enroll(F.instr, c.id, F.s1);
+    const q = await api('POST', '/quizzes', { token: F.instr.token, body: { courseId: c.id, title: 'Q', questions: [{ questionText: 'x', correctAnswer: 0, options: ['a', 'b'] }] } });
+    await api('POST', `/admin/courses/${c.id}/block`, { token: F.admin.token, body: { reason: 'qa' } });
+    is(await api('POST', `/quizzes/${q.json._id}/start`, { token: F.s1.token }), 403);
+});
+tc('AI-028', 'AI features', 'High', 'AI true/false answers are saved as true or false', 'POST /ai/generate-quiz and read the answer type', 'correctAnswer is a boolean', async () => {
+    const r = await api('POST', '/ai/generate-quiz', { token: F.instr.token, body: { courseId: F.course.id, topic: 'Testing' } });
+    eq(typeof r.json.questions[0].correctAnswer, 'boolean', 'answer type');
+});
+tc('PAY-032', 'Payments', 'Critical', 'A removed buyer gets access back without paying twice', 'Buy, get removed, check out again', 'enrolled true, no new Stripe session, count back to 1', async () => {
+    const u = await newUser('student', 'noagain');
+    const c = await mkCourse(F.instr);
+    await buy(u, c, F.instr);
+    await api('DELETE', `/courses/${c.id}/enroll/${u.id}`, { token: F.instr.token });
+    const before = lines('stripe.jsonl').length;
+    const r = await api('POST', '/purchase/checkout', { token: u.token, body: { courseId: c.id } });
+    is(r, 200); eq(r.json.enrolled, true, 'enrolled');
+    eq(lines('stripe.jsonl').length, before, 'Stripe sessions');
+    eq((await models.Course.findById(c.id)).enrollmentCount, 1, 'enrollmentCount');
+});
+tc('PAY-033', 'Payments', 'High', 'Refunding a removed buyer does not lower the count twice', 'Buy, get removed, send a full refund', 'enrollmentCount stays 0', async () => {
+    const u = await newUser('student', 'twice');
+    const c = await mkCourse(F.instr);
+    const s = await buy(u, c, F.instr);
+    await api('DELETE', `/courses/${c.id}/enroll/${u.id}`, { token: F.instr.token });
+    await webhook('charge.refunded', { refunded: true, payment_intent: s.payment_intent });
+    eq((await models.Course.findById(c.id)).enrollmentCount, 0, 'enrollmentCount');
+});
+tc('TCH-015', 'Co-instructors', 'High', 'A co-instructor without manage_content cannot edit lectures', 'PUT and DELETE a lecture as a co-instructor with no permissions', 'HTTP 403', async () => {
+    const c = await mkCourse(F.instr);
+    const u = await newUser('student', 'noperm');
+    await api('POST', `/courses/${c.id}/teachers`, { token: F.instr.token, body: { email: u.email } });
+    is(await api('PUT', `/courses/lectures/${c.lectureId}`, { token: u.token, body: { title: 'x' } }), 403, 'edit');
+    is(await api('DELETE', `/courses/lectures/${c.lectureId}`, { token: u.token }), 403, 'delete');
+});
+tc('NTF-010', 'Notifications', 'Medium', 'A co-instructor with manage_students can notify the course', 'POST /notifications/course/:id/send as that co-instructor', 'HTTP 200', async () => {
+    const c = await mkCourse(F.instr);
+    const u = await newUser('teacher', 'notifier');
+    await api('POST', `/courses/${c.id}/teachers`, { token: F.instr.token, body: { email: u.email, permissions: { manage_students: true } } });
+    is(await api('POST', `/notifications/course/${c.id}/send`, { token: u.token, body: { title: 'Hi' } }), 200);
 });
 
 const E = 'Error handling';

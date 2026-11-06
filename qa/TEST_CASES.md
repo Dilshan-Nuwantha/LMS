@@ -2,7 +2,7 @@
 
 **Branch under test:** fix/payment-gateway  
 **Requirements source:** SRS.md v1.0  
-**Total cases:** 378 (Critical 50, High 180, Medium 124, Low 24)
+**Total cases:** 389 (Critical 51, High 187, Medium 127, Low 24)
 
 ## How to run
 
@@ -19,20 +19,20 @@ Run `npm install` in `server/` first. The run starts its own local MongoDB and t
 | Authentication | 43 |
 | Course management | 25 |
 | Lecture progress | 11 |
-| Co-instructors | 14 |
+| Co-instructors | 15 |
 | Marketplace | 10 |
-| Payments | 31 |
+| Payments | 33 |
 | Coupons | 23 |
 | Instructor tools | 8 |
 | Admin | 24 |
-| Quizzes | 25 |
-| AI features | 27 |
+| Quizzes | 26 |
+| AI features | 28 |
 | Broadcasts | 10 |
 | Resources | 14 |
 | Reviews | 15 |
-| Notifications | 9 |
+| Notifications | 10 |
 | Activity log | 8 |
-| Security | 56 |
+| Security | 61 |
 | Error handling | 5 |
 | Build and dependencies | 7 |
 | User interface | 13 |
@@ -73,7 +73,7 @@ Run `npm install` in `server/` first. The run starts its own local MongoDB and t
 | AUTH-030 | High | Users registered with capitals can reset their password | Register Mixed.Case@x, then request a reset using the same address | A reset code is emailed | PASS | - |
 | AUTH-031 | Medium | Reset request does not reveal unknown emails | POST /auth/forgot-password with an unknown email | Same HTTP 200 message as a known email | PASS | - |
 | AUTH-032 | Low | Reset request does not reveal Google-only accounts | POST /auth/forgot-password for a Google-only account | Same generic HTTP 200 message | FAIL | LMS-059 |
-| AUTH-033 | High | Password change ends existing sessions | Change the password, then reuse the old token | HTTP 401 | FAIL | LMS-011 |
+| AUTH-033 | High | Password change ends existing sessions | Change the password, then reuse the old token | HTTP 401 | PASS | LMS-011 |
 | AUTH-034 | Low | Blocked user sees the block message on API calls | Block a user, then call /auth/me with their token | HTTP 403 with the block message | PASS | - |
 | AUTH-035 | Medium | Token of a deleted user is rejected | Delete the user record, then call /auth/me | HTTP 401 | PASS | - |
 | AUTH-036 | Medium | Unverified Google email cannot link to an existing account | Google login with email_verified=false for an existing email | Login is refused | FAIL | LMS-025 |
@@ -109,10 +109,10 @@ Run `npm install` in `server/` first. The run starts its own local MongoDB and t
 | CRS-018 | High | Hidden lecture is blocked for enrolled students | GET a hidden lecture and a lecture in a hidden section | HTTP 403 for both | PASS | - |
 | CRS-019 | High | Course search returns only my courses | GET /courses/search?q=... | Only enrolled or created courses are returned | PASS | - |
 | CRS-020 | High | Course analytics for the owner only | GET /courses/:id/analytics as the owner and as a student | Owner HTTP 200, student HTTP 403 | PASS | - |
-| CRS-021 | Critical | Admin-blocked course is closed to students | Block a course, then GET the course and a lecture as an enrolled student | Access is denied (FR-COURSE-02, FR-ADMIN-03) | FAIL | LMS-009 |
+| CRS-021 | Critical | Admin-blocked course is closed to students | Block a course, then GET the course and a lecture as an enrolled student | Access is denied (FR-COURSE-02, FR-ADMIN-03) | PASS | LMS-009 |
 | CRS-022 | Medium | Course delete removes related data | Create quiz and resource, delete the course, count leftovers | No orphaned quizzes, resources, coupons or broadcasts remain | FAIL | LMS-042 |
 | CRS-023 | Medium | Course delete keeps the audit trail | Delete a course, then search the activity log | Audit records are retained (FR-ACT-03) | FAIL | LMS-042 |
-| CRS-024 | Medium | Only instructors can list on the marketplace | As a student, create a course and set isMarketplace and Published | The listing is refused | FAIL | LMS-058 |
+| CRS-024 | Medium | Only instructors can list on the marketplace | As a student, POST /courses and POST /instructor/course | HTTP 403 for both | PASS | LMS-058 |
 | CRS-025 | Medium | Reject a negative course price | PUT /courses/:id with price -100 | HTTP 400 | FAIL | LMS-041 |
 
 ## Lecture progress
@@ -140,8 +140,8 @@ Run `npm install` in `server/` first. The run starts its own local MongoDB and t
 | TCH-003 | Low | Owner cannot add themselves | Add the owner email | HTTP 400 | PASS | - |
 | TCH-004 | High | Outsider cannot add a co-instructor | POST teachers as a different instructor | HTTP 403 | PASS | - |
 | TCH-005 | High | manage_content can add sections | POST a section as the co-instructor | HTTP 201 | PASS | - |
-| TCH-006 | High | manage_content can edit lectures | PUT /courses/lectures/:id as the co-instructor | HTTP 200 (SRS 3.4: add, edit and delete lectures) | FAIL | LMS-019 |
-| TCH-007 | High | manage_content can delete lectures | DELETE a lecture as the co-instructor | HTTP 200 | FAIL | LMS-019 |
+| TCH-006 | High | manage_content can edit lectures | PUT /courses/lectures/:id as the co-instructor | HTTP 200 (SRS 3.4: add, edit and delete lectures) | PASS | LMS-019 |
+| TCH-007 | High | manage_content can delete lectures | DELETE a lecture as the co-instructor | HTTP 200 | PASS | LMS-019 |
 | TCH-008 | High | manage_content alone cannot enroll students | POST enroll as the co-instructor | HTTP 403 | PASS | - |
 | TCH-009 | Medium | Update co-instructor permissions | PUT teachers/:id adding manage_students and manage_teachers | HTTP 200 with new permissions | PASS | - |
 | TCH-010 | High | manage_teachers cannot grant full_access | As the co-instructor, add a user with full_access | User is added without full_access | PASS | - |
@@ -149,6 +149,7 @@ Run `npm install` in `server/` first. The run starts its own local MongoDB and t
 | TCH-012 | Medium | Co-instructor leaves a course | DELETE teachers/leave | HTTP 200 | PASS | - |
 | TCH-013 | Medium | Owner removes a co-instructor | Add a user, then DELETE teachers/:id | HTTP 200 | PASS | - |
 | TCH-014 | Medium | A co-instructor cannot delete the course | Give full_access, then DELETE the course | HTTP 403 (SRS 3.4) | FAIL | LMS-046 |
+| TCH-015 | High | A co-instructor without manage_content cannot edit lectures | PUT and DELETE a lecture as a co-instructor with no permissions | HTTP 403 | PASS | - |
 
 ## Marketplace
 
@@ -194,12 +195,14 @@ Run `npm install` in `server/` first. The run starts its own local MongoDB and t
 | PAY-023 | Critical | Invoice visible only to buyer, instructor and admin | GET /purchase/invoice/:n as each role and as a stranger | Allowed roles get 200; a stranger gets 404; a guest gets 401 | PASS | - |
 | PAY-024 | High | Invoice PDF downloads | GET /purchase/invoice/:n/pdf | A valid PDF is returned | PASS | - |
 | PAY-025 | Medium | Invoice shows the product name | Read the text of the invoice PDF | It says Tenz Learn | FAIL | LMS-057 |
-| PAY-026 | Critical | Blocked course cannot be sold | Block a course, then check out | Checkout is refused | FAIL | LMS-009 |
+| PAY-026 | Critical | Blocked course cannot be sold | Block a course, then check out | Checkout is refused | PASS | LMS-009 |
 | PAY-027 | High | Already enrolled student is not charged | Enroll a student manually, then check out | Checkout is refused | FAIL | LMS-040 |
-| PAY-028 | High | A removed buyer can regain access | Buy, get removed by the instructor, then try to buy again | Checkout works, or access can otherwise be restored | FAIL | LMS-016 |
-| PAY-029 | Medium | Removing a student updates the enrollment count | Buy, remove the student, read enrollmentCount | Count goes back to 0 | FAIL | LMS-016 |
-| PAY-030 | High | A sold course cannot be deleted | Buy a course, then DELETE it as the owner | The delete is refused, so buyers keep their course | FAIL | LMS-017 |
-| PAY-031 | Medium | Bought course stays available after archiving | Buy a course, archive it, read /courses/my/enrolled | The buyer still sees the course | FAIL | LMS-017 |
+| PAY-028 | High | A removed buyer can regain access | Buy, get removed by the instructor, then try to buy again | Checkout works, or access can otherwise be restored | PASS | LMS-016 |
+| PAY-029 | Medium | Removing a student updates the enrollment count | Buy, remove the student, read enrollmentCount | Count goes back to 0 | PASS | LMS-016 |
+| PAY-030 | High | A sold course cannot be deleted | Buy a course, then DELETE it as the owner | The delete is refused, so buyers keep their course | PASS | LMS-017 |
+| PAY-031 | Medium | Bought course stays available after archiving | Buy a course, archive it, read /courses/my/enrolled | The buyer still sees the course | PASS | LMS-017 |
+| PAY-032 | Critical | A removed buyer gets access back without paying twice | Buy, get removed, check out again | enrolled true, no new Stripe session, count back to 1 | PASS | - |
+| PAY-033 | High | Refunding a removed buyer does not lower the count twice | Buy, get removed, send a full refund | enrollmentCount stays 0 | PASS | - |
 
 ## Coupons
 
@@ -225,7 +228,7 @@ Run `npm install` in `server/` first. The run starts its own local MongoDB and t
 | CPN-018 | High | Update applies the same limits as create | PUT a coupon to discountValue 500 percent | HTTP 400 | FAIL | LMS-038 |
 | CPN-019 | Medium | maxUses 0 does not mean unlimited | Create a coupon with maxUses 0 | Rejected, or stored as 0 and unusable | FAIL | LMS-038 |
 | CPN-020 | Low | Reject a coupon that is already expired | Create with validUntil in the past | HTTP 400 | FAIL | LMS-038 |
-| CPN-021 | High | Usage limit holds under parallel use | Two students use a maxUses 1 free coupon together | Only one succeeds | FAIL | LMS-015 |
+| CPN-021 | High | Usage limit holds under parallel use | Two students use a maxUses 1 free coupon together | Only one succeeds | PASS | LMS-015 |
 | CPN-022 | Medium | Percentage discount keeps cents on USD courses | Validate a 1 percent coupon on a USD 19.99 course | discountAmount is 0.20, not 0 | FAIL | LMS-039 |
 | CPN-023 | Low | Non-text coupon code is a client error | POST /coupons/validate with code as an object | HTTP 400 | FAIL | LMS-036 |
 
@@ -264,7 +267,7 @@ Run `npm install` in `server/` first. The run starts its own local MongoDB and t
 | ADM-016 | High | Instructor list and detail | GET /admin/instructors and /instructors/:id | HTTP 200 with earnings and bank details | PASS | - |
 | ADM-017 | Critical | Create a payout within the balance | POST /admin/payouts for 1000 | HTTP 201; pending falls by 1000 | PASS | - |
 | ADM-018 | Critical | Payout cannot exceed the balance | POST a payout for 999999 | HTTP 400 | PASS | - |
-| ADM-019 | High | Payout amount must be positive | POST a payout for -500 | HTTP 400 | FAIL | LMS-014 |
+| ADM-019 | High | Payout amount must be positive | POST a payout for -500 | HTTP 400 | PASS | LMS-014 |
 | ADM-020 | Medium | Payout history | GET /admin/payouts | HTTP 200 with records | PASS | - |
 | ADM-021 | High | Impersonate a user | POST /admin/impersonate with an email | The returned token acts as that user | PASS | - |
 | ADM-022 | Medium | Impersonating an unknown user | POST with an unknown email | HTTP 404 | PASS | - |
@@ -292,14 +295,15 @@ Run `npm install` in `server/` first. The run starts its own local MongoDB and t
 | QZ-015 | Medium | Own attempts list | GET /quizzes/:id/my-attempts | The attempt is listed | PASS | - |
 | QZ-016 | High | Students cannot read each other's attempts | GET /quizzes/attempts/:id as another student | HTTP 403 | PASS | - |
 | QZ-017 | Medium | Delete a quiz and its attempts | DELETE /quizzes/:id | Quiz and attempts are gone | PASS | - |
-| QZ-018 | Critical | Repeating one answer cannot inflate a score | Submit the same correct questionIndex three times | That question scores once: percentage 33, passed false | FAIL | LMS-006 |
-| QZ-019 | Critical | Answers are hidden while an attempt is in progress | Start a quiz, then GET /quizzes/attempts/:id | No correctAnswer in the response | FAIL | LMS-005 |
+| QZ-018 | Critical | Repeating one answer cannot inflate a score | Submit the same correct questionIndex three times | That question scores once: percentage 33, passed false | PASS | LMS-006 |
+| QZ-019 | Critical | Answers are hidden while an attempt is in progress | Start a quiz, then GET /quizzes/attempts/:id | No correctAnswer in the response | PASS | LMS-005 |
 | QZ-020 | High | Answer key stays hidden while retries remain | Submit one attempt on an unlimited-retry quiz | The response has no correct answers | FAIL | LMS-022 |
 | QZ-021 | Medium | Submit without answers is a client error | POST submit with no answers field | HTTP 400 | FAIL | LMS-037 |
 | QZ-022 | Medium | Numeric reply to a short-answer question | Answer the short question with 123 | Marked wrong, HTTP 200 | FAIL | LMS-037 |
 | QZ-023 | Low | Passing score of 0 is kept | Create with passingScore 0 | passingScore is 0 | FAIL | LMS-066 |
-| QZ-024 | High | AI-generated true/false questions can be answered | Save a question as the AI returns it (correctAnswer 0 = True), answer true as the UI does | The answer is marked correct | FAIL | LMS-018 |
+| QZ-024 | High | AI-generated true/false questions can be answered | Save a question as the AI returns it (correctAnswer 0 = True), answer true as the UI does | The answer is marked correct | PASS | LMS-018 |
 | QZ-025 | Low | Reject a negative time limit | Create with timeLimit -5 | HTTP 400 | FAIL | LMS-066 |
+| QZ-026 | High | A quiz in a blocked course cannot be started | Block a course, then start its quiz as an enrolled student | HTTP 403 | PASS | - |
 
 ## AI features
 
@@ -326,12 +330,13 @@ Run `npm install` in `server/` first. The run starts its own local MongoDB and t
 | AI-019 | High | Conversation list reports the key source | GET /student-ai/conversations | useInstructorKey is true for that conversation | FAIL | LMS-054 |
 | AI-020 | High | A blocked student cannot use the key | PUT ai-block, then chat | HTTP 403 (not a 500) | FAIL | LMS-035 |
 | AI-021 | Medium | AI status endpoint | GET /student-ai/course/:id/ai-status | Reports sharing and instructor key | PASS | - |
-| AI-022 | Critical | Only enrolled students can spend the instructor key | As a non-enrolled user, open a conversation on the course and send a message | Refused; the instructor key is not used | FAIL | LMS-008 |
+| AI-022 | Critical | Only enrolled students can spend the instructor key | As a non-enrolled user, open a conversation on the course and send a message | Refused; the instructor key is not used | PASS | LMS-008 |
 | AI-023 | High | No silent fallback to the instructor key | As an enrolled student with no key, chat with useInstructorKey false | Refused, or the conversation is flagged as instructor-key and cannot be deleted | FAIL | LMS-023 |
 | AI-024 | Medium | PDF attachment is read | Send a generated PDF as a chat attachment | HTTP 200 with PDF text in the message | PASS | - |
 | AI-025 | Medium | Image attachment is sent | Send a PNG attachment | HTTP 200 | PASS | - |
 | AI-026 | Low | Unsupported attachment is explained | Send a .exe attachment with no message | HTTP 400 | PASS | - |
 | AI-027 | Medium | Delete AI config | DELETE /student-ai/config twice | HTTP 200, then HTTP 404 | PASS | - |
+| AI-028 | High | AI true/false answers are saved as true or false | POST /ai/generate-quiz and read the answer type | correctAnswer is a boolean | PASS | - |
 
 ## Broadcasts
 
@@ -400,6 +405,7 @@ Run `npm install` in `server/` first. The run starts its own local MongoDB and t
 | NTF-007 | Medium | AI access change notifies students | Enable aiAccessChange, toggle AI | A notification is created | PASS | - |
 | NTF-008 | Medium | Progress milestone notification | Enable progressMilestone, complete every lecture | A milestone notification is created (FR-NOTIF-01) | FAIL | LMS-049 |
 | NTF-009 | Low | Invalid page number | GET /notifications?page=0 | HTTP 200 or 400, never a 500 | FAIL | LMS-032 |
+| NTF-010 | Medium | A co-instructor with manage_students can notify the course | POST /notifications/course/:id/send as that co-instructor | HTTP 200 | PASS | - |
 
 ## Activity log
 
@@ -428,7 +434,7 @@ Run `npm install` in `server/` first. The run starts its own local MongoDB and t
 | SEC-008 | High | Bank details never reach the activity log | Save bank details, read the log entry | No account number stored | PASS | LMS-002 |
 | SEC-009 | High | A reset token is not a login token | Use a resetToken as a Bearer token | HTTP 401 | FAIL | LMS-024 |
 | SEC-010 | Medium | OTP hash is not exposed | Request a reset, then GET /auth/me | No otpHash field | FAIL | LMS-026 |
-| SEC-011 | High | Reset code locks after repeated failures | Send 12 wrong codes from different IPs, then the right code | The code is locked or invalidated | FAIL | LMS-010 |
+| SEC-011 | High | Reset code locks after repeated failures | Send 12 wrong codes from different IPs, then the right code | The code is locked or invalidated | PASS | LMS-010 |
 | SEC-012 | High | Login is rate limited | Production mode: 6 wrong logins from one IP | Sixth request returns HTTP 429 (NFR-SEC-06) | PASS | - |
 | SEC-013 | High | Registration is rate limited | Production mode: 4 registrations from one IP | Fourth request returns HTTP 429 | PASS | - |
 | SEC-014 | Medium | Reset code checks are rate limited | Production mode: 6 verify-otp calls from one IP | Sixth returns HTTP 429 | PASS | - |
@@ -444,20 +450,20 @@ Run `npm install` in `server/` first. The run starts its own local MongoDB and t
 | SEC-024 | Low | Wrong role gets 403, not 401 | GET /admin/dashboard as a student | HTTP 403; 401 means "not logged in", and the client shows "session expired" | PASS | - |
 | SEC-025 | Critical | Guests are refused on protected routes | Call a sample of protected routes with no token | HTTP 401 each | PASS | - |
 | SEC-026 | High | Cron endpoint needs its secret in production | Production mode: GET /cron/due-reminders with and without the secret | HTTP 401 without, HTTP 200 with | PASS | - |
-| SEC-027 | High | Instructors cannot message another instructor's students | POST /notifications/course/:id/send as an unrelated instructor | HTTP 403 | FAIL | LMS-007 |
-| SEC-028 | High | Notifications cannot target arbitrary users | Send with studentIds of a user outside the course | Refused | FAIL | LMS-007 |
-| SEC-029 | High | Instructors cannot change another course's settings | PUT /notifications/course/:id/settings as an unrelated instructor | HTTP 403 | FAIL | LMS-007 |
+| SEC-027 | High | Instructors cannot message another instructor's students | POST /notifications/course/:id/send as an unrelated instructor | HTTP 403 | PASS | LMS-007 |
+| SEC-028 | High | Notifications cannot target arbitrary users | Send with studentIds of a user outside the course | Refused | PASS | LMS-007 |
+| SEC-029 | High | Instructors cannot change another course's settings | PUT /notifications/course/:id/settings as an unrelated instructor | HTTP 403 | PASS | LMS-007 |
 | SEC-030 | Medium | Course list shows only what the user may see | GET /courses as a student | No drafts, private or blocked courses of other users | FAIL | LMS-028 |
-| SEC-031 | Medium | Broadcasts are for course members | GET active broadcasts as a non-enrolled user | HTTP 403 | FAIL | LMS-012 |
-| SEC-032 | Medium | Only members can read or post comments | POST and GET comments as a non-enrolled user | HTTP 403 | FAIL | LMS-012 |
-| SEC-033 | High | Paywall: quiz questions are for members | GET /quizzes/:id and /quizzes/course/:id as a non-enrolled user | HTTP 403 | FAIL | LMS-012 |
+| SEC-031 | Medium | Broadcasts are for course members | GET active broadcasts as a non-enrolled user | HTTP 403 | PASS | LMS-012 |
+| SEC-032 | Medium | Only members can read or post comments | POST and GET comments as a non-enrolled user | HTTP 403 | PASS | LMS-012 |
+| SEC-033 | High | Paywall: quiz questions are for members | GET /quizzes/:id and /quizzes/course/:id as a non-enrolled user | HTTP 403 | PASS | LMS-012 |
 | SEC-034 | Critical | Script links are rejected | Add a resource link and a lecture URL using javascript: | HTTP 400 each | PASS | LMS-003 |
 | SEC-035 | Medium | Upload filter cannot be bypassed | Upload HTML declared as "text/html; csv" | HTTP 400 | FAIL | LMS-062 |
 | SEC-036 | Medium | Audit log cannot be evaded | Send a logged action with courseId "x" in the body | The action is still logged | FAIL | LMS-033 |
-| SEC-037 | Medium | Impersonation sessions are short | Read the expiry of an impersonation token | One hour or less (SRS: temporary token) | FAIL | LMS-011 |
+| SEC-037 | Medium | Impersonation sessions are short | Read the expiry of an impersonation token | One hour or less (SRS: temporary token) | PASS | LMS-011 |
 | SEC-038 | Medium | Impersonated actions stay out of the personal log | Act through the impersonation token, read /activities/me | The action is hidden and attributed to the admin (FR-AUTH-06) | FAIL | LMS-029 |
 | SEC-039 | Medium | Student notes stay private from teachers | Read progress and analytics as the course owner | Personal notes are not returned (code comment: "Teachers should not see") | FAIL | LMS-030 |
-| SEC-040 | High | Peer progress is anonymous | Enable allowPeerProgress, GET /courses/:id/peers as a student | No names or emails (FR-COURSE-11) | FAIL | LMS-013 |
+| SEC-040 | High | Peer progress is anonymous | Enable allowPeerProgress, GET /courses/:id/peers as a student | No names or emails (FR-COURSE-11) | PASS | LMS-013 |
 | SEC-041 | Medium | Bad regex in public search is handled | GET /marketplace/search?q=( | HTTP 200 or 400, not a 500 | FAIL | LMS-032 |
 | SEC-042 | Medium | Page size is capped | GET /marketplace?limit=100000 | The returned limit is capped | FAIL | LMS-032 |
 | SEC-043 | Medium | Bad paging values are handled | GET /marketplace?page=0 and limit=-1 | HTTP 200 or 400, not a 500 | FAIL | LMS-032 |
@@ -474,6 +480,11 @@ Run `npm install` in `server/` first. The run starts its own local MongoDB and t
 | SEC-054 | High | Normal links still work | Add https, http and no-scheme links, and clear a lecture URL | All are accepted | PASS | - |
 | SEC-055 | High | Google sign-in codes never reach the activity log | Sign in with Google, read the log entry | No code stored | PASS | - |
 | SEC-056 | Medium | The log keeps useful non-secret fields | Create a broadcast, read the log entry | title and priority are stored | PASS | - |
+| SEC-057 | High | Peer progress detail is anonymous | GET /courses/:id/peers/:studentId/progress as a classmate | No real name or email in the response | PASS | - |
+| SEC-058 | High | Enrolled students can still use comments | POST and GET lecture comments as an enrolled student | HTTP 201 and HTTP 200 | PASS | - |
+| SEC-059 | Medium | A new reset request clears the lock | Lock a code with wrong tries, request a new one, use it | The new code works | PASS | - |
+| SEC-060 | High | The device that changes the password stays logged in | PUT /auth/updatepassword, then use the returned token | HTTP 200 | PASS | - |
+| SEC-061 | Medium | Impersonation ends when the user changes password | Impersonate a user, change their password, reuse the token | HTTP 401 | PASS | - |
 
 ## Error handling
 
@@ -491,8 +502,8 @@ Run `npm install` in `server/` first. The run starts its own local MongoDB and t
 |---|---|---|---|---|---|---|
 | BLD-001 | Critical | Client production build | Run npm run build in client/ | Build succeeds | PASS | - |
 | BLD-002 | Medium | Client lint | Run npm run lint in client/ | No lint errors | FAIL | LMS-069 |
-| BLD-003 | High | Server dependency audit | Run npm audit --omit=dev in server/ | No high or critical advisories | FAIL | LMS-020 |
-| BLD-004 | High | Client dependency audit | Run npm audit --omit=dev in client/ | No high or critical advisories | FAIL | LMS-021 |
+| BLD-003 | High | Server dependency audit | Run npm audit --omit=dev in server/ | No high or critical advisories | PASS | LMS-020 |
+| BLD-004 | High | Client dependency audit | Run npm audit --omit=dev in client/ | No high or critical advisories | PASS | LMS-021 |
 | BLD-005 | Critical | No secrets in git history | Search all branches for .env files and live keys | Nothing found | PASS | - |
 | BLD-006 | Low | Every import has a declared dependency | Compare client imports with package.json | All imports resolve to declared packages | FAIL | LMS-070 |
 | BLD-007 | High | Existing team test suites | Run the tests in server/tests with MONGO_URI and MONGO_TEST_URI set to a local database | All tests pass | PASS | - |

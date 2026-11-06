@@ -3,6 +3,7 @@ const Course = require('../models/Course');
 const Lecture = require('../models/Lecture');
 const Broadcast = require('../models/Broadcast');
 const CourseTeacher = require('../models/CourseTeacher');
+const Progress = require('../models/Progress');
 
 /**
  * Check if user is admin
@@ -58,6 +59,19 @@ const hasTeacherPermission = async (userId, courseId, permission) => {
     // full_access grants all permissions
     if (permissions.full_access) return true;
     return !!permissions[permission];
+};
+
+/**
+ * Check if user belongs to a course (admin, owner, assigned teacher or enrolled student)
+ * @param {Object} user - User object
+ * @param {Object} course - Course object
+ * @returns {boolean}
+ */
+const isCourseMember = async (user, course) => {
+    const userId = user?.id || user?._id;
+    if (canManage(user, course.user)) return true;
+    if (await getTeacherPermissions(userId, course._id)) return true;
+    return !!(await Progress.exists({ student: userId, course: course._id }));
 };
 
 /**
@@ -289,7 +303,7 @@ const verifyCourseAccess = asyncHandler(async (req, res, next) => {
 
 /**
  * Middleware: Verify lecture ownership (via course)
- * Allows access if user is admin OR owns the course containing the lecture
+ * Allows access if user is admin OR owns the course OR is a teacher with manage_content
  * Attaches lecture and course to req
  */
 const verifyLectureOwnership = asyncHandler(async (req, res, next) => {
@@ -314,7 +328,9 @@ const verifyLectureOwnership = asyncHandler(async (req, res, next) => {
         throw new Error('Course not found');
     }
 
-    if (!canManage(req.user, course.user)) {
+    const userId = req.user?.id || req.user?._id;
+
+    if (!canManage(req.user, course.user) && !(await hasTeacherPermission(userId, course._id, 'manage_content'))) {
         res.status(403);
         throw new Error('Not authorized to access this lecture');
     }
@@ -426,6 +442,7 @@ module.exports = {
     canBroadcast,
     getTeacherPermissions,
     hasTeacherPermission,
+    isCourseMember,
     verifyCourseOwnership,
     verifyCourseContentPermission,
     verifyStudentManagementPermission,

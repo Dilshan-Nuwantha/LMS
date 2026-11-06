@@ -140,6 +140,11 @@ const createPayout = asyncHandler(async (req, res) => {
         throw new Error('Please provide instructor, amount, and method');
     }
 
+    if (!Number.isFinite(Number(amount)) || Number(amount) <= 0) {
+        res.status(400);
+        throw new Error('Payout amount must be a positive number');
+    }
+
     if (!CURRENCIES.includes(currency)) {
         res.status(400);
         throw new Error(`Currency must be one of ${CURRENCIES.join(', ')}`);
@@ -391,7 +396,7 @@ const impersonateUser = asyncHandler(async (req, res) => {
     }
 
     const jwt = require('jsonwebtoken');
-    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '30d' });
+    const token = jwt.sign({ id: user._id, v: user.tokenVersion || 0 }, process.env.JWT_SECRET, { expiresIn: '1h' });
 
     res.json({
         _id: user._id,

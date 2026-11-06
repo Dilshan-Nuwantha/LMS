@@ -274,7 +274,7 @@ const bugs = [
         'Add a JSON 404 for /api.',
         ['ERR-004']),
     bug('LMS-069', 'Low', 'Bug', 'Client code quality errors', 'client/src/pages/course/ManageCoupons.jsx:13',
-        'Lint reports 91 errors and 35 warnings. That includes 13 conditional hook errors in ManageCoupons, which could crash if courseId were ever missing. Current callers always pass it.',
+        'Lint reports 142 errors and 35 warnings. That includes 13 conditional hook errors in ManageCoupons, which could crash if courseId were ever missing. Current callers always pass it.',
         'Move the early return below the hooks, then clear the lint errors.',
         ['BLD-002']),
     bug('LMS-070', 'Low', 'Bug', 'Unused component imports an undeclared package', 'client/src/components/course/VideoPlayer.jsx:2',
@@ -287,18 +287,23 @@ const bugs = [
         ['UI-001'])
 ];
 
-// Fixed after the regression run. Their failed tests must now pass, which run.js --report checks.
-const FIXED = new Set(['LMS-001', 'LMS-002', 'LMS-003', 'LMS-004']);
-bugs.forEach(b => { b.status = FIXED.has(b.id) ? 'Fixed' : 'Open'; });
+// Closed: committed and retested. Fixed: retested, not committed yet. run.js --report checks that
+// the tests of both now pass.
+const CLOSED = new Set(['LMS-001', 'LMS-002', 'LMS-003', 'LMS-004', 'LMS-058']);
+const FIXED = new Set([
+    'LMS-005', 'LMS-006', 'LMS-007', 'LMS-008', 'LMS-009', 'LMS-010', 'LMS-011', 'LMS-012', 'LMS-013',
+    'LMS-014', 'LMS-015', 'LMS-016', 'LMS-017', 'LMS-018', 'LMS-019', 'LMS-020', 'LMS-021'
+]);
+bugs.forEach(b => { b.status = CLOSED.has(b.id) ? 'Closed' : FIXED.has(b.id) ? 'Fixed' : 'Open'; });
 
 const manualResults = {
-    'BLD-001': ['PASS', 'Build succeeded in 17 seconds'],
-    'BLD-002': ['FAIL', '91 errors, 35 warnings'],
-    'BLD-003': ['FAIL', '1 critical, 6 high, 2 moderate'],
-    'BLD-004': ['FAIL', '1 high'],
+    'BLD-001': ['PASS', 'Build succeeded in 13 seconds'],
+    'BLD-002': ['FAIL', '142 errors, 35 warnings. The rise comes from an updated lint package reporting more of the existing code'],
+    'BLD-003': ['PASS', '0 vulnerabilities'],
+    'BLD-004': ['PASS', '0 vulnerabilities'],
     'BLD-005': ['PASS', 'No .env with secrets and no live keys in history. client/.env.production is tracked but holds public values only'],
     'BLD-006': ['FAIL', 'react-player is imported but not declared'],
-    'BLD-007': ['PASS', '13 of 13 passed against a local database'],
+    'BLD-007': ['PASS', '18 of 18 passed against a local database, one file at a time'],
     'UI-001': ['FAIL', 'Pages render; React key error in the console'],
     'UI-002': ['PASS', 'Landed on /my-learning'],
     'UI-003': ['PASS', 'Toast showed "Invalid credentials"'],
@@ -315,6 +320,9 @@ const manualResults = {
 };
 
 // Browser and build checks repeated after the critical fixes
-const retested = ['BLD-001', 'BLD-002', 'BLD-007', 'UI-010', 'UI-012'];
+const retested = [
+    'BLD-001', 'BLD-002', 'BLD-003', 'BLD-004', 'BLD-005', 'BLD-006', 'BLD-007',
+    'UI-001', 'UI-002', 'UI-003', 'UI-004', 'UI-005', 'UI-006', 'UI-007', 'UI-008', 'UI-009', 'UI-010', 'UI-012', 'UI-013'
+];
 
 module.exports = { bugs, manualResults, retested };

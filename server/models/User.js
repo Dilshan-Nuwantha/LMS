@@ -65,6 +65,9 @@ const userSchema = new mongoose.Schema({
     // Password reset OTP fields
     otpHash:   { type: String, default: null },
     otpExpiry: { type: Date,   default: null },
+    otpAttempts: { type: Number, default: 0 },
+    // Raised when the password changes, which ends every older login token
+    tokenVersion: { type: Number, default: 0 },
     // Block fields
     isBlocked: { type: Boolean, default: false },
     blockReason: { type: String, default: '' },

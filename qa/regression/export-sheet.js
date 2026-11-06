@@ -13,7 +13,8 @@ require('./manual-cases');
 const { bugs, manualResults, retested } = require('./bugs');
 
 const RESULTS = path.resolve(__dirname, '../results');
-const RUN_DATE = '2026-11-05';
+const RUN_DATE = '2026-11-06';
+const VERIFIED_BY = 'Claude Code regression 2026-11-06';
 const firstBug = Number(process.argv[2]) || 5;
 const api = JSON.parse(fs.readFileSync(path.join(RESULTS, 'api-results.json'), 'utf8'));
 const result = Object.fromEntries(api.results.map(r => [r.id, [r.status, r.actual || '']]));
@@ -50,7 +51,7 @@ const bugRows = bugs.map(b => {
         sheetId[b.id], MODULE[test.module], `[${b.type}] ${b.title}`,
         `${test.steps}. Failed tests: ${b.tests.map(t => `TC-REG-${t}`).join(', ')}. Location: ${b.where}`,
         b.severity, b.severity, 'QA / Tester', b.status, developer(b.where), 'Local',
-        b.fix, b.problem, RUN_DATE, '', '', '', '', '', ''
+        b.fix, b.problem, RUN_DATE, '', b.status === 'Closed' ? VERIFIED_BY : '', '', '', '', ''
     ].map(clean);
 });
 
@@ -59,9 +60,11 @@ const testRows = cases.map(c => [
     c.fn ? 'Local regression stack running' : 'Client and API running locally', c.steps, c.expected, actual(c.id),
     result[c.id][0] === 'PASS' ? 'Pass' : 'Fail', c.fn ? 'Automated' : 'Manual', c.priority,
     'Claude Code', RUN_DATE, (bugsFor[c.id] || []).join(', '),
-    `Regression run on ${uiOnEarlierCommit.has(c.id) ? 'commit 4280b9e' : 'cd8554b plus critical fixes'} (${c.id})`
+    `Regression run on ${uiOnEarlierCommit.has(c.id) ? 'commit 4280b9e' : 'Beralidu 5746846 plus high bug fixes'} (${c.id})`
 ].map(clean));
 
-fs.writeFileSync(path.join(RESULTS, 'workbook-rows.json'), JSON.stringify({ bugRows, testRows }));
+// The team's own fixes, covered by these passing cases: AUTH-004, AUTH-012, PAY-016, PAY-001
+const closedBugs = Object.fromEntries(['BUG-001', 'BUG-002', 'BUG-003', 'BUG-004'].map(id => [id, VERIFIED_BY]));
+fs.writeFileSync(path.join(RESULTS, 'workbook-rows.json'), JSON.stringify({ bugRows, testRows, closedBugs }));
 fs.rmSync(env.root, { recursive: true, force: true });
 console.log(`Bugs ${bugRows.length}, tests ${testRows.length}, pass ${testRows.filter(r => r[7] === 'Pass').length}, fail ${testRows.filter(r => r[7] === 'Fail').length}`);

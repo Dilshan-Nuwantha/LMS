@@ -3,6 +3,7 @@ const Broadcast = require('../models/Broadcast');
 const Course = require('../models/Course');
 const Progress = require('../models/Progress');
 const BroadcastView = require('../models/BroadcastView');
+const { isCourseMember } = require('../middleware/ownershipMiddleware');
 
 // @desc    Create broadcast
 // @route   POST /api/broadcasts/course/:courseId
@@ -74,6 +75,17 @@ const getCourseBroadcasts = asyncHandler(async (req, res) => {
 // @route   GET /api/broadcasts/course/:courseId/active
 // @access  Private (Enrolled students)
 const getActiveBroadcasts = asyncHandler(async (req, res) => {
+    const course = await Course.findById(req.params.courseId);
+    if (!course) {
+        res.status(404);
+        throw new Error('Course not found');
+    }
+
+    if (!(await isCourseMember(req.user, course))) {
+        res.status(403);
+        throw new Error('You must be enrolled in this course to view its announcements');
+    }
+
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 5;
     const skip = (page - 1) * limit;

@@ -127,6 +127,13 @@ const sendCustomNotification = asyncHandler(async (req, res) => {
     }
 
     if (studentIds && studentIds.length > 0) {
+        const uniqueIds = [...new Set(studentIds.map(String))];
+        const enrolledCount = await Progress.countDocuments({ course: req.params.courseId, student: { $in: uniqueIds } });
+        if (enrolledCount !== uniqueIds.length) {
+            res.status(400);
+            throw new Error('Notifications can only be sent to students enrolled in this course');
+        }
+
         // Send to specific students
         for (const studentId of studentIds) {
             await notifyUser(studentId, {
