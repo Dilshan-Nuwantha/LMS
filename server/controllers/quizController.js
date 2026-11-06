@@ -67,7 +67,7 @@ const createQuiz = asyncHandler(async (req, res) => {
         title,
         description: description || '',
         questions: questions || [],
-        passingScore: passingScore || 70,
+        passingScore: passingScore ?? 70,
         timeLimit: timeLimit || 0,
         attemptsAllowed: attemptsAllowed ?? -1,
         isRequired: isRequired || false,

@@ -1,4 +1,4 @@
-import { useState, useContext, useEffect } from 'react';
+import { useState, useContext } from 'react';
 import AuthContext from '../context/AuthContext';
 import api from '../api/axios';
 import { showSuccess, showError } from '../utils/toast';
@@ -124,19 +124,17 @@ const roleBadge = {
 const inputClass = 'w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-xl text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all';
 
 const ProfileAvatar = ({ src, name, size = 80 }) => {
-    const [imgError, setImgError] = useState(false);
+    // Remembers which image failed, so a new avatar previews instantly
+    const [failedSrc, setFailedSrc] = useState(null);
 
-    // Reset error when src changes so new avatar previews instantly
-    useEffect(() => { setImgError(false); }, [src]);
-
-    if (src && !imgError) {
+    if (src && src !== failedSrc) {
         return (
             <img
                 src={src}
                 alt={name}
                 width={size}
                 height={size}
-                onError={() => setImgError(true)}
+                onError={() => setFailedSrc(src)}
                 className="rounded-full object-cover"
                 style={{ width: size, height: size }}
             />

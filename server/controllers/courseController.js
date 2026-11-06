@@ -388,9 +388,9 @@ const updateLecture = asyncHandler(async (req, res) => {
     const lecture = req.lecture;
 
     lecture.title = title || lecture.title;
-    lecture.resourceUrl = resourceUrl || lecture.resourceUrl;
-    lecture.description = description || lecture.description;
-    lecture.dueDate = dueDate || lecture.dueDate;
+    lecture.resourceUrl = resourceUrl ?? lecture.resourceUrl;
+    lecture.description = description ?? lecture.description;
+    if (dueDate !== undefined) lecture.dueDate = dueDate || null;
     lecture.status = req.body.status || lecture.status;
     if (req.body.isPublic !== undefined) {
         lecture.isPublic = req.body.isPublic;

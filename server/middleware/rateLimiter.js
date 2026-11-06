@@ -31,6 +31,21 @@ const authLimiter = rateLimit({
     skip: skipInDev,
 });
 
+// Failed logins per account, so changing IP address or proxy headers can't keep guessing one password
+const loginAccountLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 5,
+    keyGenerator: (req) => String(req.body?.email).trim().toLowerCase(),
+    skipSuccessfulRequests: true,
+    message: {
+        message: 'Too many login attempts. Please try again after 15 minutes.',
+        retryAfter: 15
+    },
+    standardHeaders: true,
+    legacyHeaders: false,
+    skip: skipInDev,
+});
+
 // Registration limiter - 3 accounts per hour per IP
 const registerLimiter = rateLimit({
     windowMs: 60 * 60 * 1000, // 1 hour
@@ -73,6 +88,7 @@ const otpLimiter = rateLimit({
 module.exports = {
     apiLimiter,
     authLimiter,
+    loginAccountLimiter,
     registerLimiter,
     createCourseLimiter,
     otpLimiter,

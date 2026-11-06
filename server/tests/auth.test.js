@@ -28,9 +28,10 @@ describe('Authentication System Test Suite', () => {
 
     before(async () => {
         // Connect to MongoDB
-        const mongoUri = process.env.MONGO_URI;
+        // Never MONGO_URI: this suite creates and deletes users
+        const mongoUri = process.env.MONGO_TEST_URI;
         if (!mongoUri) {
-            throw new Error('MONGO_URI is missing in environment');
+            throw new Error('MONGO_TEST_URI is missing in environment');
         }
         await mongoose.connect(mongoUri);
 
@@ -295,10 +296,7 @@ describe('Authentication System Test Suite', () => {
         });
         assert.equal(manualLoginAttempt.status, 400);
         const loginData = await manualLoginAttempt.json();
-        assert.ok(
-            loginData.message.includes('Google sign-in'),
-            `Expected message mentioning Google sign-in, got: ${loginData.message}`
-        );
+        assert.equal(loginData.message, 'Invalid credentials');
     });
 
     // ── Task 7.6: Successful Manual Login ────────────────────────────────────────

@@ -120,7 +120,7 @@ const getResources = asyncHandler(async (req, res) => {
     // Verify access: teacher or enrolled student
     const isOwner = course.user.toString() === req.user.id;
     const teacherRecord = await CourseTeacher.findOne({ course: courseId, teacher: req.user.id });
-    const isTeacher = isOwner || !!teacherRecord;
+    const isTeacher = isOwner || !!teacherRecord || req.user.role === 'admin';
 
     if (!isTeacher) {
         const enrolled = await Progress.findOne({ student: req.user.id, course: courseId });
@@ -156,7 +156,7 @@ const downloadResource = asyncHandler(async (req, res) => {
     // Verify access
     const isOwner = course.user.toString() === req.user.id;
     const teacherRecord = await CourseTeacher.findOne({ course: courseId, teacher: req.user.id });
-    const isTeacher = isOwner || !!teacherRecord;
+    const isTeacher = isOwner || !!teacherRecord || req.user.role === 'admin';
 
     if (!isTeacher) {
         const enrolled = await Progress.findOne({ student: req.user.id, course: courseId });
@@ -247,7 +247,7 @@ const getResourcesByLecture = asyncHandler(async (req, res) => {
     // Verify access: teacher or enrolled student
     const isOwner = course.user.toString() === req.user.id;
     const teacherRecord = await CourseTeacher.findOne({ course: courseId, teacher: req.user.id });
-    const isTeacher = isOwner || !!teacherRecord;
+    const isTeacher = isOwner || !!teacherRecord || req.user.role === 'admin';
 
     if (!isTeacher) {
         const enrolled = await Progress.findOne({ student: req.user.id, course: courseId });
@@ -306,7 +306,7 @@ const updateResource = asyncHandler(async (req, res) => {
     // Verify access: teacher or uploader
     const isOwner = course.user.toString() === req.user.id;
     const teacherRecord = await CourseTeacher.findOne({ course: courseId, teacher: req.user.id });
-    const isTeacher = isOwner || !!teacherRecord;
+    const isTeacher = isOwner || !!teacherRecord || req.user.role === 'admin';
     const isUploader = resource.uploadedBy.toString() === req.user.id;
 
     if (!isTeacher && !isUploader) {
@@ -339,7 +339,7 @@ const viewResource = asyncHandler(async (req, res) => {
     // Verify access
     const isOwner = course.user.toString() === req.user.id;
     const teacherRecord = await CourseTeacher.findOne({ course: courseId, teacher: req.user.id });
-    const isTeacher = isOwner || !!teacherRecord;
+    const isTeacher = isOwner || !!teacherRecord || req.user.role === 'admin';
 
     if (!isTeacher) {
         const enrolled = await Progress.findOne({ student: req.user.id, course: courseId });

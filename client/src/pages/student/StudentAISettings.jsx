@@ -37,8 +37,6 @@ const StudentAISettings = () => {
     const [model, setModel] = useState('gpt-4o');
     const [maskedKey, setMaskedKey] = useState('');
 
-    useEffect(() => { fetchConfig(); }, []);
-
     const fetchConfig = async () => {
         try {
             const res = await api.get('/student-ai/config');
@@ -48,9 +46,11 @@ const StudentAISettings = () => {
                 setMaskedKey(res.data.apiKeyMasked);
                 setHasExisting(true);
             }
-        } catch { }
+        } catch { /* Not critical: the page keeps what it has */ }
         finally { setLoading(false); }
     };
+
+    useEffect(() => { fetchConfig(); }, []);
 
     const handleProviderChange = (p) => {
         setProvider(p);

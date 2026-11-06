@@ -96,6 +96,18 @@ tc('SEC-016', S, 'Medium', 'Rate limit cannot be dodged with a header', 'Product
     for (let i = 0; i < 8; i++) limited = (await prod('POST', '/auth/login', { headers: ip(), body: { email: 'x@qa.test', password: 'x' } })).status === 429 || limited;
     ok(limited, '8 attempts, none limited');
 });
+tc('SEC-070', S, 'High', 'Successful logins never trip the account limit', 'Production mode: 7 correct logins to one account from different addresses', 'All HTTP 200', async () => {
+    const h = ip();
+    const email = `ok.${uid()}@qa.test`, password = 'Secret123!';
+    is(await prod('POST', '/auth/register', { headers: h, body: { name: 'Ok', email, password } }), 201);
+    for (let i = 0; i < 7; i++) is(await prod('POST', '/auth/login', { headers: ip(), body: { email, password } }), 200, `login ${i + 1}`);
+});
+tc('SEC-071', S, 'High', 'A blocked user with the right password sees the reason', 'Log in to a blocked account with the correct password', 'HTTP 403 with the block reason', async () => {
+    const u = await newUser('student', 'blk3');
+    await api('POST', `/admin/users/${u.id}/block`, { token: F.admin.token, body: { reason: 'Policy reason' } });
+    const r = await api('POST', '/auth/login', { body: { email: u.email, password: u.password } });
+    is(r, 403); eq(r.json.message, 'Policy reason', 'message');
+});
 tc('SEC-017', S, 'Medium', 'Marketplace course creation is rate limited', 'Production mode: 11 calls to POST /instructor/course', 'HTTP 429 at the limit (NFR-SEC-06 covers course creation)', async () => {
     const h = ip();
     const reg = await prod('POST', '/auth/teacher/register', { headers: h, body: { name: 'T', email: `t.${uid()}@qa.test`, password: 'Secret123!' } });
@@ -425,6 +437,11 @@ tc('SEC-069', S, 'Medium', 'Admins can still block other users', 'Block a studen
     const u = await newUser('student', 'stillblock');
     is(await api('POST', `/admin/users/${u.id}/block`, { token: F.admin.token, body: { reason: 'qa' } }), 200);
 });
+tc('RES-016', 'Resources', 'High', 'Common CSV and Excel types still upload', 'Upload a file as text/csv, application/vnd.ms-excel and the xlsx type', 'HTTP 201 for each', async () => {
+    for (const type of ['text/csv', 'application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet']) {
+        is(await api('POST', `/resources/${F.course.id}`, { token: F.instr.token, form: multipart({ title: 'Sheet' }, { name: 'a.csv', type, data: Buffer.from('a,b') }) }), 201, type);
+    }
+});
 tc('RES-015', 'Resources', 'High', 'Sinhala file names download correctly', 'Upload පාඩම.pdf, then download and view it', 'HTTP 200 with the real name in the header', async () => {
     const form = multipart({ title: 'Sinhala' }, { name: 'පාඩම.pdf', type: 'application/pdf', data: Buffer.from('%PDF-1.4') });
     const up = await api('POST', `/resources/${F.course.id}`, { token: F.instr.token, form });
@@ -534,6 +551,9 @@ tc('ERR-003', E, 'Medium', 'Malformed JSON is a client error', 'POST invalid JSO
 tc('ERR-004', E, 'Low', 'Unknown API route returns JSON', 'GET /api/nope', 'HTTP 404 with a JSON body (NFR-REL-03)', async () => {
     const r = await api('GET', '/nope');
     is(r, 404); ok(r.json, 'HTML response');
+});
+tc('ERR-009', E, 'High', 'The reminder route still works', 'GET /api/cron/due-reminders on the development API', 'HTTP 200, not the new 404', async () => {
+    is(await api('GET', '/cron/due-reminders'), 200);
 });
 tc('ERR-006', E, 'High', 'Intended error messages reach the user', 'Send an invalid token in production mode', 'The real message is returned, not a generic one', async () => {
     const h = ip();

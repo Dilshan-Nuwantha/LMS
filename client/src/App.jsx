@@ -80,7 +80,7 @@ const HomePage = () => {
   const [checked, setChecked] = useState(false);
 
   useEffect(() => {
-    if (!user) { setChecked(true); return; }
+    if (!user) return;
     let cancelled = false;
     api.get('/courses/my/enrolled').then(res => {
       if (!cancelled && res.data && res.data.length > 0) setRedirect('/my-learning');
@@ -90,7 +90,7 @@ const HomePage = () => {
   }, [user]);
 
   if (redirect) return <Navigate to={redirect} replace />;
-  if (!checked) return <PageLoader />;
+  if (user && !checked) return <PageLoader />;
   return <Marketplace />;
 };
 

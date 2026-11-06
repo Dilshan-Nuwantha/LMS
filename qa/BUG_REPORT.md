@@ -1,6 +1,6 @@
 # Tenz Learn - Regression Bug Report
 
-**Branch:** Beralidu at commit 0bd23fe, plus the uncommitted fix for LMS-071  
+**Branch:** Beralidu at commit 12f1ba4, plus an uncommitted tidy-up of the LMS-071 filter code  
 **Run date:** 2026-11-06  
 **Result:** 419 test cases, 406 passed, 13 failed  
 **Open findings:** 9 (0 Critical, 0 High, 0 Medium, 9 Low). **Fixed:** 61
@@ -48,7 +48,7 @@
 
 ## How this was tested
 
-- The API suite ran 395 cases against the real server code at commit 0bd23fe on Beralidu plus the fix for LMS-071, using a temporary local MongoDB. The hosted lms-dev database was not used.
+- The API suite ran 395 cases against the real server code at commit 12f1ba4 on Beralidu, using a temporary local MongoDB. The hosted lms-dev database was not used.
 - Stripe, email, Google sign-in and the AI providers were local stand-ins, so **no real payment, email or AI request was made**. Stripe webhook signatures were verified for real. Outbound calls blocked: 0.
 - Production-only behaviour (rate limits, stack traces, cron secret) ran against a second instance with NODE_ENV=production.
 - UI checks were repeated on this code. LMS-003 was confirmed in real Chrome with a temporary profile.
@@ -160,7 +160,7 @@ react-player is not in package.json. Nothing imports VideoPlayer, so the build s
 
 ## Fixed
 
-All of these passed their retest and are Closed. LMS-071 is not committed yet.
+All of these passed their retest and are Closed.
 
 ### LMS-001: Anyone can create an admin account
 
@@ -752,7 +752,7 @@ Stack traces are hidden, but messages such as "Cast to ObjectId failed ... for m
 
 **Fix:** Return a generic message for unexpected errors.
 
-### LMS-071: Category lists are blank and log a React key warning
+### LMS-071: React key warning on the marketplace
 
 **Type:** Bug  
 **Status:** Closed  

@@ -29,15 +29,21 @@ const upload = multer({
             'application/vnd.openxmlformats-officedocument.presentationml.presentation',
             'text/plain',
             'text/csv',
+            'text/x-csv',
+            'text/comma-separated-values',
             'application/csv',
+            'application/x-csv',
+            'application/excel',
+            'application/x-excel',
+            'application/x-msexcel',
             'application/vnd.ms-excel',
             'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
         ];
 
-        const isCsv = file.mimetype.includes('csv');
-        const isExcel = file.mimetype.includes('excel') || file.mimetype.includes('spreadsheetml');
+        // Bad type headers fall back to text/plain, so the name has to match as well
+        const allowedName = /\.(pdf|png|jpe?g|gif|webp|docx?|pptx?|txt|csv|xlsx?)$/i;
 
-        cb(null, allowed.includes(file.mimetype) || isCsv || isExcel);
+        cb(null, allowed.includes(file.mimetype) && allowedName.test(file.originalname));
     }
 });
 

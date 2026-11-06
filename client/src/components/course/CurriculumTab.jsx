@@ -2,7 +2,6 @@ import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FaEye, FaEyeSlash, FaEdit, FaTrash, FaChevronDown, FaBook, FaClipboardList, FaSearch, FaUserGraduate, FaCheckCircle, FaPlayCircle, FaClock, FaTimes, FaFilter, FaBell } from 'react-icons/fa';
 import api from '../../api/axios';
-import { showSuccess, showError } from '../../utils/toast';
 
 const CurriculumTab = ({
     courseId,

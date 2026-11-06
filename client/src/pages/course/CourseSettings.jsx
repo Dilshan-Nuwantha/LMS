@@ -12,7 +12,6 @@ const CourseSettings = ({ isEmbedded = false }) => {
     const [saving, setSaving] = useState(false);
     const [activeTab, setActiveTab] = useState('general');
 
-    const [course, setCourse] = useState(null);
     const [tagInput, setTagInput] = useState('');
     const [formData, setFormData] = useState({
         title: '',
@@ -55,19 +54,10 @@ const CourseSettings = ({ isEmbedded = false }) => {
         newContent: false, newBroadcast: false, newQuiz: false,
         dueDateReminder: false, aiAccessChange: false, progressMilestone: false
     });
-    const [notifLoaded, setNotifLoaded] = useState(false);
-    const [notifSaving, setNotifSaving] = useState(false);
-
-    useEffect(() => {
-        if (id) {
-            fetchCourse();
-        }
-    }, [id]);
 
     const fetchCourse = async () => {
         try {
             const res = await api.get(`/courses/${id}`);
-            setCourse(res.data);
             setFormData({
                 title: res.data.title,
                 description: res.data.description,
@@ -103,13 +93,18 @@ const CourseSettings = ({ isEmbedded = false }) => {
                     progressMilestone: res.data.notificationSettings.progressMilestone || false
                 });
             }
-            setNotifLoaded(true);
             setLoading(false);
-        } catch (err) {
+        } catch {
             showError('Failed to load course settings');
             navigate(`/admin/course/${id}`);
         }
     };
+
+    useEffect(() => {
+        if (id) {
+            fetchCourse();
+        }
+    }, [id]);
 
     const handleSave = async (e) => {
         if (e) e.preventDefault();
@@ -117,7 +112,7 @@ const CourseSettings = ({ isEmbedded = false }) => {
         try {
             await api.put(`/courses/${id}`, { ...formData, notificationSettings: notifSettings });
             showSuccess('Settings saved successfully');
-        } catch (error) {
+        } catch {
             showError('Error saving settings');
         } finally {
             setSaving(false);

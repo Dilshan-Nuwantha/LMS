@@ -10,20 +10,20 @@ const InvoicePage = () => {
     const [loading, setLoading] = useState(true);
     const [downloading, setDownloading] = useState(false);
 
-    useEffect(() => {
-        fetchInvoice();
-    }, [invoiceNumber]);
-
     const fetchInvoice = async () => {
         try {
             const res = await api.get(`/purchase/invoice/${invoiceNumber}`);
             setInvoice(res.data);
-        } catch (error) {
+        } catch {
             showError('Invoice not found');
         } finally {
             setLoading(false);
         }
     };
+
+    useEffect(() => {
+        fetchInvoice();
+    }, [invoiceNumber]);
 
     const handleDownload = async () => {
         setDownloading(true);
@@ -39,7 +39,7 @@ const InvoicePage = () => {
             link.click();
             link.remove();
             window.URL.revokeObjectURL(url);
-        } catch (error) {
+        } catch {
             showError('Failed to download invoice');
         } finally {
             setDownloading(false);

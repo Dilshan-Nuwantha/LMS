@@ -20,29 +20,7 @@ const QuizTake = () => {
     const [reviewMode, setReviewMode] = useState(false);
     const [previousAttempt, setPreviousAttempt] = useState(null);
 
-    useEffect(() => {
-        checkAndStartQuiz();
-    }, [quizId]);
-
     // Timer effect
-    useEffect(() => {
-        if (!quiz?.timeLimit || !attempt || result || reviewMode) return;
-
-        const endTime = new Date(attempt.startedAt).getTime() + (quiz.timeLimit * 60 * 1000);
-
-        const interval = setInterval(() => {
-            const remaining = Math.max(0, endTime - Date.now());
-            setTimeLeft(Math.ceil(remaining / 1000));
-
-            if (remaining <= 0) {
-                clearInterval(interval);
-                handleSubmit(true);
-            }
-        }, 1000);
-
-        return () => clearInterval(interval);
-    }, [quiz, attempt, result, reviewMode]);
-
     const checkAndStartQuiz = async () => {
         try {
             const isRetake = searchParams.get('retake') === 'true';
@@ -89,6 +67,10 @@ const QuizTake = () => {
         }
     };
 
+    useEffect(() => {
+        checkAndStartQuiz();
+    }, [quizId]);
+
     const handleAnswerChange = (questionIndex, answer) => {
         setAnswers(prev => ({ ...prev, [questionIndex]: answer }));
     };
@@ -123,6 +105,24 @@ const QuizTake = () => {
             setSubmitting(false);
         }
     };
+
+    useEffect(() => {
+        if (!quiz?.timeLimit || !attempt || result || reviewMode) return;
+
+        const endTime = new Date(attempt.startedAt).getTime() + (quiz.timeLimit * 60 * 1000);
+
+        const interval = setInterval(() => {
+            const remaining = Math.max(0, endTime - Date.now());
+            setTimeLeft(Math.ceil(remaining / 1000));
+
+            if (remaining <= 0) {
+                clearInterval(interval);
+                handleSubmit(true);
+            }
+        }, 1000);
+
+        return () => clearInterval(interval);
+    }, [quiz, attempt, result, reviewMode]);
 
     const formatTime = (seconds) => {
         const mins = Math.floor(seconds / 60);

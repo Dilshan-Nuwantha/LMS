@@ -74,7 +74,7 @@ const writeReports = () => {
     const pass = cases.filter(c => result[c.id][0] === 'PASS').length;
     const out = [
         '# Tenz Learn - Regression Bug Report', '',
-        `**Branch:** Beralidu at commit 0bd23fe, plus the uncommitted fix for LMS-071  `,
+        `**Branch:** Beralidu at commit 12f1ba4, plus an uncommitted tidy-up of the LMS-071 filter code  `,
         `**Run date:** ${api.ranAt.slice(0, 10)}  `,
         `**Result:** ${cases.length} test cases, ${pass} passed, ${cases.length - pass} failed  `,
         `**Open findings:** ${open.length} (${severities.map(s => `${n(b => b.severity === s)} ${s}`).join(', ')}). **Fixed:** ${fixed.length}`, '',
@@ -94,7 +94,7 @@ const writeReports = () => {
             return `| ${m} | ${list.length} | ${p} | ${list.length - p} |`;
         }), '',
         '## How this was tested', '',
-        `- The API suite ran ${api.results.length} cases against the real server code at commit 0bd23fe on Beralidu plus the fix for LMS-071, using a temporary local MongoDB. The hosted lms-dev database was not used.`,
+        `- The API suite ran ${api.results.length} cases against the real server code at commit 12f1ba4 on Beralidu, using a temporary local MongoDB. The hosted lms-dev database was not used.`,
         '- Stripe, email, Google sign-in and the AI providers were local stand-ins, so **no real payment, email or AI request was made**. Stripe webhook signatures were verified for real. Outbound calls blocked: ' + api.blockedOutbound.length + '.',
         '- Production-only behaviour (rate limits, stack traces, cron secret) ran against a second instance with NODE_ENV=production.',
         '- UI checks were repeated on this code. LMS-003 was confirmed in real Chrome with a temporary profile.', '',
@@ -112,7 +112,7 @@ const writeReports = () => {
         });
     });
 
-    out.push('## Fixed', '', 'All of these passed their retest and are Closed. LMS-071 is not committed yet.', '');
+    out.push('## Fixed', '', 'All of these passed their retest and are Closed.', '');
     fixed.forEach(b => {
         out.push(`### ${b.id}: ${b.title}`, '', `**Type:** ${b.type}  `, `**Status:** ${b.status}  `, `**Tests now passing:** ${b.tests.join(', ')}`, '', b.problem, '', `**Fix:** ${b.fix}`, '');
     });

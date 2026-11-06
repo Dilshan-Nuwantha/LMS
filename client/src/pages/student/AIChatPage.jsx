@@ -21,8 +21,6 @@ const AIChatPage = () => {
     const messagesEndRef = useRef(null);
     const fileInputRef = useRef(null);
 
-    useEffect(() => { checkConfig(); }, []);
-    useEffect(() => { if (hasConfig) loadConversations(); }, [hasConfig]);
     useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages]);
 
     const checkConfig = async () => {
@@ -48,12 +46,16 @@ const AIChatPage = () => {
         finally { setLoading(false); }
     };
 
+    useEffect(() => { checkConfig(); }, []);
+
     const loadConversations = async () => {
         try {
             const res = await api.get('/student-ai/conversations');
             setConversations(res.data);
-        } catch { }
+        } catch { /* Not critical: the page keeps what it has */ }
     };
+
+    useEffect(() => { if (hasConfig) loadConversations(); }, [hasConfig]);
 
     const loadConversation = async (id) => {
         try {

@@ -10,8 +10,6 @@ const LkrIcon = ({ className }) => (
 const ManageCoupons = ({ embeddedCourseId }) => {
     const courseId = embeddedCourseId;
 
-    if (!courseId) return null;
-
     const [coupons, setCoupons] = useState([]);
     const [loading, setLoading] = useState(true);
     const [showModal, setShowModal] = useState(false);
@@ -37,10 +35,6 @@ const ManageCoupons = ({ embeddedCourseId }) => {
         validUntil: ''
     });
 
-    useEffect(() => {
-        fetchData(page);
-    }, [courseId, page]);
-
     const fetchData = async (currentPage = 1) => {
         try {
             const couponsRes = await api.get(`/coupons/course/${courseId}?page=${currentPage}&limit=${LIMIT}`);
@@ -54,12 +48,18 @@ const ManageCoupons = ({ embeddedCourseId }) => {
                 setTotalPages(1);
                 setTotalCoupons(couponsRes.data.length);
             }
-        } catch (error) {
+        } catch {
             showError('Failed to load coupons');
         } finally {
             setLoading(false);
         }
     };
+
+    useEffect(() => {
+        if (courseId) fetchData(page);
+    }, [courseId, page]);
+
+    if (!courseId) return null;
 
     const resetForm = () => {
         setFormData({
@@ -144,7 +144,7 @@ const ManageCoupons = ({ embeddedCourseId }) => {
             fetchData(page);
             setShowDeleteModal(false);
             setCouponToDelete(null);
-        } catch (error) {
+        } catch {
             showError('Failed to delete coupon');
         } finally {
             setDeleting(false);
@@ -156,7 +156,7 @@ const ManageCoupons = ({ embeddedCourseId }) => {
             await api.put(`/coupons/${coupon._id}`, { isActive: !coupon.isActive });
             showSuccess(coupon.isActive ? 'Coupon deactivated' : 'Coupon activated');
             fetchData(page);
-        } catch (error) {
+        } catch {
             showError('Failed to update coupon');
         }
     };

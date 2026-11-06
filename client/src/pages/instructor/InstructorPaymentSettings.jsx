@@ -18,10 +18,6 @@ const InstructorPaymentSettings = () => {
     });
     const [saved, setSaved] = useState(false);
 
-    useEffect(() => {
-        fetchBankDetails();
-    }, []);
-
     const fetchBankDetails = async () => {
         try {
             const res = await api.get('/instructor/bank-details');
@@ -43,6 +39,10 @@ const InstructorPaymentSettings = () => {
             setLoading(false);
         }
     };
+
+    useEffect(() => {
+        fetchBankDetails();
+    }, []);
 
     const handleSubmit = async (e) => {
         e.preventDefault();

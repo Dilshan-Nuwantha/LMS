@@ -1,4 +1,4 @@
-import { useState, useEffect, useContext } from 'react';
+import { useState, useEffect } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import {
     FaSearch, FaFilter, FaTimes, FaChevronDown, FaStore, FaBookOpen,
@@ -6,11 +6,9 @@ import {
 } from 'react-icons/fa';
 import api from '../../api/axios';
 import CourseCard from '../../components/ui/CourseCard';
-import AuthContext from '../../context/AuthContext';
 import { showError } from '../../utils/toast';
 
 const Marketplace = () => {
-    const { user } = useContext(AuthContext);
     const [searchParams, setSearchParams] = useSearchParams();
 
     const [courses, setCourses] = useState([]);
@@ -33,6 +31,14 @@ const Marketplace = () => {
         minRating: searchParams.get('minRating') || '',
         sortBy: searchParams.get('sortBy') || 'newest'
     });
+    // The navbar menu changes the category without reloading this page
+    const urlCategory = searchParams.get('category') || '';
+    const [lastUrlCategory, setLastUrlCategory] = useState(urlCategory);
+    if (urlCategory !== lastUrlCategory) {
+        setLastUrlCategory(urlCategory);
+        setFilters({ ...filters, category: urlCategory });
+    }
+
     const [searchQuery, setSearchQuery] = useState(searchParams.get('q') || '');
 
     const levels = ['Beginner', 'Intermediate', 'Advanced'];
@@ -45,16 +51,6 @@ const Marketplace = () => {
         { value: 'price-high', label: 'Price: High to Low' }
     ];
 
-    useEffect(() => {
-        fetchCategories();
-    }, []);
-
-    useEffect(() => {
-        fetchCourses();
-        // The navbar menu changes the category without reloading this page
-        setFilters(prev => ({ ...prev, category: searchParams.get('category') || '' }));
-    }, [searchParams]);
-
     const fetchCategories = async () => {
         try {
             const res = await api.get('/marketplace/categories');
@@ -63,6 +59,10 @@ const Marketplace = () => {
             console.error('Error fetching categories:', error);
         }
     };
+
+    useEffect(() => {
+        fetchCategories();
+    }, []);
 
     const fetchCourses = async () => {
         setLoading(true);
@@ -90,12 +90,16 @@ const Marketplace = () => {
             if (res.data.pagination) {
                 setPagination(res.data.pagination);
             }
-        } catch (error) {
+        } catch {
             showError('Failed to load courses');
         } finally {
             setLoading(false);
         }
     };
+
+    useEffect(() => {
+        fetchCourses();
+    }, [searchParams]);
 
     const handleSearch = (e) => {
         e.preventDefault();

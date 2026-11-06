@@ -79,9 +79,6 @@ app.use('/api/admin', require('./routes/adminRoutes'));
 // Notification routes
 app.use('/api/notifications', require('./routes/notificationRoutes'));
 
-// Error handler middleware
-app.use(errorHandler);
-
 // Due date reminder check — runs every hour
 const checkDueDateReminders = async () => {
     try {
@@ -152,6 +149,14 @@ app.get('/api/cron/due-reminders', async (req, res) => {
         res.status(500).json({ error: err.message });
     }
 });
+
+// Anything under /api that matched no route above
+app.use('/api', (req, res) => {
+    res.status(404).json({ message: 'Route not found' });
+});
+
+// Error handler middleware
+app.use(errorHandler);
 
 if (require.main === module) {
     app.listen(port, () => {

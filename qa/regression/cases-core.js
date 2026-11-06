@@ -237,8 +237,17 @@ tc('CRS-008', C, 'Medium', 'Reject an invalid section importance', 'PUT a sectio
     is(await api('PUT', `/courses/${F.draft}/sections/${sid}`, { token: F.instr.token, body: { importance: 'Banana' } }), 400);
 });
 tc('CRS-009', C, 'Medium', 'A lecture field can be cleared', 'PUT a lecture with description "" and resourceUrl ""', 'The stored values become empty', async () => {
-    const r = await api('PUT', `/courses/lectures/${F.L2}`, { token: F.instr.token, body: { description: '' } });
-    is(r, 200); eq(r.json.description, '', 'description');
+    await api('PUT', `/courses/lectures/${F.L2}`, { token: F.instr.token, body: { dueDate: '2030-01-01' } });
+    const r = await api('PUT', `/courses/lectures/${F.L2}`, { token: F.instr.token, body: { description: '', resourceUrl: '', dueDate: '' } });
+    is(r, 200); eq(r.json.description, '', 'description'); eq(r.json.resourceUrl, '', 'resourceUrl'); eq(r.json.dueDate, null, 'dueDate');
+    await api('PUT', `/courses/lectures/${F.L2}`, { token: F.instr.token, body: { description: 'Public lecture body', resourceUrl: 'https://youtu.be/qa' } });
+});
+tc('CRS-028', C, 'High', 'Editing one lecture field keeps the others', 'PUT only isPreview on a lecture', 'Description, link and due date are unchanged', async () => {
+    const c = await mkCourse(F.instr);
+    const id = await addLecture(F.instr, c.id, c.sectionId, 'Keep', { dueDate: '2030-01-01' });
+    const r = await api('PUT', `/courses/lectures/${id}`, { token: F.instr.token, body: { isPreview: false } });
+    is(r, 200); eq(r.json.description, 'Keep body', 'description'); eq(r.json.resourceUrl, 'https://youtu.be/qa', 'resourceUrl');
+    ok(r.json.dueDate?.startsWith('2030-01-01'), 'dueDate lost');
 });
 tc('CRS-010', C, 'High', 'Enroll a student', 'POST /courses/:id/enroll', 'HTTP 201', async () => {
     const u = await newUser('student', 'enr');

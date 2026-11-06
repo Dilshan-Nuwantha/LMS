@@ -70,10 +70,6 @@ const InstructorDashboard = () => {
     // --------------------------------------------------
     // FETCH DASHBOARD DATA
     // --------------------------------------------------
-    useEffect(() => {
-        fetchDashboard();
-    }, []);
-
 
     const fetchDashboard = async () => {
         try {
@@ -96,6 +92,10 @@ const InstructorDashboard = () => {
             setLoading(false);
         }
     };
+
+    useEffect(() => {
+        fetchDashboard();
+    }, []);
 
 
     // --------------------------------------------------
