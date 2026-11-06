@@ -156,7 +156,7 @@ const Marketplace = () => {
                         {/* Hero Text Left */}
                         <div className="lg:col-span-7 space-y-5">
                             <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-danger-light text-danger text-xs font-bold uppercase tracking-wide">
-                                🚀 LEARNING MANAGMENT SYSTEM
+                                🚀 LEARNING MANAGEMENT SYSTEM
                             </span>
 
                             <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black text-slate-900 dark:text-white leading-[1.18] tracking-tight">

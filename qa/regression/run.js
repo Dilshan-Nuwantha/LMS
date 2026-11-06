@@ -74,7 +74,7 @@ const writeReports = () => {
     const pass = cases.filter(c => result[c.id][0] === 'PASS').length;
     const out = [
         '# Tenz Learn - Regression Bug Report', '',
-        `**Branch:** Beralidu at commit 12f1ba4, plus an uncommitted tidy-up of the LMS-071 filter code  `,
+        `**Branch:** Beralidu at commit b168822, plus the uncommitted restore of LMS-059 and the LMS-073 fix  `,
         `**Run date:** ${api.ranAt.slice(0, 10)}  `,
         `**Result:** ${cases.length} test cases, ${pass} passed, ${cases.length - pass} failed  `,
         `**Open findings:** ${open.length} (${severities.map(s => `${n(b => b.severity === s)} ${s}`).join(', ')}). **Fixed:** ${fixed.length}`, '',
@@ -94,7 +94,7 @@ const writeReports = () => {
             return `| ${m} | ${list.length} | ${p} | ${list.length - p} |`;
         }), '',
         '## How this was tested', '',
-        `- The API suite ran ${api.results.length} cases against the real server code at commit 12f1ba4 on Beralidu, using a temporary local MongoDB. The hosted lms-dev database was not used.`,
+        `- The API suite ran ${api.results.length} cases against the real server code at commit b168822 on Beralidu plus the LMS-059 restore, using a temporary local MongoDB. The hosted lms-dev database was not used.`,
         '- Stripe, email, Google sign-in and the AI providers were local stand-ins, so **no real payment, email or AI request was made**. Stripe webhook signatures were verified for real. Outbound calls blocked: ' + api.blockedOutbound.length + '.',
         '- Production-only behaviour (rate limits, stack traces, cron secret) ran against a second instance with NODE_ENV=production.',
         '- UI checks were repeated on this code. LMS-003 was confirmed in real Chrome with a temporary profile.', '',
@@ -146,13 +146,17 @@ const writeReports = () => {
         '| TC-COUP-001 | CPN-013, CPN-015 | |',
         '| TC-SEC-001 | SEC-021 | |',
         '| TC-SEC-003 | SEC-015 | Expected a limit of 100 requests; the app allows 300 |', '',
-        'Still in the tab as Not Run, because this run did not cover them: TC-RBAC-002, TC-NOTIF-001, TC-INT-001 and TC-SEC-002.', ''
+        'Still in the tab as Not Run, because this run did not cover them: TC-NOTIF-001, because the app sends no email on enrollment, only password reset codes.', ''
     );
 
     out.push(
         '## Other observations', '', 'These are not counted as bugs.', '',
         '- The coupon limit (LMS-015) is now exact for free checkouts. Two paid checkouts of a one-use coupon can still both finish, because a payment that has been taken cannot be refused afterwards.',
         '- LMS-061 was closed as a side effect of the LMS-035 error handler fix.',
+        '- Merge b168822 undid the LMS-059 login fix. It was restored after the merge, and SEC-050, AUTH-032 and AUTH-041 now pass again.',
+        '- A blocked user who enters the right password sees the block reason. Commit c4d1af1 showed a generic message instead; the reason was kept because it matches the original behaviour.',
+        '- Five failed logins lock that account for 15 minutes, even for its owner (LMS-060). Anyone who knows the email address could trigger this.',
+        '- `react-hooks/set-state-in-effect` is a warning rather than an error in `client/eslint.config.js` (LMS-069). It flags every fetch started from an effect, and moving to a data library is too large a change before launch.',
         '- The marketplace category lists only show categories that have a published marketplace course. The instructor forms use two different fixed lists, with 13 categories in `CourseSettings.jsx` and 10 in `CreateMarketplaceCourse.jsx`.',
         '- Instructors no longer choose whether to announce new content (LMS-048). Public content on a published course is always announced, and the old toggle now only customises the message and priority. Content that starts hidden and is made public later is not announced.',
         '- Helpful votes cast before LMS-053 have no voter recorded, so those people can vote once more.',
@@ -161,16 +165,14 @@ const writeReports = () => {
         '- Students on a quiz with unlimited attempts never see the correct answers, because a retake is always possible (LMS-022). They still see which answers were wrong.',
         '- Older course chats started without the instructor key now need a new chat or the student\'s own key, because the silent fallback is gone (LMS-023).',
         '- A removed buyer who checks out again gets access back without paying (LMS-016). Use an admin block to keep someone out for good.',
-        '- `npm test` runs test files in parallel, and they share one invoice counter in the test database, so the invoice test can fail. All 18 pass with `node --test --test-concurrency=1 tests/*.test.js`.',
         '- The server startup retry for slow Atlas connections in `server/config/db.js` was never committed and is not on this branch.',
         '- Fixed on develop since the first run: LMS-063 (blocked and deleted users got wrong auth responses) and LMS-064 (wrong role returned 401). They are removed from this report, so those numbers are skipped.',
-        '- `server/node_modules` on this machine has no `nodemailer`, so the server will not start until `npm install` is run in `server/`.',
         '- `server/.env` has no `EMAIL_USER` or `EMAIL_PASS`, so password reset emails cannot be sent with this configuration, and no `server/.env.example` exists.',
         '- `CRON_SECRET` is needed in production for the due date reminders; it is not in `server/.env`.',
-        '- `server/tests/auth.test.js` loads `server/.env`, so `npm test` runs against the hosted lms-dev database by default.',
         '- The SRS is out of date in places: FR-PAY-04 says invoices are public, but the code correctly protects them. It lists `canManageContent`-style permissions, while the code uses `manage_content`. Section 9.6 says no email service exists.',
         '- SRS 3.3 says instructors apply and are granted the role, but `/auth/teacher/register` and `/instructor/become` grant it instantly. Please confirm which is intended.',
-        '- Home page text has a typo, "LEARNING MANAGMENT SYSTEM", and the footer has placeholder contact details.',
+        '- The footer has a placeholder phone number and empty social links, and its Terms and Privacy links open the marketplace because those pages do not exist.',
+        '- Free courses show a "Buy Now" button. It enrols correctly, but the wording is misleading.',
         ''
     );
     fs.writeFileSync(path.join(QA, 'BUG_REPORT.md'), out.join('\n'));

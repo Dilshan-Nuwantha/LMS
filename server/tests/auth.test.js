@@ -296,10 +296,7 @@ describe('Authentication System Test Suite', () => {
         });
         assert.equal(manualLoginAttempt.status, 400);
         const loginData = await manualLoginAttempt.json();
-        assert.ok(
-            loginData.message.includes('Google sign-in'),
-            `Expected message mentioning Google sign-in, got: ${loginData.message}`
-        );
+        assert.equal(loginData.message, 'Invalid credentials');
     });
 
     // ── Task 7.6: Successful Manual Login ────────────────────────────────────────

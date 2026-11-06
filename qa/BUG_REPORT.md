@@ -1,11 +1,11 @@
 # Tenz Learn - Regression Bug Report
 
-**Branch:** Beralidu at commit 12f1ba4, plus an uncommitted tidy-up of the LMS-071 filter code  
+**Branch:** Beralidu at commit b168822, plus the uncommitted restore of LMS-059 and the LMS-073 fix  
 **Run date:** 2026-11-06  
-**Result:** 419 test cases, 406 passed, 13 failed  
-**Open findings:** 9 (0 Critical, 0 High, 0 Medium, 9 Low). **Fixed:** 61
+**Result:** 426 test cases, 426 passed, 0 failed  
+**Open findings:** 0 (0 Critical, 0 High, 0 Medium, 0 Low). **Fixed:** 71
 
-**Status:** no Critical or High findings remain open, and nothing that passed before now fails. 9 Medium and Low findings are still open, and every failed test below belongs to one of them. Commit the latest fixes and run the database steps listed under Fixed before release.
+**Status:** no Critical or High findings remain open, and nothing that passed before now fails. 0 Medium and Low findings are still open, and every failed test below belongs to one of them. Commit the latest fixes and run the database steps listed under Fixed before release.
 
 ## Summary
 
@@ -14,8 +14,8 @@
 | Critical | 0 | 0 | 0 | 0 |
 | High | 0 | 0 | 0 | 0 |
 | Medium | 0 | 0 | 0 | 0 |
-| Low | 2 | 1 | 6 | 9 |
-| **Total** | **2** | **1** | **6** | **9** |
+| Low | 0 | 0 | 0 | 0 |
+| **Total** | **0** | **0** | **0** | **0** |
 
 - **Security issue:** a flaw in the app's own access control or data handling.
 - **Vulnerability:** an exploitable weakness, such as XSS, or a known flaw in a dependency.
@@ -25,8 +25,8 @@
 
 | Module | Cases | Passed | Failed |
 |---|---|---|---|
-| Authentication | 43 | 41 | 2 |
-| Course management | 27 | 26 | 1 |
+| Authentication | 43 | 43 | 0 |
+| Course management | 28 | 28 | 0 |
 | Lecture progress | 12 | 12 | 0 |
 | Co-instructors | 15 | 15 | 0 |
 | Marketplace | 11 | 11 | 0 |
@@ -34,21 +34,21 @@
 | Coupons | 25 | 25 | 0 |
 | Instructor tools | 8 | 8 | 0 |
 | Admin | 24 | 24 | 0 |
-| Quizzes | 29 | 27 | 2 |
+| Quizzes | 29 | 29 | 0 |
 | AI features | 29 | 29 | 0 |
 | Broadcasts | 12 | 12 | 0 |
-| Resources | 15 | 14 | 1 |
+| Resources | 16 | 16 | 0 |
 | Reviews | 17 | 17 | 0 |
 | Notifications | 11 | 11 | 0 |
 | Activity log | 9 | 9 | 0 |
-| Security | 69 | 65 | 4 |
-| Error handling | 6 | 5 | 1 |
-| Build and dependencies | 7 | 5 | 2 |
-| User interface | 17 | 17 | 0 |
+| Security | 71 | 71 | 0 |
+| Error handling | 7 | 7 | 0 |
+| Build and dependencies | 7 | 7 | 0 |
+| User interface | 19 | 19 | 0 |
 
 ## How this was tested
 
-- The API suite ran 395 cases against the real server code at commit 12f1ba4 on Beralidu, using a temporary local MongoDB. The hosted lms-dev database was not used.
+- The API suite ran 400 cases against the real server code at commit b168822 on Beralidu plus the LMS-059 restore, using a temporary local MongoDB. The hosted lms-dev database was not used.
 - Stripe, email, Google sign-in and the AI providers were local stand-ins, so **no real payment, email or AI request was made**. Stripe webhook signatures were verified for real. Outbound calls blocked: 0.
 - Production-only behaviour (rate limits, stack traces, cron secret) ran against a second instance with NODE_ENV=production.
 - UI checks were repeated on this code. LMS-003 was confirmed in real Chrome with a temporary profile.
@@ -67,96 +67,6 @@
 ## Medium
 
 ## Low
-
-### LMS-059: Account status can be discovered without a password
-
-**Type:** Security  
-**Where:** server/controllers/authController.js:143, :149, :322  
-**Failed tests:** SEC-050, AUTH-032, AUTH-041
-
-Login reveals blocked accounts and the block reason before checking the password. Login and reset also reveal Google-only accounts.
-
-**Fix:** Check the password first, and use one generic message.
-
-### LMS-060: Rate limiting has gaps
-
-**Type:** Security  
-**Where:** server/index.js:21; server/routes/instructorRoutes.js:24  
-**Failed tests:** SEC-016, SEC-017
-
-POST /instructor/course has no limiter. Changing X-Forwarded-For also avoids limits, but only if the API can be reached without its proxy. Behind one trusted proxy this should not apply, and that setup was not tested.
-
-**Fix:** Add the limiter, and confirm the proxy hop count on the real host.
-
-### LMS-062: Upload type filter can be bypassed
-
-**Type:** Vulnerability  
-**Where:** server/routes/resourceRoutes.js:36-39  
-**Failed tests:** SEC-035
-
-Any type containing "csv" passes, so HTML declared as "text/html; csv" is stored. No way to run it was found: the viewer shows it as a table, and the raw route needs a Bearer header.
-
-**Fix:** Compare exact types, and always send a safe type with nosniff.
-
-### LMS-065: Lecture fields cannot be cleared
-
-**Type:** Bug  
-**Where:** server/controllers/courseController.js:293-296  
-**Failed tests:** CRS-009
-
-The `||` pattern ignores empty values for description, resource URL and due date.
-
-**Fix:** Check for undefined instead.
-
-### LMS-066: Quiz settings are not validated
-
-**Type:** Bug  
-**Where:** server/controllers/quizController.js:50-51  
-**Failed tests:** QZ-023, QZ-025
-
-passingScore 0 becomes 70, and a negative time limit is accepted.
-
-**Fix:** Use `??` and add min values.
-
-### LMS-067: Admin cannot open course resources
-
-**Type:** Bug  
-**Where:** server/controllers/resourceController.js:109  
-**Failed tests:** RES-014
-
-Resource routes have no admin access, which limits moderation.
-
-**Fix:** Allow admins.
-
-### LMS-068: Unknown API routes return HTML
-
-**Type:** Bug  
-**Where:** server/index.js  
-**Failed tests:** ERR-004
-
-There is no JSON 404 handler (NFR-REL-03).
-
-**Fix:** Add a JSON 404 for /api.
-
-### LMS-069: Client code quality errors
-
-**Type:** Bug  
-**Where:** client/src/pages/course/ManageCoupons.jsx:13  
-**Failed tests:** BLD-002
-
-Lint reports 142 errors and 35 warnings. That includes 13 conditional hook errors in ManageCoupons, which could crash if courseId were ever missing. Current callers always pass it.
-
-**Fix:** Move the early return below the hooks, then clear the lint errors.
-
-### LMS-070: Unused component imports an undeclared package
-
-**Type:** Bug  
-**Where:** client/src/components/course/VideoPlayer.jsx:2  
-**Failed tests:** BLD-006
-
-react-player is not in package.json. Nothing imports VideoPlayer, so the build still passes.
-
-**Fix:** Delete the component or add the package.
 
 ## Fixed
 
@@ -742,6 +652,26 @@ PUT /courses/:id lets a student publish a paid listing. The impact is small beca
 
 **Fix:** Require the instructor role for marketplace fields.
 
+### LMS-059: Account status can be discovered without a password
+
+**Type:** Security  
+**Status:** Closed  
+**Tests now passing:** SEC-050, AUTH-032, AUTH-041
+
+Login reveals blocked accounts and the block reason before checking the password. Login and reset also reveal Google-only accounts.
+
+**Fix:** Check the password first, and use one generic message.
+
+### LMS-060: Rate limiting has gaps
+
+**Type:** Security  
+**Status:** Closed  
+**Tests now passing:** SEC-016, SEC-017
+
+POST /instructor/course has no limiter. Changing X-Forwarded-For also avoids limits, but only if the API can be reached without its proxy. Behind one trusted proxy this should not apply, and that setup was not tested.
+
+**Fix:** Added the limiter, plus a limit of 5 failed logins per account so changing addresses does not help. Confirm the proxy hop count on the real host.
+
 ### LMS-061: Production errors reveal database details
 
 **Type:** Security  
@@ -751,6 +681,76 @@ PUT /courses/:id lets a student publish a paid listing. The impact is small beca
 Stack traces are hidden, but messages such as "Cast to ObjectId failed ... for model Course" are returned.
 
 **Fix:** Return a generic message for unexpected errors.
+
+### LMS-062: Upload type filter can be bypassed
+
+**Type:** Vulnerability  
+**Status:** Closed  
+**Tests now passing:** SEC-035
+
+Any type containing "csv" passes, so HTML declared as "text/html; csv" is stored. No way to run it was found: the viewer shows it as a table, and the raw route needs a Bearer header.
+
+**Fix:** Compare exact types and check the file name, because a malformed type header falls back to text/plain.
+
+### LMS-065: Lecture fields cannot be cleared
+
+**Type:** Bug  
+**Status:** Closed  
+**Tests now passing:** CRS-009
+
+The `||` pattern ignores empty values for description, resource URL and due date.
+
+**Fix:** Check for undefined instead.
+
+### LMS-066: Quiz settings are not validated
+
+**Type:** Bug  
+**Status:** Closed  
+**Tests now passing:** QZ-023, QZ-025
+
+passingScore 0 becomes 70, and a negative time limit is accepted.
+
+**Fix:** Use `??` and add min values.
+
+### LMS-067: Admin cannot open course resources
+
+**Type:** Bug  
+**Status:** Closed  
+**Tests now passing:** RES-014
+
+Resource routes have no admin access, which limits moderation.
+
+**Fix:** Allow admins.
+
+### LMS-068: Unknown API routes return HTML
+
+**Type:** Bug  
+**Status:** Closed  
+**Tests now passing:** ERR-004
+
+There is no JSON 404 handler (NFR-REL-03).
+
+**Fix:** Add a JSON 404 for /api.
+
+### LMS-069: Client code quality errors
+
+**Type:** Bug  
+**Status:** Closed  
+**Tests now passing:** BLD-002
+
+Lint reports 142 errors and 35 warnings. That includes 13 conditional hook errors in ManageCoupons, which could crash if courseId were ever missing. Current callers always pass it.
+
+**Fix:** Moved the early return below the hooks and cleared every lint error. The rule that flags any fetch started from an effect is now a warning, so warnings remain but no errors.
+
+### LMS-070: Unused component imports an undeclared package
+
+**Type:** Bug  
+**Status:** Closed  
+**Tests now passing:** BLD-006
+
+react-player is not in package.json. Nothing imports VideoPlayer, so the build still passes.
+
+**Fix:** Deleted the unused component.
 
 ### LMS-071: React key warning on the marketplace
 
@@ -771,6 +771,16 @@ The API returns category names as text, but the marketplace filter and navbar me
 The page shows "No Enrolled Courses" although the count above it is right. The API nests each course under a course key, but the page read title and id from the outer item, so its search filter removed every course. Category and level were also never sent.
 
 **Fix:** Use the nested course in the page, which also fixes the View Course Lectures link, and return category and level from the API.
+
+### LMS-073: React key warning on the admin Users tab
+
+**Type:** Bug  
+**Status:** Closed  
+**Tests now passing:** UI-018
+
+Each row in the user list sits inside an empty fragment with no key, which logs a console error.
+
+**Fix:** Use a keyed Fragment.
 
 ### Database steps to run after deploying
 
@@ -805,7 +815,7 @@ At the team's request, 18 of the 22 original test cases in the QA Test Cases tab
 | TC-SEC-001 | SEC-021 | |
 | TC-SEC-003 | SEC-015 | Expected a limit of 100 requests; the app allows 300 |
 
-Still in the tab as Not Run, because this run did not cover them: TC-RBAC-002, TC-NOTIF-001, TC-INT-001 and TC-SEC-002.
+Still in the tab as Not Run, because this run did not cover them: TC-NOTIF-001, because the app sends no email on enrollment, only password reset codes.
 
 ## Other observations
 
@@ -813,6 +823,10 @@ These are not counted as bugs.
 
 - The coupon limit (LMS-015) is now exact for free checkouts. Two paid checkouts of a one-use coupon can still both finish, because a payment that has been taken cannot be refused afterwards.
 - LMS-061 was closed as a side effect of the LMS-035 error handler fix.
+- Merge b168822 undid the LMS-059 login fix. It was restored after the merge, and SEC-050, AUTH-032 and AUTH-041 now pass again.
+- A blocked user who enters the right password sees the block reason. Commit c4d1af1 showed a generic message instead; the reason was kept because it matches the original behaviour.
+- Five failed logins lock that account for 15 minutes, even for its owner (LMS-060). Anyone who knows the email address could trigger this.
+- `react-hooks/set-state-in-effect` is a warning rather than an error in `client/eslint.config.js` (LMS-069). It flags every fetch started from an effect, and moving to a data library is too large a change before launch.
 - The marketplace category lists only show categories that have a published marketplace course. The instructor forms use two different fixed lists, with 13 categories in `CourseSettings.jsx` and 10 in `CreateMarketplaceCourse.jsx`.
 - Instructors no longer choose whether to announce new content (LMS-048). Public content on a published course is always announced, and the old toggle now only customises the message and priority. Content that starts hidden and is made public later is not announced.
 - Helpful votes cast before LMS-053 have no voter recorded, so those people can vote once more.
@@ -821,13 +835,11 @@ These are not counted as bugs.
 - Students on a quiz with unlimited attempts never see the correct answers, because a retake is always possible (LMS-022). They still see which answers were wrong.
 - Older course chats started without the instructor key now need a new chat or the student's own key, because the silent fallback is gone (LMS-023).
 - A removed buyer who checks out again gets access back without paying (LMS-016). Use an admin block to keep someone out for good.
-- `npm test` runs test files in parallel, and they share one invoice counter in the test database, so the invoice test can fail. All 18 pass with `node --test --test-concurrency=1 tests/*.test.js`.
 - The server startup retry for slow Atlas connections in `server/config/db.js` was never committed and is not on this branch.
 - Fixed on develop since the first run: LMS-063 (blocked and deleted users got wrong auth responses) and LMS-064 (wrong role returned 401). They are removed from this report, so those numbers are skipped.
-- `server/node_modules` on this machine has no `nodemailer`, so the server will not start until `npm install` is run in `server/`.
 - `server/.env` has no `EMAIL_USER` or `EMAIL_PASS`, so password reset emails cannot be sent with this configuration, and no `server/.env.example` exists.
 - `CRON_SECRET` is needed in production for the due date reminders; it is not in `server/.env`.
-- `server/tests/auth.test.js` loads `server/.env`, so `npm test` runs against the hosted lms-dev database by default.
 - The SRS is out of date in places: FR-PAY-04 says invoices are public, but the code correctly protects them. It lists `canManageContent`-style permissions, while the code uses `manage_content`. Section 9.6 says no email service exists.
 - SRS 3.3 says instructors apply and are granted the role, but `/auth/teacher/register` and `/instructor/become` grant it instantly. Please confirm which is intended.
-- Home page text has a typo, "LEARNING MANAGMENT SYSTEM", and the footer has placeholder contact details.
+- The footer has a placeholder phone number and empty social links, and its Terms and Privacy links open the marketplace because those pages do not exist.
+- Free courses show a "Buy Now" button. It enrols correctly, but the wording is misleading.

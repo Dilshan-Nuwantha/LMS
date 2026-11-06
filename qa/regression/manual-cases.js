@@ -30,3 +30,5 @@ manual('UI-014', U, 'Critical', 'My Learning lists enrolled courses', 'Log in as
 manual('UI-015', U, 'High', 'Marketplace language filter', 'Open Advanced Filters, choose Sinhala, apply', 'Only Sinhala courses are listed');
 manual('UI-016', U, 'High', 'New lecture is announced once', 'As a teacher on a published course, save one lecture normally and one with a custom announcement', 'One broadcast each, with a direct link, and the chosen priority is kept');
 manual('UI-017', U, 'High', 'Category lists show every category', 'Open the marketplace filter and the navbar Category menu, then pick a category that contains an ampersand', 'All category names show, the courses are filtered, and the filter box shows that category');
+manual('UI-018', U, 'High', 'Admin pages load cleanly', 'As an admin, open every dashboard tab and the activity log', 'All render with no console errors');
+manual('INT-001', U, 'Critical', 'Full user journey', 'Register, log in, browse, enroll, open a lecture, complete it, then take a quiz', 'The whole journey works with no console or API errors');

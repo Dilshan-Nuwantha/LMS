@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { Fragment, useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import {
     FaUsers, FaChalkboardTeacher, FaBookOpen, FaBook,
@@ -419,9 +419,8 @@ const UsersTab = () => {
                                         const warnPct = Math.min(100, (warnCount / maxWarn) * 100);
 
                                         return (
-                                            <>
+                                            <Fragment key={user._id}>
                                                 <tr
-                                                    key={user._id}
                                                     className={`hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors ${user.isBlocked ? 'bg-red-50/40 dark:bg-red-900/10' : ''}`}
                                                 >
                                                     {/* User info */}
@@ -588,7 +587,7 @@ const UsersTab = () => {
                                                         </td>
                                                     </tr>
                                                 )}
-                                            </>
+                                            </Fragment>
                                         );
                                     })}
                                 </tbody>

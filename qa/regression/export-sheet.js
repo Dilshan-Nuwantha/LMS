@@ -55,12 +55,15 @@ const bugRows = bugs.map(b => {
     ].map(clean);
 });
 
+// Older rows keep the id they already have in the workbook
+const sheetTestId = (id) => (id === 'INT-001' ? 'TC-INT-001' : `TC-REG-${id}`);
+
 const testRows = cases.map(c => [
-    `TC-REG-${c.id}`, c.title, MODULE[c.module],
+    sheetTestId(c.id), c.title, MODULE[c.module],
     c.fn ? 'Local regression stack running' : 'Client and API running locally', c.steps, c.expected, actual(c.id),
     result[c.id][0] === 'PASS' ? 'Pass' : 'Fail', c.fn ? 'Automated' : 'Manual', c.priority,
     'Claude Code', RUN_DATE, (bugsFor[c.id] || []).join(', '),
-    `Regression run on ${uiOnEarlierCommit.has(c.id) ? 'commit 4280b9e' : 'Beralidu 12f1ba4'} (${c.id})`
+    `Regression run on ${uiOnEarlierCommit.has(c.id) ? 'commit 4280b9e' : 'Beralidu b168822 plus the BUG-063 restore and BUG-075 fix'} (${c.id})`
 ].map(clean));
 
 // The team's own fixes, covered by these passing cases: AUTH-004, AUTH-012, PAY-016, PAY-001
