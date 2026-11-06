@@ -116,6 +116,12 @@ const getCourse = asyncHandler(async (req, res) => {
     const isTeacher = !!teacherPermissions;
     const hasFullAccess = teacherPermissions?.full_access || teacherPermissions?.manage_content;
 
+    // Block students from accessing admin-blocked courses
+    if (course.isAdminBlocked && !isOwnerOrAdmin && !isTeacher) {
+        res.status(403);
+        throw new Error('This course is currently unavailable');
+    }
+
     // Filter hidden content for non-owners and non-teachers
     if (!isOwnerOrAdmin && !hasFullAccess) {
         course.sections = course.sections
@@ -477,6 +483,12 @@ const getLecture = asyncHandler(async (req, res) => {
     const isOwnerOrAdmin = canManage(req.user, course.user);
     const teacherPermissions = await getTeacherPermissions(userId, course._id);
     const isTeacher = !!teacherPermissions;
+
+    // Block students from accessing lectures in admin-blocked courses
+    if (course.isAdminBlocked && !isOwnerOrAdmin && !isTeacher) {
+        res.status(403);
+        throw new Error('This course is currently unavailable');
+    }
 
     // If lecture or its section is hidden, only owner/admin/teacher can access
     if (!isOwnerOrAdmin && !isTeacher) {
