@@ -296,7 +296,10 @@ describe('Authentication System Test Suite', () => {
         });
         assert.equal(manualLoginAttempt.status, 400);
         const loginData = await manualLoginAttempt.json();
-        assert.equal(loginData.message, 'Invalid credentials');
+        assert.ok(
+            loginData.message.includes('Google sign-in'),
+            `Expected message mentioning Google sign-in, got: ${loginData.message}`
+        );
     });
 
     // ── Task 7.6: Successful Manual Login ────────────────────────────────────────
@@ -347,6 +350,91 @@ describe('Authentication System Test Suite', () => {
         assert.equal(loginRes.status, 400);
         const loginData = await loginRes.json();
         assert.equal(loginData.message, 'Invalid credentials');
+    });
+
+    it('should not reveal blocked account status when login password is incorrect', async () => {
+        const email = generateTestEmail('blocked_wrong_password');
+        const password = 'CorrectPassword123!';
+
+        // Create a normal account
+        const regRes = await fetch(`${baseUrl}/register`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                name: 'Blocked Test User',
+                email,
+                password,
+            }),
+        });
+
+        assert.equal(regRes.status, 201);
+
+        // Block the account directly in the database
+        const user = await User.findOne({ email: email.toLowerCase() });
+        assert.ok(user);
+
+        user.isBlocked = true;
+        user.blockReason = 'Security test block reason';
+        await user.save();
+
+        // Attempt login with an incorrect password
+        const loginRes = await fetch(`${baseUrl}/login`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                email,
+                password: 'WrongPassword123!',
+            }),
+        });
+
+        const loginData = await loginRes.json();
+
+        assert.equal(loginRes.status, 400);
+        assert.equal(loginData.message, 'Invalid credentials');
+        assert.ok(!loginData.message.includes('blocked'));
+        assert.ok(!loginData.message.includes('Security test block reason'));
+    });
+
+    it('should not reveal Google-only account status through forgot password', async () => {
+        const email = generateTestEmail('google_forgot_password');
+
+        // Create a Google-only account
+        await User.create({
+            name: 'Google Forgot Password User',
+            email: email.toLowerCase(),
+            googleId: `google_forgot_${Date.now()}`,
+            password: null,
+            role: 'student',
+        });
+
+        // Request password reset for Google-only account
+        const googleRes = await fetch(`${baseUrl}/forgot-password`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email }),
+        });
+
+        const googleData = await googleRes.json();
+
+        // Request password reset for a non-existent account
+        const unknownRes = await fetch(`${baseUrl}/forgot-password`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                email: 'unknown_forgot_password@tenzetest.com',
+            }),
+        });
+
+        const unknownData = await unknownRes.json();
+
+        // Both responses must be identical
+        assert.equal(googleRes.status, unknownRes.status);
+        assert.equal(googleData.message, unknownData.message);
+
+        assert.ok(
+            !googleData.message.includes('Google'),
+            'Forgot-password response must not reveal Google account status'
+        );
     });
 
     it('should reject login with non-existent email', async () => {
