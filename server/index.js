@@ -8,6 +8,7 @@ const activityLogger = require('./middleware/activityLogger');
 const { apiLimiter } = require('./middleware/rateLimiter');
 const connectDB = require('./config/db');
 const cors = require('cors');
+const helmet = require('helmet');
 const https = require('https');
 const http = require('http');
 
@@ -19,6 +20,9 @@ const app = express();
 
 // Trust proxy (required for Render, rate-limiting, and correct client IP)
 app.set('trust proxy', 1);
+
+// The client runs on another origin, so API responses must stay readable from it
+app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }));
 
 app.use(cors({
     origin: process.env.CLIENT_URL || 'http://localhost:5173',
@@ -76,16 +80,7 @@ app.use('/api/admin', require('./routes/adminRoutes'));
 app.use('/api/notifications', require('./routes/notificationRoutes'));
 
 // Error handler middleware
-app.use((err, req, res, next) => {
-    if (res.headersSent) {
-        return next(err);
-    }
-    const statusCode = res.statusCode && res.statusCode !== 200 ? res.statusCode : 500;
-    res.status(statusCode).json({
-        message: err.message,
-        stack: process.env.NODE_ENV === 'production' ? null : err.stack,
-    });
-});
+app.use(errorHandler);
 
 // Due date reminder check — runs every hour
 const checkDueDateReminders = async () => {

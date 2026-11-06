@@ -1,6 +1,20 @@
 const asyncHandler = require('express-async-handler');
 const Coupon = require('../models/Coupon');
 const Course = require('../models/Course');
+const { getPaging } = require('../utils/query');
+
+// Returns what is wrong with a coupon's values, or null when they are fine
+const couponProblem = ({ discountType, discountValue, maxUses }, price) => {
+    const value = Number(discountValue);
+
+    if (!Number.isFinite(value) || value <= 0) return 'Discount value must be greater than 0';
+    if (discountType === 'percentage' && (value < 1 || value > 100)) return 'Percentage discount must be between 1 and 100';
+    if (discountType === 'fixed' && value >= price) return 'Fixed discount cannot be greater than or equal to course price';
+    if (maxUses !== undefined && maxUses !== null && maxUses !== '' && (!Number.isInteger(Number(maxUses)) || Number(maxUses) < 1)) {
+        return 'Usage limit must be at least 1, or empty for unlimited';
+    }
+    return null;
+};
 
 // @desc    Create a coupon
 // @route   POST /api/coupons
@@ -17,7 +31,7 @@ const createCoupon = asyncHandler(async (req, res) => {
     } = req.body;
 
     // Validate required fields
-    if (!code || !courseId || !discountType || discountValue === undefined || !validUntil) {
+    if (typeof code !== 'string' || !code || !courseId || !discountType || discountValue === undefined || !validUntil) {
         res.status(400);
         throw new Error('Please provide all required fields');
     }
@@ -34,15 +48,16 @@ const createCoupon = asyncHandler(async (req, res) => {
         throw new Error('Not authorized to create coupon for this course');
     }
 
-    // Validate discount value
-    if (discountType === 'percentage' && (discountValue < 1 || discountValue > 100)) {
+    const problem = couponProblem({ discountType, discountValue, maxUses }, course.price);
+    if (problem) {
         res.status(400);
-        throw new Error('Percentage discount must be between 1 and 100');
+        throw new Error(problem);
     }
 
-    if (discountType === 'fixed' && discountValue >= course.price) {
+    const expiry = new Date(validUntil);
+    if (Number.isNaN(expiry.getTime()) || expiry <= new Date()) {
         res.status(400);
-        throw new Error('Fixed discount cannot be greater than or equal to course price');
+        throw new Error('Expiry date must be in the future');
     }
 
     // Check if coupon code already exists for this course
@@ -64,7 +79,7 @@ const createCoupon = asyncHandler(async (req, res) => {
         discountValue,
         maxUses: maxUses || null,
         validFrom: validFrom || new Date(),
-        validUntil: new Date(validUntil),
+        validUntil: expiry,
         isActive: true
     });
 
@@ -76,9 +91,7 @@ const createCoupon = asyncHandler(async (req, res) => {
 // @access  Private (Instructor, Owner)
 const getCourseCoupons = asyncHandler(async (req, res) => {
     const { courseId } = req.params;
-    const page = Number(req.query.page) || 1;
-    const limit = Number(req.query.limit) || 10;
-    const skip = (page - 1) * limit;
+    const { page, limit, skip } = getPaging(req.query, 10);
 
     // Verify course ownership
     const course = await Course.findById(courseId);
@@ -131,6 +144,20 @@ const updateCoupon = asyncHandler(async (req, res) => {
         isActive
     } = req.body;
 
+    if (discountType !== undefined || discountValue !== undefined || maxUses !== undefined) {
+        const course = await Course.findById(coupon.course).select('price');
+        const problem = couponProblem({
+            discountType: discountType ?? coupon.discountType,
+            discountValue: discountValue ?? coupon.discountValue,
+            maxUses
+        }, course?.price ?? 0);
+
+        if (problem) {
+            res.status(400);
+            throw new Error(problem);
+        }
+    }
+
     if (discountType !== undefined) coupon.discountType = discountType;
     if (discountValue !== undefined) coupon.discountValue = discountValue;
     if (maxUses !== undefined) coupon.maxUses = maxUses;
@@ -170,7 +197,7 @@ const deleteCoupon = asyncHandler(async (req, res) => {
 const validateCoupon = asyncHandler(async (req, res) => {
     const { code, courseId } = req.body;
 
-    if (!code || !courseId) {
+    if (typeof code !== 'string' || !code || !courseId) {
         res.status(400);
         throw new Error('Please provide coupon code and course ID');
     }
@@ -195,7 +222,7 @@ const validateCoupon = asyncHandler(async (req, res) => {
     // Get course price to calculate discount
     const course = await Course.findById(courseId);
     const discountAmount = coupon.calculateDiscount(course.price);
-    const finalPrice = course.price - discountAmount;
+    const finalPrice = Math.round((course.price - discountAmount) * 100) / 100;
 
     res.status(200).json({
         valid: true,

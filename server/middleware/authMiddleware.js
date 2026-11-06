@@ -15,6 +15,14 @@ const protect = asyncHandler(async (req, res, next) => {
         try {
             const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
+            // Password reset tokens only work on the reset route
+            if (decoded.purpose) {
+                return res.status(401).json({
+                    code: 'INVALID_TOKEN',
+                    message: 'Invalid authentication token.'
+                });
+            }
+
             req.user = await User.findById(decoded.id).select('-password');
 
             if (!req.user) {
@@ -37,6 +45,9 @@ const protect = asyncHandler(async (req, res, next) => {
                     message: 'Your account has been blocked. Please contact support.'
                 });
             }
+
+            // Set on impersonation tokens, so actions are recorded against the admin
+            req.impersonatedBy = decoded.imp;
 
             return next();
 

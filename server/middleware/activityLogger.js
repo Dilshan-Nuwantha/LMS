@@ -1,3 +1,4 @@
+const mongoose = require('mongoose');
 const Activity = require('../models/Activity');
 
 // Only these request fields are stored. Anything else, such as passwords, API keys,
@@ -29,7 +30,7 @@ const activityLogger = async (req, res, next) => {
             const user = req.user || res.locals.user;
             if (!user) return; // Don't log anonymous actions
 
-            const userId = user._id || user.id;
+            const userId = req.impersonatedBy || user._id || user.id;
 
             // 3. Prepare Event Data (Body)
             const eventData = pickLoggedFields(req.body);
@@ -85,6 +86,7 @@ const activityLogger = async (req, res, next) => {
             else if (url.includes('/resources') && req.method === 'POST') { action = 'Resource Uploaded'; details = `Uploaded a resource${eventData.title ? ': ' + eventData.title : ''}`; }
             else if (url.includes('/resources') && req.method === 'DELETE') { action = 'Resource Deleted'; details = 'Deleted a resource'; }
             // Admin actions
+            else if (url.includes('/warnings/') && req.method === 'DELETE') { action = 'Warning Removed'; details = 'Removed a warning from a user'; }
             else if (url.includes('/warn')) { action = 'User Warned'; details = 'Sent a warning to a user'; }
             else if (url.includes('/block') && url.includes('/users')) { action = 'User Blocked'; details = 'Blocked a user'; }
             else if (url.includes('/unblock') && url.includes('/users')) { action = 'User Unblocked'; details = 'Unblocked a user'; }
@@ -108,6 +110,7 @@ const activityLogger = async (req, res, next) => {
                 action: action || req.method,
                 method: req.method,
                 url: req.originalUrl,
+                ip: req.ip,
                 data: eventData,
                 details: details || action || `${req.method} action performed`
             };
@@ -123,7 +126,8 @@ const activityLogger = async (req, res, next) => {
                 if (match) courseId = match[1];
             }
 
-            if (courseId) logData.course = courseId;
+            // The id can come from the request body, and a bad one must not lose the whole entry
+            if (mongoose.isValidObjectId(courseId)) logData.course = courseId;
 
             // Override from Controller
             if (res.locals.activity) {
@@ -133,6 +137,11 @@ const activityLogger = async (req, res, next) => {
                 if (res.locals.activity.course) logData.course = res.locals.activity.course;
                 if (res.locals.activity.lecture) logData.lecture = res.locals.activity.lecture;
             }
+
+            // A refused request is still worth keeping, but it must not read as done
+            if (res.statusCode >= 400) logData.action = `Failed: ${logData.action}`;
+
+            if (req.impersonatedBy) logData.details = `[Impersonating ${user.email}] ${logData.details}`;
 
             await Activity.create(logData);
 

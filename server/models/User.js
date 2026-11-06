@@ -63,9 +63,9 @@ const userSchema = new mongoose.Schema({
         default: ''
     },
     // Password reset OTP fields
-    otpHash:   { type: String, default: null },
-    otpExpiry: { type: Date,   default: null },
-    otpAttempts: { type: Number, default: 0 },
+    otpHash:   { type: String, default: null, select: false },
+    otpExpiry: { type: Date,   default: null, select: false },
+    otpAttempts: { type: Number, default: 0, select: false },
     // Raised when the password changes, which ends every older login token
     tokenVersion: { type: Number, default: 0 },
     // Block fields

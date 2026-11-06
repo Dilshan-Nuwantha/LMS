@@ -96,10 +96,10 @@ const CourseView = () => {
 
     useEffect(() => {
         if (course) {
-            document.title = `Skill Path | ${course.title}`;
+            document.title = `Tenz Learn | ${course.title}`;
         }
         return () => {
-            document.title = 'Skill Path';
+            document.title = 'Tenz Learn';
         };
     }, [course]);
 

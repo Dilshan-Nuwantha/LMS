@@ -60,7 +60,7 @@ const testRows = cases.map(c => [
     c.fn ? 'Local regression stack running' : 'Client and API running locally', c.steps, c.expected, actual(c.id),
     result[c.id][0] === 'PASS' ? 'Pass' : 'Fail', c.fn ? 'Automated' : 'Manual', c.priority,
     'Claude Code', RUN_DATE, (bugsFor[c.id] || []).join(', '),
-    `Regression run on ${uiOnEarlierCommit.has(c.id) ? 'commit 4280b9e' : 'Beralidu 5746846 plus high bug fixes'} (${c.id})`
+    `Regression run on ${uiOnEarlierCommit.has(c.id) ? 'commit 4280b9e' : 'Beralidu b5a0d04 plus BUG-026 to BUG-061, BUG-065 and BUG-074 fixes'} (${c.id})`
 ].map(clean));
 
 // The team's own fixes, covered by these passing cases: AUTH-004, AUTH-012, PAY-016, PAY-001

@@ -345,15 +345,13 @@ const CourseManage = () => {
             if (editingSectionId) {
                 await api.put(`/courses/${id}/sections/${editingSectionId}`, { title: newSectionTitle, isPublic: newSectionIsPublic, isPreview: newSectionIsPreview, importance: newSectionImportance });
             } else {
-                await api.post(`/courses/${id}/sections`, { title: newSectionTitle, isPublic: newSectionIsPublic, isPreview: newSectionIsPreview, importance: newSectionImportance });
-                if (sectionBroadcast.enabled) {
-                    const broadcastMsg = sectionBroadcast.message || `📚 New section added: "${newSectionTitle}"`;
-                    await api.post(`/broadcasts/course/${id}`, {
-                        title: `New Section: ${newSectionTitle}`,
-                        message: broadcastMsg,
-                        priority: sectionBroadcast.priority
-                    }).catch(() => showError('Section saved but broadcast failed'));
-                }
+                await api.post(`/courses/${id}/sections`, {
+                    title: newSectionTitle,
+                    isPublic: newSectionIsPublic,
+                    isPreview: newSectionIsPreview,
+                    importance: newSectionImportance,
+                    ...(sectionBroadcast.enabled && { broadcastMessage: sectionBroadcast.message, broadcastPriority: sectionBroadcast.priority })
+                });
             }
             setNewSectionTitle('');
             setNewSectionIsPublic(true);
@@ -386,18 +384,10 @@ const CourseManage = () => {
                 await api.put(`/courses/lectures/${editingLectureId}`, newLecture);
             } else {
                 if (!activeSectionId) return showWarning('Select a section first');
-                const { data: createdLecture } = await api.post(`/courses/${id}/sections/${activeSectionId}/lectures`, newLecture);
-                if (lectureBroadcast.enabled) {
-                    const sectionTitle = course?.sections?.find(s => s._id === activeSectionId)?.title || '';
-                    const lectureLink = createdLecture?._id ? `${window.location.origin}/course/${id}/lecture/${createdLecture._id}` : '';
-                    const defaultMsg = `🎬 New lecture added: "${newLecture.title}"${sectionTitle ? ` in "${sectionTitle}"` : ''}${lectureLink ? `\n🔗 ${lectureLink}` : ''}`;
-                    const broadcastMsg = lectureBroadcast.message + (lectureLink ? `\n🔗 ${lectureLink}` : '');
-                    await api.post(`/broadcasts/course/${id}`, {
-                        title: `New Lecture: ${newLecture.title}`,
-                        message: broadcastMsg || defaultMsg,
-                        priority: lectureBroadcast.priority
-                    }).catch(() => showError('Lecture saved but broadcast failed'));
-                }
+                await api.post(`/courses/${id}/sections/${activeSectionId}/lectures`, {
+                    ...newLecture,
+                    ...(lectureBroadcast.enabled && { broadcastMessage: lectureBroadcast.message, broadcastPriority: lectureBroadcast.priority })
+                });
             }
 
             setNewLecture({ title: '', number: '', resourceUrl: '', description: '', dueDate: '', status: 'Pending', isPublic: true, importance: '' });
@@ -981,7 +971,7 @@ const CourseManage = () => {
                                 <div className="flex items-center gap-2.5">
                                     <FaBullhorn className={`text-sm ${sectionBroadcast.enabled ? 'text-indigo-500' : 'text-slate-400'}`} />
                                     <span className={`text-xs font-bold uppercase tracking-wide ${sectionBroadcast.enabled ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-500 dark:text-slate-400'}`}>
-                                        Notify Students via Broadcast
+                                        Customize Student Announcement
                                     </span>
                                 </div>
                                 <div className={`w-9 h-5 rounded-full flex items-center px-1 transition-colors ${sectionBroadcast.enabled ? 'bg-indigo-500' : 'bg-slate-200 dark:bg-slate-700'}`}>
@@ -1169,7 +1159,7 @@ const CourseManage = () => {
                                 <div className="flex items-center gap-2.5">
                                     <FaBullhorn className={`text-sm ${lectureBroadcast.enabled ? 'text-indigo-500' : 'text-slate-400'}`} />
                                     <span className={`text-xs font-bold uppercase tracking-wide ${lectureBroadcast.enabled ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-500 dark:text-slate-400'}`}>
-                                        Notify Students via Broadcast
+                                        Customize Student Announcement
                                     </span>
                                 </div>
                                 <div className={`w-9 h-5 rounded-full flex items-center px-1 transition-colors ${lectureBroadcast.enabled ? 'bg-indigo-500' : 'bg-slate-200 dark:bg-slate-700'}`}>

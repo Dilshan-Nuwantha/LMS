@@ -100,12 +100,23 @@ const createCheckoutSession = asyncHandler(async (req, res) => {
         throw new Error('You cannot purchase your own course');
     }
 
+    // An instructor may have enrolled this student already, so there is nothing to pay for
+    if (await Progress.exists({ student: req.user.id, course: courseId })) {
+        res.status(400);
+        throw new Error('You are already enrolled in this course');
+    }
+
     let finalPrice = course.price;
     let discountAmount = 0;
     let couponApplied = null;
 
     // Apply coupon if provided - reject instead of silently charging full price
     if (couponCode) {
+        if (typeof couponCode !== 'string') {
+            res.status(400);
+            throw new Error('Invalid coupon code');
+        }
+
         const coupon = await Coupon.findOne({
             code: couponCode.toUpperCase(),
             course: courseId
@@ -123,7 +134,7 @@ const createCheckoutSession = asyncHandler(async (req, res) => {
         }
 
         discountAmount = coupon.calculateDiscount(course.price);
-        finalPrice = Math.max(course.price - discountAmount, 0);
+        finalPrice = Math.max(Math.round((course.price - discountAmount) * 100) / 100, 0);
         couponApplied = coupon._id;
     }
 

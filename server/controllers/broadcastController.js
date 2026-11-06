@@ -4,6 +4,7 @@ const Course = require('../models/Course');
 const Progress = require('../models/Progress');
 const BroadcastView = require('../models/BroadcastView');
 const { isCourseMember } = require('../middleware/ownershipMiddleware');
+const { getPaging } = require('../utils/query');
 
 // @desc    Create broadcast
 // @route   POST /api/broadcasts/course/:courseId
@@ -49,9 +50,7 @@ const createBroadcast = asyncHandler(async (req, res) => {
 // @route   GET /api/broadcasts/course/:courseId
 // @access  Private (Admin, Course Owner, or Broadcaster)
 const getCourseBroadcasts = asyncHandler(async (req, res) => {
-    const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 5;
-    const skip = (page - 1) * limit;
+    const { page, limit, skip } = getPaging(req.query, 5);
 
     const total = await Broadcast.countDocuments({ course: req.params.courseId });
     const broadcasts = await Broadcast.find({ course: req.params.courseId })
@@ -86,9 +85,7 @@ const getActiveBroadcasts = asyncHandler(async (req, res) => {
         throw new Error('You must be enrolled in this course to view its announcements');
     }
 
-    const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 5;
-    const skip = (page - 1) * limit;
+    const { page, limit, skip } = getPaging(req.query, 5);
 
     const query = { course: req.params.courseId, isActive: true };
     const total = await Broadcast.countDocuments(query);

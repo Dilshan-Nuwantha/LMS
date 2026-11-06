@@ -1,6 +1,6 @@
 // Security checks and error handling. Rate limit and production checks use the production instance.
 const { tc, api, prod, ok, is, eq, lastOtp, googleCode, newUser, multipart, sleep, uid, lines, webhook, serverRequire, env } = require('./lib');
-const { F, models, mkCourse, addLecture, enroll, buy } = require('./fixtures');
+const { F, models, mkCourse, addSection, addLecture, enroll, buy } = require('./fixtures');
 const jwt = serverRequire('jsonwebtoken');
 
 const S = 'Security';
@@ -346,6 +346,182 @@ tc('NTF-010', 'Notifications', 'Medium', 'A co-instructor with manage_students c
     await api('POST', `/courses/${c.id}/teachers`, { token: F.instr.token, body: { email: u.email, permissions: { manage_students: true } } });
     is(await api('POST', `/notifications/course/${c.id}/send`, { token: u.token, body: { title: 'Hi' } }), 200);
 });
+const retakeQuiz = async (attemptsAllowed) => {
+    const q = await api('POST', '/quizzes', { token: F.instr.token, body: { courseId: F.course.id, title: 'Retake', attemptsAllowed, questions: [{ questionText: 'Pick B', options: ['A', 'B'], correctAnswer: 1 }] } });
+    const a = (await api('POST', `/quizzes/${q.json._id}/start`, { token: F.s1.token })).json.attempt._id;
+    const r = await api('POST', `/quizzes/${q.json._id}/submit`, { token: F.s1.token, body: { attemptId: a, answers: [{ questionIndex: 0, answer: 0 }] } });
+    return { attempt: a, submit: r };
+};
+tc('QZ-027', 'Quizzes', 'High', 'A finished attempt hides answers while retries remain', 'Submit on a two-attempt quiz, then GET /quizzes/attempts/:id as the student', 'No correctAnswer; the student still sees which answers were wrong', async () => {
+    const { attempt, submit } = await retakeQuiz(2);
+    ok(!submit.text.includes('correctAnswer'), 'answers in the submit response');
+    const r = await api('GET', `/quizzes/attempts/${attempt}`, { token: F.s1.token });
+    is(r, 200); ok(!r.text.includes('correctAnswer'), 'answers in the attempt result');
+    eq(submit.json.attempt.answers[0].isCorrect, false, 'isCorrect');
+});
+tc('QZ-028', 'Quizzes', 'High', 'Answers are shown once no attempts remain', 'Use the only attempt on a one-attempt quiz', 'Correct answers are returned for review', async () => {
+    const { attempt, submit } = await retakeQuiz(1);
+    ok(submit.text.includes('correctAnswer'), 'no answers in the submit response');
+    ok((await api('GET', `/quizzes/attempts/${attempt}`, { token: F.s1.token })).text.includes('correctAnswer'), 'no answers in the attempt result');
+});
+tc('QZ-029', 'Quizzes', 'Medium', 'The instructor can always see answers on an attempt', 'GET an attempt as the owner while the student can still retake', 'correctAnswer is returned', async () => {
+    const { attempt } = await retakeQuiz(2);
+    ok((await api('GET', `/quizzes/attempts/${attempt}`, { token: F.instr.token })).text.includes('correctAnswer'), 'answers hidden from the owner');
+});
+tc('AI-029', 'AI features', 'High', 'A plain chat never spends the instructor key', 'As an enrolled student with no key, send a message in a normal course chat', 'Refused, and no AI call is made', async () => {
+    const u = await newUser('student', 'nokey2');
+    await enroll(F.instr, F.course.id, u);
+    const c = await api('POST', '/student-ai/conversations', { token: u.token, body: { courseId: F.course.id } });
+    const before = lines('ai.jsonl').length;
+    const r = await api('POST', `/student-ai/conversations/${c.json._id}/messages`, { token: u.token, form: multipart({ message: 'Hi' }) });
+    ok(r.status >= 400, `the chat was answered (HTTP ${r.status})`);
+    eq(lines('ai.jsonl').length, before, 'AI calls');
+});
+tc('SEC-062', S, 'Medium', 'Reset code hash is hidden from admin lists too', 'Request a reset, then GET /admin/users', 'No otpHash, otpExpiry or otpAttempts in the response', async () => {
+    const u = await newUser('student', 'adminhash');
+    await api('POST', '/auth/forgot-password', { body: { email: u.email } });
+    const r = await api('GET', '/admin/users', { token: F.admin.token });
+    ok(r.text.includes(u.email), 'user missing');
+    ok(!/otpHash|otpExpiry|otpAttempts/.test(r.text), 'reset fields returned');
+});
+tc('SEC-063', S, 'Medium', 'Search treats special characters as plain text', 'GET /marketplace/search?q=.*', 'HTTP 200 with no results, and normal search still works', async () => {
+    eq((await api('GET', `/marketplace/search?q=${encodeURIComponent('.*')}`)).json.courses.length, 0, 'matches for .*');
+    ok((await api('GET', '/marketplace/search?q=Main')).json.courses.length > 0, 'normal search broken');
+});
+tc('SEC-064', S, 'High', 'The landing page still shows public lectures', 'GET /marketplace/:id as a guest', 'Public and preview lectures are listed, with price and instructor', async () => {
+    const r = await api('GET', `/marketplace/${F.course.id}`);
+    is(r, 200);
+    ok(r.json.course.sections[0].lectures.some(l => l._id === F.L1), 'preview lecture missing');
+    eq(r.json.course.price, 5000, 'price');
+    ok(r.json.instructor?.name, 'instructor missing');
+});
+tc('SEC-065', S, 'Medium', 'The course list keeps what a user should see', 'GET /courses as the owner and as an enrolled student', 'The owner sees their own draft; the student sees their course', async () => {
+    const draft = await mkCourse(F.instr, { status: 'Draft' });
+    ok((await api('GET', '/courses', { token: F.instr.token })).json.some(c => c._id === draft.id), 'own draft missing');
+    ok((await api('GET', '/courses', { token: F.s1.token })).json.some(c => c._id === F.course.id), 'enrolled course missing');
+    ok(!(await api('GET', '/courses', { token: F.s1.token })).json.some(c => c._id === draft.id), 'draft shown to a student');
+});
+tc('SEC-066', S, 'High', 'Impersonated actions are recorded against the admin', 'Act through an impersonation token, read the global log', 'The entry belongs to the admin and names the impersonated user', async () => {
+    const u = await newUser('student', 'audited');
+    const imp = await api('POST', '/admin/impersonate', { token: F.admin.token, body: { email: u.email } });
+    await api('PUT', '/auth/profile', { token: imp.json.token, body: { bio: 'Support change' } });
+    await sleep(150);
+    const row = await models.Activity.findOne({ action: 'Profile Updated', details: new RegExp(`Impersonating ${u.email.replace(/\./g, '\\.')}`) }).lean();
+    ok(row, 'no audit entry');
+    eq(String(row.user), F.admin.id, 'entry owner');
+});
+tc('SEC-067', S, 'Medium', 'Course analytics hide private notes', 'Read recent activity as the course owner after a student saves a note', 'The note text is not returned', async () => {
+    await api('PUT', `/courses/lectures/${F.L2}/progress`, { token: F.s1.token, body: { notes: 'ANALYTICS-PRIVATE' } });
+    await sleep(150);
+    const r = await api('GET', `/courses/${F.course.id}/analytics`, { token: F.instr.token });
+    is(r, 200); ok(!r.text.includes('ANALYTICS-PRIVATE'), 'note returned');
+});
+tc('SEC-068', S, 'High', 'Teachers still see student progress status', 'GET progress detail and progress list as the owner', 'Lecture statuses are returned', async () => {
+    const a = await api('GET', `/courses/${F.course.id}/progress/${F.s1.id}`, { token: F.instr.token });
+    is(a, 200); ok(a.json.sections.some(s => s.lectures.some(l => l.status === 'Completed')), 'status missing');
+    ok((await api('GET', `/courses/${F.course.id}/progresses`, { token: F.instr.token })).json.some(p => p.completedLectures.length > 0), 'progress missing');
+});
+tc('SEC-069', S, 'Medium', 'Admins can still block other users', 'Block a student as an admin', 'HTTP 200', async () => {
+    const u = await newUser('student', 'stillblock');
+    is(await api('POST', `/admin/users/${u.id}/block`, { token: F.admin.token, body: { reason: 'qa' } }), 200);
+});
+tc('RES-015', 'Resources', 'High', 'Sinhala file names download correctly', 'Upload පාඩම.pdf, then download and view it', 'HTTP 200 with the real name in the header', async () => {
+    const form = multipart({ title: 'Sinhala' }, { name: 'පාඩම.pdf', type: 'application/pdf', data: Buffer.from('%PDF-1.4') });
+    const up = await api('POST', `/resources/${F.course.id}`, { token: F.instr.token, form });
+    for (const route of ['download', 'view']) {
+        const r = await api('GET', `/resources/${F.course.id}/${up.json._id}/${route}`, { token: F.s1.token });
+        is(r, 200, route);
+        ok(r.headers.get('content-disposition').includes(encodeURIComponent('පාඩම.pdf')), 'name missing');
+    }
+});
+tc('BRD-011', 'Broadcasts', 'High', 'Hidden and draft content is not announced', 'Add a hidden lecture, a hidden section, and content to a draft course', 'No broadcast is created', async () => {
+    const c = await mkCourse(F.instr);
+    const count = (id) => models.Broadcast.countDocuments({ course: id });
+    const before = await count(c.id);
+    await addLecture(F.instr, c.id, c.sectionId, 'Hidden', { isPublic: false });
+    await addSection(F.instr, c.id, 'Hidden section', false);
+    eq(await count(c.id), before, 'broadcasts for hidden content');
+    const d = await mkCourse(F.instr, { status: 'Draft' });
+    eq(await count(d.id), 0, 'broadcasts for a draft course');
+});
+tc('BRD-012', 'Broadcasts', 'High', 'A custom announcement replaces the automatic one', 'Add a lecture with broadcastMessage and priority urgent', 'Exactly one broadcast, with that message, that priority and a direct link', async () => {
+    const c = await mkCourse(F.instr);
+    const auto = await models.Broadcast.findOne({ course: c.id, title: /New Lecture/ }).lean();
+    ok(auto.message.includes(`/course/${c.id}/lecture/${c.lectureId}`), 'no direct link');
+    ok(auto.message.includes('Section'), 'no section name');
+    const custom = await addLecture(F.instr, c.id, c.sectionId, 'Custom', { broadcastMessage: 'Read this first', broadcastPriority: 'urgent' });
+    const rows = await models.Broadcast.find({ course: c.id, title: 'New Lecture: Custom' }).lean();
+    eq(rows.length, 1, 'broadcasts'); ok(rows[0].message.startsWith('Read this first') && rows[0].message.includes(`/lecture/${custom}`), 'message'); eq(rows[0].priority, 'urgent', 'priority');
+});
+tc('NTF-011', 'Notifications', 'Medium', 'A milestone is sent once', 'Complete a lecture, set it back, complete it again on a course with two visible lectures and one hidden', 'One 50 percent notification in total, so re-ticking repeats nothing and hidden lectures do not count', async () => {
+    const c = await mkCourse(F.instr);
+    await addLecture(F.instr, c.id, c.sectionId, 'Second');
+    await addLecture(F.instr, c.id, c.sectionId, 'Hidden', { isPublic: false });
+    const u = await newUser('student', 'mile');
+    await enroll(F.instr, c.id, u);
+    await api('PUT', `/notifications/course/${c.id}/settings`, { token: F.instr.token, body: { progressMilestone: true } });
+    for (const status of ['Completed', 'In Progress', 'Completed']) {
+        await api('PUT', `/courses/lectures/${c.lectureId}/progress`, { token: u.token, body: { status } });
+    }
+    await sleep(150);
+    const rows = await models.Notification.find({ course: c.id, type: 'milestone', user: u.id }).lean();
+    eq(rows.length, 1, 'notifications');
+    ok(rows[0].title.includes('50%'), `title: ${rows[0].title}`);
+});
+tc('CPN-024', 'Coupons', 'Medium', 'Valid coupon updates still work', 'PUT a coupon to 20 percent with a usage limit', 'HTTP 200 and the values are saved', async () => {
+    const c = await mkCourse(F.instr, { price: 1000 });
+    const r = await api('POST', '/coupons', { token: F.instr.token, body: { code: 'OK' + uid(), courseId: c.id, discountType: 'percentage', discountValue: 10, validUntil: new Date(Date.now() + 864e5).toISOString() } });
+    is(r, 201);
+    const u = await api('PUT', `/coupons/${r.json._id}`, { token: F.instr.token, body: { discountValue: 20, maxUses: 5 } });
+    is(u, 200); eq(u.json.discountValue, 20, 'discountValue'); eq(u.json.maxUses, 5, 'maxUses');
+});
+tc('CPN-025', 'Coupons', 'Medium', 'Discounted price keeps exact cents', 'Validate a 10 percent coupon on a USD 19.99 course', 'discountAmount 2, finalPrice 17.99', async () => {
+    const c = await mkCourse(F.instr, { price: 19.99, currency: 'USD' });
+    const r = await api('POST', '/coupons', { token: F.instr.token, body: { code: 'US' + uid(), courseId: c.id, discountType: 'percentage', discountValue: 10, validUntil: new Date(Date.now() + 864e5).toISOString() } });
+    const v = await api('POST', '/coupons/validate', { token: F.s3.token, body: { code: r.json.code, courseId: c.id } });
+    eq(v.json.discountAmount, 2, 'discountAmount'); eq(v.json.finalPrice, 17.99, 'finalPrice');
+});
+tc('CRS-027', 'Course management', 'High', 'The owner can still delete a course, and it cleans up', 'Add a coupon, resource and co-instructor, then DELETE as the owner', 'HTTP 200 and the related records are gone', async () => {
+    const c = await mkCourse(F.instr);
+    await api('POST', '/coupons', { token: F.instr.token, body: { code: 'GO' + uid(), courseId: c.id, discountType: 'percentage', discountValue: 10, validUntil: new Date(Date.now() + 864e5).toISOString() } });
+    await api('POST', `/resources/${c.id}`, { token: F.instr.token, form: multipart({ url: 'https://example.test/a', title: 'L' }) });
+    is(await api('DELETE', `/courses/${c.id}`, { token: F.instr.token }), 200);
+    eq(await models.Coupon.countDocuments({ course: c.id }), 0, 'coupons');
+    eq(await models.Resource.countDocuments({ course: c.id }), 0, 'resources');
+    eq(await models.Broadcast.countDocuments({ course: c.id }), 0, 'broadcasts');
+});
+tc('PRG-012', 'Lecture progress', 'Medium', 'A status change still updates the completion time', 'Move a lecture to In Progress, then Completed', 'completedAt changes', async () => {
+    const c = await mkCourse(F.instr);
+    const u = await newUser('student', 'time');
+    await enroll(F.instr, c.id, u);
+    const read = async () => (await api('GET', `/courses/${c.id}/my-progress`, { token: u.token })).json.completedLectures[0].completedAt;
+    await api('PUT', `/courses/lectures/${c.lectureId}/progress`, { token: u.token, body: { status: 'In Progress' } });
+    const first = await read();
+    await sleep(20);
+    await api('PUT', `/courses/lectures/${c.lectureId}/progress`, { token: u.token, body: { status: 'Completed' } });
+    ok(await read() !== first, 'completedAt did not change');
+});
+tc('REV-016', 'Reviews', 'Medium', 'Enrolled students can review private courses', 'Enroll in a private course, then POST a review', 'HTTP 201', async () => {
+    const c = await api('POST', '/courses', { token: F.instr.token, body: { title: 'Private 2', description: 'D' } });
+    await enroll(F.instr, c.json._id, F.s1);
+    is(await api('POST', '/reviews', { token: F.s1.token, body: { courseId: c.json._id, rating: 5 } }), 201);
+});
+tc('REV-017', 'Reviews', 'Low', 'Voter lists stay private', 'Read reviews as a guest after a helpful vote', 'helpfulBy is not returned', async () => {
+    ok(!(await api('GET', `/reviews/course/${F.payCourse.id}`)).text.includes('helpfulBy'), 'voter ids returned');
+});
+tc('MKT-011', 'Marketplace', 'High', 'The language filter finds matching courses', 'Publish a Sinhala course, then filter by Sinhala', 'Only that course is returned', async () => {
+    const r = await api('POST', '/instructor/course', { token: F.instr.token, body: { title: 'සිංහල', description: 'D', price: 10, language: 'Sinhala' } });
+    await api('PUT', `/instructor/course/${r.json._id}`, { token: F.instr.token, body: { status: 'Published' } });
+    const list = (await api('GET', '/marketplace?language=Sinhala')).json.courses;
+    eq(list.length, 1, 'courses'); eq(list[0].language, 'Sinhala', 'language');
+    await api('DELETE', `/courses/${r.json._id}`, { token: F.instr.token });
+});
+tc('ACT-009', 'Activity log', 'Medium', 'Refused actions are recorded as failed', 'Attempt a forbidden course update, read the log', 'An entry marked Failed exists', async () => {
+    const u = await newUser('student', 'failedlog');
+    await api('PUT', `/courses/${F.course.id}`, { token: u.token, body: { title: 'x' } });
+    await sleep(150);
+    ok(await models.Activity.exists({ user: u.id, action: 'Failed: Course Updated' }), 'no failed entry');
+});
 
 const E = 'Error handling';
 tc('ERR-001', E, 'High', 'Health check', 'GET /health', 'HTTP 200', async () => is(await api('GET', '/health'), 200));
@@ -358,6 +534,12 @@ tc('ERR-003', E, 'Medium', 'Malformed JSON is a client error', 'POST invalid JSO
 tc('ERR-004', E, 'Low', 'Unknown API route returns JSON', 'GET /api/nope', 'HTTP 404 with a JSON body (NFR-REL-03)', async () => {
     const r = await api('GET', '/nope');
     is(r, 404); ok(r.json, 'HTML response');
+});
+tc('ERR-006', E, 'High', 'Intended error messages reach the user', 'Send an invalid token in production mode', 'The real message is returned, not a generic one', async () => {
+    const h = ip();
+    const r = await prod('GET', '/admin/dashboard', { headers: h, token: 'bad' });
+    is(r, 401);
+    ok(/token/i.test(r.json.message), `message: ${r.json.message}`);
 });
 tc('ERR-005', E, 'Medium', 'Validation failures are client errors', 'POST /instructor/course with level "Banana"', 'HTTP 400', async () => {
     is(await api('POST', '/instructor/course', { token: F.instr.token, body: { title: 'T', description: 'D', price: 1, level: 'Banana' } }), 400);

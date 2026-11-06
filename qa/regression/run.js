@@ -74,11 +74,11 @@ const writeReports = () => {
     const pass = cases.filter(c => result[c.id][0] === 'PASS').length;
     const out = [
         '# Tenz Learn - Regression Bug Report', '',
-        `**Branch:** Beralidu at commit 5746846, plus the uncommitted fixes for LMS-005 to LMS-021  `,
+        `**Branch:** Beralidu at commit b5a0d04, plus the uncommitted fixes for LMS-022 to LMS-057, LMS-061 and LMS-072  `,
         `**Run date:** ${api.ranAt.slice(0, 10)}  `,
         `**Result:** ${cases.length} test cases, ${pass} passed, ${cases.length - pass} failed  `,
         `**Open findings:** ${open.length} (${severities.map(s => `${n(b => b.severity === s)} ${s}`).join(', ')}). **Fixed:** ${fixed.length}`, '',
-        `**Status:** no Critical or High findings remain open, and nothing that passed before now fails. ${open.length} Medium and Low findings are still open, and every failed test below belongs to one of them. Commit the High fixes and run the database steps listed under Fixed before release.`, '',
+        `**Status:** no Critical or High findings remain open, and nothing that passed before now fails. ${open.length} Medium and Low findings are still open, and every failed test below belongs to one of them. Commit the latest fixes and run the database steps listed under Fixed before release.`, '',
         '## Summary', '',
         '| Severity | Security issues | Vulnerabilities | Bugs | Total |', '|---|---|---|---|---|',
         ...severities.map(s => `| ${s} | ${types.map(t => n(b => b.severity === s && b.type === t)).join(' | ')} | ${n(b => b.severity === s)} |`),
@@ -94,7 +94,7 @@ const writeReports = () => {
             return `| ${m} | ${list.length} | ${p} | ${list.length - p} |`;
         }), '',
         '## How this was tested', '',
-        `- The API suite ran ${api.results.length} cases against the real server code at commit 5746846 on Beralidu plus the High fixes, using a temporary local MongoDB. The hosted lms-dev database was not used.`,
+        `- The API suite ran ${api.results.length} cases against the real server code at commit b5a0d04 on Beralidu plus the fixes for LMS-022 to LMS-057, LMS-061 and LMS-072, using a temporary local MongoDB. The hosted lms-dev database was not used.`,
         '- Stripe, email, Google sign-in and the AI providers were local stand-ins, so **no real payment, email or AI request was made**. Stripe webhook signatures were verified for real. Outbound calls blocked: ' + api.blockedOutbound.length + '.',
         '- Production-only behaviour (rate limits, stack traces, cron secret) ran against a second instance with NODE_ENV=production.',
         '- UI checks were repeated on this code. LMS-003 was confirmed in real Chrome with a temporary profile.', '',
@@ -112,7 +112,7 @@ const writeReports = () => {
         });
     });
 
-    out.push('## Fixed', '', 'LMS-001 to LMS-004 and LMS-058 are committed and retested (Closed). LMS-005 to LMS-021 are retested but not committed yet (Fixed). Their tests all pass.', '');
+    out.push('## Fixed', '', 'All of these passed their retest and are Closed. LMS-022 to LMS-057, LMS-061 and LMS-072 are not committed yet.', '');
     fixed.forEach(b => {
         out.push(`### ${b.id}: ${b.title}`, '', `**Type:** ${b.type}  `, `**Status:** ${b.status}  `, `**Tests now passing:** ${b.tests.join(', ')}`, '', b.problem, '', `**Fix:** ${b.fix}`, '');
     });
@@ -152,6 +152,13 @@ const writeReports = () => {
     out.push(
         '## Other observations', '', 'These are not counted as bugs.', '',
         '- The coupon limit (LMS-015) is now exact for free checkouts. Two paid checkouts of a one-use coupon can still both finish, because a payment that has been taken cannot be refused afterwards.',
+        '- LMS-061 was closed as a side effect of the LMS-035 error handler fix.',
+        '- Instructors no longer choose whether to announce new content (LMS-048). Public content on a published course is always announced, and the old toggle now only customises the message and priority. Content that starts hidden and is made public later is not announced.',
+        '- Helpful votes cast before LMS-053 have no voter recorded, so those people can vote once more.',
+        '- Any existing course with a negative price (LMS-041) will now fail validation when it is next saved, until the price is corrected.',
+        '- Deleting a course keeps its activity records as an audit trail, and its AI conversations stay with their students (LMS-042).',
+        '- Students on a quiz with unlimited attempts never see the correct answers, because a retake is always possible (LMS-022). They still see which answers were wrong.',
+        '- Older course chats started without the instructor key now need a new chat or the student\'s own key, because the silent fallback is gone (LMS-023).',
         '- A removed buyer who checks out again gets access back without paying (LMS-016). Use an admin block to keep someone out for good.',
         '- `npm test` runs test files in parallel, and they share one invoice counter in the test database, so the invoice test can fail. All 18 pass with `node --test --test-concurrency=1 tests/*.test.js`.',
         '- The server startup retry for slow Atlas connections in `server/config/db.js` was never committed and is not on this branch.',
@@ -207,7 +214,11 @@ const serve = async () => {
     const xss = "javascript:document.title='XSS-'+localStorage.getItem('token').slice(0,12);window.opener&&(window.opener.document.title='XSS-'+localStorage.getItem('token').slice(0,12))";
     await fixtures.models.Resource.create({ course: F.course.id, uploadedBy: F.instr.id, title: 'QA script link', fileType: 'link', url: xss, uploaderRole: 'teacher' });
     await fixtures.models.Lecture.updateOne({ _id: F.L2 }, { resourceUrl: xss });
-    const info = { api: env.DEV, courseId: F.course.id, lecture: F.L2, student: { email: F.s1.email, password: F.s1.password } };
+    const quiz = await api('POST', '/quizzes', {
+        token: F.instr.token,
+        body: { courseId: F.course.id, title: 'QA retake quiz', attemptsAllowed: 2, questions: [{ questionText: 'Pick B', options: ['A', 'B'], correctAnswer: 1 }] }
+    });
+    const info = { api: env.DEV, courseId: F.course.id, lecture: F.L2, quizId: quiz.json._id, student: { email: F.s1.email, password: F.s1.password } };
     fs.writeFileSync(path.join(QA, 'results', 'serve-info.json'), JSON.stringify(info, null, 2));
     console.log('Test stack ready');
     process.on('SIGTERM', () => env.stop().then(() => process.exit(0)));

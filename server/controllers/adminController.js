@@ -5,6 +5,7 @@ const Purchase = require('../models/Purchase');
 const Payout = require('../models/Payout');
 const BankDetail = require('../models/BankDetail');
 const { CURRENCIES, getEarningsByCurrency, totalsFor, toSummary } = require('../services/earningsService');
+const { getPaging } = require('../utils/query');
 
 // @desc    Get admin dashboard stats
 // @route   GET /api/admin/dashboard
@@ -187,7 +188,8 @@ const createPayout = asyncHandler(async (req, res) => {
 // @route   GET /api/admin/payouts
 // @access  Private (Admin)
 const getPayouts = asyncHandler(async (req, res) => {
-    const { page = 1, limit = 20, instructorId } = req.query;
+    const { instructorId } = req.query;
+    const { page, limit } = getPaging(req.query, 20);
     const query = {};
     if (instructorId) query.instructor = instructorId;
 
@@ -250,8 +252,8 @@ const removeWarning = asyncHandler(async (req, res) => {
     const user = await User.findById(req.params.id);
     if (!user) { res.status(404); throw new Error('User not found'); }
 
-    const index = parseInt(req.params.index);
-    if (index < 0 || index >= user.warnings.length) { res.status(400); throw new Error('Invalid warning index'); }
+    const index = Number(req.params.index);
+    if (!Number.isInteger(index) || index < 0 || index >= user.warnings.length) { res.status(400); throw new Error('Invalid warning index'); }
 
     user.warnings.splice(index, 1);
 
@@ -289,6 +291,7 @@ const setMaxWarnings = asyncHandler(async (req, res) => {
 const blockUser = asyncHandler(async (req, res) => {
     const { reason, hideCourses } = req.body;
     if (!reason) { res.status(400); throw new Error('Block reason is required'); }
+    if (req.params.id === req.user.id) { res.status(400); throw new Error('You cannot block your own account'); }
 
     const user = await User.findById(req.params.id);
     if (!user) { res.status(404); throw new Error('User not found'); }
@@ -339,6 +342,7 @@ const changeUserRole = asyncHandler(async (req, res) => {
 
     const user = await User.findById(req.params.id);
     if (!user) { res.status(404); throw new Error('User not found'); }
+    if (user.role === 'admin') { res.status(403); throw new Error('Admin roles cannot be changed here'); }
 
     user.role = role;
     await user.save();
@@ -395,8 +399,13 @@ const impersonateUser = asyncHandler(async (req, res) => {
         throw new Error('User not found');
     }
 
+    if (user.role === 'admin') {
+        res.status(403);
+        throw new Error('Admin accounts cannot be impersonated');
+    }
+
     const jwt = require('jsonwebtoken');
-    const token = jwt.sign({ id: user._id, v: user.tokenVersion || 0 }, process.env.JWT_SECRET, { expiresIn: '1h' });
+    const token = jwt.sign({ id: user._id, v: user.tokenVersion || 0, imp: req.user.id }, process.env.JWT_SECRET, { expiresIn: '1h' });
 
     res.json({
         _id: user._id,

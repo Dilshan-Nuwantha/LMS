@@ -48,7 +48,7 @@ const buy = async (student, course, instructor) => {
 
 const seed = async () => {
     await mongoose.connect(env.MONGO);
-    for (const name of ['User', 'Course', 'Lecture', 'Purchase', 'Progress', 'Activity', 'Coupon', 'QuizAttempt', 'Notification', 'TeacherAIConfig', 'Payout', 'Conversation', 'Resource', 'Review']) {
+    for (const name of ['User', 'Course', 'Lecture', 'Purchase', 'Progress', 'Activity', 'Coupon', 'QuizAttempt', 'Notification', 'TeacherAIConfig', 'Payout', 'Conversation', 'Resource', 'Review', 'Broadcast']) {
         models[name] = serverRequire(`./models/${name}`);
     }
 

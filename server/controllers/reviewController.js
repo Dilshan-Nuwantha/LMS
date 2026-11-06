@@ -2,6 +2,8 @@ const asyncHandler = require('express-async-handler');
 const Review = require('../models/Review');
 const Course = require('../models/Course');
 const Purchase = require('../models/Purchase');
+const Progress = require('../models/Progress');
+const { getPaging } = require('../utils/query');
 
 // @desc    Create a review
 // @route   POST /api/reviews
@@ -44,6 +46,9 @@ const createReview = asyncHandler(async (req, res) => {
             res.status(403);
             throw new Error('You must purchase the course before leaving a review');
         }
+    } else if (!(await Progress.exists({ student: req.user.id, course: courseId }))) {
+        res.status(403);
+        throw new Error('You must be enrolled in the course before leaving a review');
     }
 
     // Check if user already reviewed this course
@@ -75,7 +80,8 @@ const createReview = asyncHandler(async (req, res) => {
 // @access  Public
 const getCourseReviews = asyncHandler(async (req, res) => {
     const { courseId } = req.params;
-    const { page = 1, limit = 10, sortBy = 'newest' } = req.query;
+    const { sortBy = 'newest' } = req.query;
+    const { page, limit, skip } = getPaging(req.query, 10);
 
     const course = await Course.findById(courseId);
     if (!course) {
@@ -103,8 +109,6 @@ const getCourseReviews = asyncHandler(async (req, res) => {
         default:
             sort = { createdAt: -1 };
     }
-
-    const skip = (Number(page) - 1) * Number(limit);
 
     const reviews = await Review.find({ course: courseId })
         .populate('user', 'name profileImage')
@@ -200,11 +204,13 @@ const deleteReview = asyncHandler(async (req, res) => {
 // @route   POST /api/reviews/:id/helpful
 // @access  Private
 const markHelpful = asyncHandler(async (req, res) => {
-    const review = await Review.findByIdAndUpdate(
-        req.params.id,
-        { $inc: { helpful: 1 } },
+    // The filter only matches a first vote, so voting twice changes nothing
+    const voted = await Review.findOneAndUpdate(
+        { _id: req.params.id, helpfulBy: { $ne: req.user._id } },
+        { $inc: { helpful: 1 }, $addToSet: { helpfulBy: req.user._id } },
         { new: true }
     );
+    const review = voted || await Review.findById(req.params.id);
 
     if (!review) {
         res.status(404);

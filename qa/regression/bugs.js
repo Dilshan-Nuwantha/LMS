@@ -284,20 +284,28 @@ const bugs = [
     bug('LMS-071', 'Low', 'Bug', 'React key warning on the marketplace', 'client/src/pages/marketplace/Marketplace.jsx',
         'The filter select renders options without a key and logs a console error.',
         'Add a key to each option.',
-        ['UI-001'])
+        ['UI-001']),
+    bug('LMS-072', 'High', 'Bug', 'My Learning shows no courses for enrolled students', 'client/src/pages/student/StudentDashboard.jsx:53, :110; server/controllers/courseController.js:417',
+        'The page shows "No Enrolled Courses" although the count above it is right. The API nests each course under a course key, but the page read title and id from the outer item, so its search filter removed every course. Category and level were also never sent.',
+        'Use the nested course in the page, which also fixes the View Course Lectures link, and return category and level from the API.',
+        ['CRS-026', 'UI-014'])
 ];
 
-// Closed: committed and retested. Fixed: retested, not committed yet. run.js --report checks that
-// the tests of both now pass.
-const CLOSED = new Set(['LMS-001', 'LMS-002', 'LMS-003', 'LMS-004', 'LMS-058']);
-const FIXED = new Set([
-    'LMS-005', 'LMS-006', 'LMS-007', 'LMS-008', 'LMS-009', 'LMS-010', 'LMS-011', 'LMS-012', 'LMS-013',
-    'LMS-014', 'LMS-015', 'LMS-016', 'LMS-017', 'LMS-018', 'LMS-019', 'LMS-020', 'LMS-021'
+// Closed: the fix passed its retest. run.js --report checks that those tests now pass.
+const CLOSED = new Set([
+    'LMS-001', 'LMS-002', 'LMS-003', 'LMS-004', 'LMS-005', 'LMS-006', 'LMS-007', 'LMS-008', 'LMS-009',
+    'LMS-010', 'LMS-011', 'LMS-012', 'LMS-013', 'LMS-014', 'LMS-015', 'LMS-016', 'LMS-017', 'LMS-018',
+    'LMS-019', 'LMS-020', 'LMS-021', 'LMS-022', 'LMS-023', 'LMS-024', 'LMS-025', 'LMS-026', 'LMS-027',
+    'LMS-028', 'LMS-029', 'LMS-030', 'LMS-031', 'LMS-032', 'LMS-033', 'LMS-034', 'LMS-035', 'LMS-036',
+    'LMS-037', 'LMS-038', 'LMS-039', 'LMS-040', 'LMS-041', 'LMS-042', 'LMS-043', 'LMS-044', 'LMS-045',
+    'LMS-046', 'LMS-047', 'LMS-048', 'LMS-049', 'LMS-050', 'LMS-051', 'LMS-052', 'LMS-053', 'LMS-054',
+    'LMS-055', 'LMS-056', 'LMS-057', 'LMS-058', 'LMS-061', 'LMS-072'
 ]);
+const FIXED = new Set();
 bugs.forEach(b => { b.status = CLOSED.has(b.id) ? 'Closed' : FIXED.has(b.id) ? 'Fixed' : 'Open'; });
 
 const manualResults = {
-    'BLD-001': ['PASS', 'Build succeeded in 13 seconds'],
+    'BLD-001': ['PASS', 'Build succeeded'],
     'BLD-002': ['FAIL', '142 errors, 35 warnings. The rise comes from an updated lint package reporting more of the existing code'],
     'BLD-003': ['PASS', '0 vulnerabilities'],
     'BLD-004': ['PASS', '0 vulnerabilities'],
@@ -316,13 +324,16 @@ const manualResults = {
     'UI-010': ['PASS', 'In real Chrome, a stored javascript: link no longer runs or reads the token, and a normal link still opens'],
     'UI-011': ['PASS', 'React replaced the link with a blocked URL'],
     'UI-012': ['PASS', '/admin/register now shows the 404 page'],
-    'UI-013': ['FAIL', 'Tab title says "Skill Path"']
+    'UI-013': ['PASS', 'Tab title says Tenz Learn and no page text says Skill Path'],
+    'UI-014': ['PASS', 'Course listed with category and level; search filters it; the link opens the course'],
+    'UI-015': ['PASS', 'Advanced Filters shows Language; choosing Sinhala listed only the Sinhala course'],
+    'UI-016': ['PASS', 'Each saved lecture made one broadcast with its link; the custom one kept urgent priority']
 };
 
 // Browser and build checks repeated after the critical fixes
 const retested = [
     'BLD-001', 'BLD-002', 'BLD-003', 'BLD-004', 'BLD-005', 'BLD-006', 'BLD-007',
-    'UI-001', 'UI-002', 'UI-003', 'UI-004', 'UI-005', 'UI-006', 'UI-007', 'UI-008', 'UI-009', 'UI-010', 'UI-012', 'UI-013'
+    'UI-001', 'UI-002', 'UI-003', 'UI-004', 'UI-005', 'UI-006', 'UI-007', 'UI-008', 'UI-009', 'UI-010', 'UI-012', 'UI-013', 'UI-014', 'UI-015', 'UI-016'
 ];
 
 module.exports = { bugs, manualResults, retested };
