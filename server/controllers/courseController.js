@@ -379,7 +379,7 @@ const addLectureToSection = asyncHandler(async (req, res) => {
 const updateLecture = asyncHandler(async (req, res) => {
     const { title, resourceUrl, description, dueDate } = req.body;
 
-    if (!isSafeUrl(resourceUrl)) {
+    if (resourceUrl && !isSafeUrl(resourceUrl)) {
         res.status(400);
         throw new Error('Resource URL must be a valid http or https URL');
     }
