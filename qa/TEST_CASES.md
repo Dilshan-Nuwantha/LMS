@@ -2,7 +2,7 @@
 
 **Branch under test:** fix/payment-gateway  
 **Requirements source:** SRS.md v1.0  
-**Total cases:** 418 (Critical 52, High 202, Medium 139, Low 25)
+**Total cases:** 419 (Critical 52, High 203, Medium 139, Low 25)
 
 ## How to run
 
@@ -35,7 +35,7 @@ Run `npm install` in `server/` first. The run starts its own local MongoDB and t
 | Security | 69 |
 | Error handling | 6 |
 | Build and dependencies | 7 |
-| User interface | 16 |
+| User interface | 17 |
 
 ## Authentication
 
@@ -538,7 +538,7 @@ Run `npm install` in `server/` first. The run starts its own local MongoDB and t
 
 | ID | Priority | Test case | Steps | Expected result | Result | Bug |
 |---|---|---|---|---|---|---|
-| UI-001 | Critical | Home and marketplace load for a guest | Open / and /marketplace | Pages render with no console errors | FAIL | LMS-071 |
+| UI-001 | Critical | Home and marketplace load for a guest | Open / and /marketplace | Pages render with no console errors | PASS | LMS-071 |
 | UI-002 | Critical | Log in through the form | Sign in as a student | Lands on the student dashboard | PASS | - |
 | UI-003 | High | Wrong password shows an error | Sign in with a wrong password | An error toast appears (NFR-USE-04) | PASS | - |
 | UI-004 | High | Unknown route shows the 404 page | Open /this-does-not-exist | The Not Found page renders (NFR-USE-05) | PASS | - |
@@ -554,3 +554,4 @@ Run `npm install` in `server/` first. The run starts its own local MongoDB and t
 | UI-014 | Critical | My Learning lists enrolled courses | Log in as an enrolled student, open /my-learning, search, then click View Course Lectures | The course is listed with its category and level, search filters it, and the link opens the course | PASS | LMS-072 |
 | UI-015 | High | Marketplace language filter | Open Advanced Filters, choose Sinhala, apply | Only Sinhala courses are listed | PASS | - |
 | UI-016 | High | New lecture is announced once | As a teacher on a published course, save one lecture normally and one with a custom announcement | One broadcast each, with a direct link, and the chosen priority is kept | PASS | - |
+| UI-017 | High | Category lists show every category | Open the marketplace filter and the navbar Category menu, then pick a category that contains an ampersand | All category names show, the courses are filtered, and the filter box shows that category | PASS | - |

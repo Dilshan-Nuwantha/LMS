@@ -51,6 +51,8 @@ const Marketplace = () => {
 
     useEffect(() => {
         fetchCourses();
+        // The navbar menu changes the category without reloading this page
+        setFilters(prev => ({ ...prev, category: searchParams.get('category') || '' }));
     }, [searchParams]);
 
     const fetchCategories = async () => {
@@ -207,7 +209,7 @@ const Marketplace = () => {
                                         >
                                             <option value="">All Categories</option>
                                             {categories.map((c) => (
-                                                <option key={c._id || c.name} value={c.name}>{c.name}</option>
+                                                <option key={c} value={c}>{c}</option>
                                             ))}
                                         </select>
 

@@ -74,7 +74,7 @@ const writeReports = () => {
     const pass = cases.filter(c => result[c.id][0] === 'PASS').length;
     const out = [
         '# Tenz Learn - Regression Bug Report', '',
-        `**Branch:** Beralidu at commit b5a0d04, plus the uncommitted fixes for LMS-022 to LMS-057, LMS-061 and LMS-072  `,
+        `**Branch:** Beralidu at commit 0bd23fe, plus the uncommitted fix for LMS-071  `,
         `**Run date:** ${api.ranAt.slice(0, 10)}  `,
         `**Result:** ${cases.length} test cases, ${pass} passed, ${cases.length - pass} failed  `,
         `**Open findings:** ${open.length} (${severities.map(s => `${n(b => b.severity === s)} ${s}`).join(', ')}). **Fixed:** ${fixed.length}`, '',
@@ -94,7 +94,7 @@ const writeReports = () => {
             return `| ${m} | ${list.length} | ${p} | ${list.length - p} |`;
         }), '',
         '## How this was tested', '',
-        `- The API suite ran ${api.results.length} cases against the real server code at commit b5a0d04 on Beralidu plus the fixes for LMS-022 to LMS-057, LMS-061 and LMS-072, using a temporary local MongoDB. The hosted lms-dev database was not used.`,
+        `- The API suite ran ${api.results.length} cases against the real server code at commit 0bd23fe on Beralidu plus the fix for LMS-071, using a temporary local MongoDB. The hosted lms-dev database was not used.`,
         '- Stripe, email, Google sign-in and the AI providers were local stand-ins, so **no real payment, email or AI request was made**. Stripe webhook signatures were verified for real. Outbound calls blocked: ' + api.blockedOutbound.length + '.',
         '- Production-only behaviour (rate limits, stack traces, cron secret) ran against a second instance with NODE_ENV=production.',
         '- UI checks were repeated on this code. LMS-003 was confirmed in real Chrome with a temporary profile.', '',
@@ -112,7 +112,7 @@ const writeReports = () => {
         });
     });
 
-    out.push('## Fixed', '', 'All of these passed their retest and are Closed. LMS-022 to LMS-057, LMS-061 and LMS-072 are not committed yet.', '');
+    out.push('## Fixed', '', 'All of these passed their retest and are Closed. LMS-071 is not committed yet.', '');
     fixed.forEach(b => {
         out.push(`### ${b.id}: ${b.title}`, '', `**Type:** ${b.type}  `, `**Status:** ${b.status}  `, `**Tests now passing:** ${b.tests.join(', ')}`, '', b.problem, '', `**Fix:** ${b.fix}`, '');
     });
@@ -153,6 +153,7 @@ const writeReports = () => {
         '## Other observations', '', 'These are not counted as bugs.', '',
         '- The coupon limit (LMS-015) is now exact for free checkouts. Two paid checkouts of a one-use coupon can still both finish, because a payment that has been taken cannot be refused afterwards.',
         '- LMS-061 was closed as a side effect of the LMS-035 error handler fix.',
+        '- The marketplace category lists only show categories that have a published marketplace course. The instructor forms use two different fixed lists, with 13 categories in `CourseSettings.jsx` and 10 in `CreateMarketplaceCourse.jsx`.',
         '- Instructors no longer choose whether to announce new content (LMS-048). Public content on a published course is always announced, and the old toggle now only customises the message and priority. Content that starts hidden and is made public later is not announced.',
         '- Helpful votes cast before LMS-053 have no voter recorded, so those people can vote once more.',
         '- Any existing course with a negative price (LMS-041) will now fail validation when it is next saved, until the price is corrected.',

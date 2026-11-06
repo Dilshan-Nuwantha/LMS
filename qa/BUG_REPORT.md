@@ -1,11 +1,11 @@
 # Tenz Learn - Regression Bug Report
 
-**Branch:** Beralidu at commit b5a0d04, plus the uncommitted fixes for LMS-022 to LMS-057, LMS-061 and LMS-072  
+**Branch:** Beralidu at commit 0bd23fe, plus the uncommitted fix for LMS-071  
 **Run date:** 2026-11-06  
-**Result:** 418 test cases, 404 passed, 14 failed  
-**Open findings:** 10 (0 Critical, 0 High, 0 Medium, 10 Low). **Fixed:** 60
+**Result:** 419 test cases, 406 passed, 13 failed  
+**Open findings:** 9 (0 Critical, 0 High, 0 Medium, 9 Low). **Fixed:** 61
 
-**Status:** no Critical or High findings remain open, and nothing that passed before now fails. 10 Medium and Low findings are still open, and every failed test below belongs to one of them. Commit the latest fixes and run the database steps listed under Fixed before release.
+**Status:** no Critical or High findings remain open, and nothing that passed before now fails. 9 Medium and Low findings are still open, and every failed test below belongs to one of them. Commit the latest fixes and run the database steps listed under Fixed before release.
 
 ## Summary
 
@@ -14,8 +14,8 @@
 | Critical | 0 | 0 | 0 | 0 |
 | High | 0 | 0 | 0 | 0 |
 | Medium | 0 | 0 | 0 | 0 |
-| Low | 2 | 1 | 7 | 10 |
-| **Total** | **2** | **1** | **7** | **10** |
+| Low | 2 | 1 | 6 | 9 |
+| **Total** | **2** | **1** | **6** | **9** |
 
 - **Security issue:** a flaw in the app's own access control or data handling.
 - **Vulnerability:** an exploitable weakness, such as XSS, or a known flaw in a dependency.
@@ -44,11 +44,11 @@
 | Security | 69 | 65 | 4 |
 | Error handling | 6 | 5 | 1 |
 | Build and dependencies | 7 | 5 | 2 |
-| User interface | 16 | 15 | 1 |
+| User interface | 17 | 17 | 0 |
 
 ## How this was tested
 
-- The API suite ran 395 cases against the real server code at commit b5a0d04 on Beralidu plus the fixes for LMS-022 to LMS-057, LMS-061 and LMS-072, using a temporary local MongoDB. The hosted lms-dev database was not used.
+- The API suite ran 395 cases against the real server code at commit 0bd23fe on Beralidu plus the fix for LMS-071, using a temporary local MongoDB. The hosted lms-dev database was not used.
 - Stripe, email, Google sign-in and the AI providers were local stand-ins, so **no real payment, email or AI request was made**. Stripe webhook signatures were verified for real. Outbound calls blocked: 0.
 - Production-only behaviour (rate limits, stack traces, cron secret) ran against a second instance with NODE_ENV=production.
 - UI checks were repeated on this code. LMS-003 was confirmed in real Chrome with a temporary profile.
@@ -158,19 +158,9 @@ react-player is not in package.json. Nothing imports VideoPlayer, so the build s
 
 **Fix:** Delete the component or add the package.
 
-### LMS-071: React key warning on the marketplace
-
-**Type:** Bug  
-**Where:** client/src/pages/marketplace/Marketplace.jsx  
-**Failed tests:** UI-001
-
-The filter select renders options without a key and logs a console error.
-
-**Fix:** Add a key to each option.
-
 ## Fixed
 
-All of these passed their retest and are Closed. LMS-022 to LMS-057, LMS-061 and LMS-072 are not committed yet.
+All of these passed their retest and are Closed. LMS-071 is not committed yet.
 
 ### LMS-001: Anyone can create an admin account
 
@@ -762,6 +752,16 @@ Stack traces are hidden, but messages such as "Cast to ObjectId failed ... for m
 
 **Fix:** Return a generic message for unexpected errors.
 
+### LMS-071: Category lists are blank and log a React key warning
+
+**Type:** Bug  
+**Status:** Closed  
+**Tests now passing:** UI-001
+
+The API returns category names as text, but the marketplace filter and navbar menu read a name field from each one. Every entry came out blank, with no key.
+
+**Fix:** Use the text directly in both lists, and keep the filter box in step when the navbar changes the category.
+
 ### LMS-072: My Learning shows no courses for enrolled students
 
 **Type:** Bug  
@@ -813,6 +813,7 @@ These are not counted as bugs.
 
 - The coupon limit (LMS-015) is now exact for free checkouts. Two paid checkouts of a one-use coupon can still both finish, because a payment that has been taken cannot be refused afterwards.
 - LMS-061 was closed as a side effect of the LMS-035 error handler fix.
+- The marketplace category lists only show categories that have a published marketplace course. The instructor forms use two different fixed lists, with 13 categories in `CourseSettings.jsx` and 10 in `CreateMarketplaceCourse.jsx`.
 - Instructors no longer choose whether to announce new content (LMS-048). Public content on a published course is always announced, and the old toggle now only customises the message and priority. Content that starts hidden and is made public later is not announced.
 - Helpful votes cast before LMS-053 have no voter recorded, so those people can vote once more.
 - Any existing course with a negative price (LMS-041) will now fail validation when it is next saved, until the price is corrected.
