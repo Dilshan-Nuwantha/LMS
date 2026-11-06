@@ -140,22 +140,18 @@ const loginUser = asyncHandler(async (req, res) => {
         throw new Error('Invalid credentials');
     }
 
-    if (user.isBlocked) {
-        res.status(403);
-        throw new Error(user.blockReason || 'Your account has been blocked. Please contact support.');
-    }
-
-    // Check if account was created via Google without a password
-    if (user.googleId && !user.password) {
-        res.status(400);
-        throw new Error('This account uses Google sign-in. Please log in with Google.');
-    }
-
-    // Compare passwords safely
+    // Verify password before checking account status
     const isMatch = await user.matchPassword(password);
+
     if (!isMatch) {
         res.status(400);
         throw new Error('Invalid credentials');
+    }
+
+    // Check account status only after successful password verification
+    if (user.isBlocked) {
+        res.status(403);
+        throw new Error('Unable to log in. Please contact support.');
     }
 
     if (role && user.role !== role) {
@@ -327,9 +323,11 @@ const forgotPassword = asyncHandler(async (req, res) => {
         return res.json({ message: 'If that email is registered, an OTP has been sent.' });
     }
 
+    // Do not reveal whether the account uses Google sign-in
     if (user.googleId && !user.password) {
-        res.status(400);
-        throw new Error('This account uses Google sign-in. Please log in with Google.');
+        return res.json({
+            message: 'If that email is registered, an OTP has been sent.'
+        });
     }
 
     // Generate a cryptographically random 6-digit OTP
