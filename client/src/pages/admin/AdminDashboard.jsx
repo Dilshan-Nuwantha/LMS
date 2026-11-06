@@ -1,5 +1,5 @@
-import { useState, useEffect, useContext } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Fragment, useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import {
     FaUsers, FaChalkboardTeacher, FaBookOpen, FaBook,
     FaChartLine, FaMoneyCheckAlt, FaHistory,
@@ -8,7 +8,6 @@ import {
     FaChevronDown, FaChevronUp, FaShieldAlt, FaChevronLeft, FaChevronRight,
     FaUserSecret, FaSignInAlt
 } from 'react-icons/fa';
-import AuthContext from '../../context/AuthContext';
 import api from '../../api/axios';
 import { showSuccess, showError } from '../../utils/toast';
 
@@ -137,8 +136,6 @@ const PayoutsTab = () => {
     const [page, setPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
 
-    useEffect(() => { fetchPayouts(); }, [page]);
-
     const fetchPayouts = async () => {
         setLoading(true);
         try {
@@ -151,6 +148,8 @@ const PayoutsTab = () => {
             setLoading(false);
         }
     };
+
+    useEffect(() => { fetchPayouts(); }, [page]);
 
     if (loading) return <div className="text-center py-20 text-slate-500 dark:text-slate-400">Loading payouts…</div>;
 
@@ -239,10 +238,7 @@ const UsersTab = () => {
     const [editMaxWarnings, setEditMaxWarnings] = useState({});
     const [maxWarningsInput, setMaxWarningsInput] = useState({});
 
-    useEffect(() => { fetchUsers(); }, []);
-
     // Reset to page 1 when search/filter changes
-    useEffect(() => { setPage(1); }, [search, filter]);
 
     const fetchUsers = async () => {
         setLoading(true);
@@ -255,6 +251,8 @@ const UsersTab = () => {
             setLoading(false);
         }
     };
+
+    useEffect(() => { fetchUsers(); }, []);
 
     const filteredUsers = users.filter(u => {
         const q = search.toLowerCase();
@@ -357,7 +355,7 @@ const UsersTab = () => {
                         type="text"
                         placeholder="Search name or email…"
                         value={search}
-                        onChange={e => setSearch(e.target.value)}
+                        onChange={e => { setSearch(e.target.value); setPage(1); }}
                         className="w-full pl-8 pr-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                     />
                 </div>
@@ -369,7 +367,7 @@ const UsersTab = () => {
                         return (
                             <button
                                 key={f.id}
-                                onClick={() => setFilter(f.id)}
+                                onClick={() => { setFilter(f.id); setPage(1); }}
                                 className={`px-3 py-1.5 text-xs font-medium rounded-lg border transition-all ${isActive
                                         ? `${accent} text-white shadow-sm`
                                         : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:border-slate-300 dark:hover:border-slate-600'
@@ -421,9 +419,8 @@ const UsersTab = () => {
                                         const warnPct = Math.min(100, (warnCount / maxWarn) * 100);
 
                                         return (
-                                            <>
+                                            <Fragment key={user._id}>
                                                 <tr
-                                                    key={user._id}
                                                     className={`hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors ${user.isBlocked ? 'bg-red-50/40 dark:bg-red-900/10' : ''}`}
                                                 >
                                                     {/* User info */}
@@ -590,7 +587,7 @@ const UsersTab = () => {
                                                         </td>
                                                     </tr>
                                                 )}
-                                            </>
+                                            </Fragment>
                                         );
                                     })}
                                 </tbody>
@@ -761,8 +758,6 @@ const ImpersonateTab = () => {
     const [email, setEmail] = useState('');
     const [loading, setLoading] = useState(false);
     const [foundUser, setFoundUser] = useState(null);
-    const { logout } = useContext(AuthContext);
-    const navigate = useNavigate();
 
     const handleSearch = async (e) => {
         e.preventDefault();
@@ -912,8 +907,6 @@ const AdminDashboard = () => {
     const [payoutForm, setPayoutForm] = useState({ amount: '', currency: 'LKR', method: 'bank_transfer', transactionId: '', note: '' });
     const [payoutLoading, setPayoutLoading] = useState(false);
 
-    useEffect(() => { fetchData(); }, []);
-    useEffect(() => { setInstructorPage(1); }, [instructorSearch]);
 
     const fetchData = async () => {
         try {
@@ -929,6 +922,8 @@ const AdminDashboard = () => {
             setLoading(false);
         }
     };
+
+    useEffect(() => { fetchData(); }, []);
 
     // Pending balance of an instructor in one currency
     const pendingIn = (instructor, currency) => (currency === 'USD'
@@ -1134,7 +1129,7 @@ const AdminDashboard = () => {
                                 type="text"
                                 placeholder="Search instructors…"
                                 value={instructorSearch}
-                                onChange={e => setInstructorSearch(e.target.value)}
+                                onChange={e => { setInstructorSearch(e.target.value); setInstructorPage(1); }}
                                 className="w-full pl-8 pr-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                             />
                         </div>

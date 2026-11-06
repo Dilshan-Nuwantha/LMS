@@ -104,38 +104,6 @@ const CourseView = () => {
     }, [course]);
 
     useEffect(() => {
-        const fetchCourse = async () => {
-            try {
-                const res = await api.get(`/courses/${id}`);
-                const courseData = res.data;
-                setCourse(courseData);
-
-                // All sections collapsed by default
-                if (courseData.sections && courseData.sections.length > 0) {
-                    setExpandedSections({});
-                    // Select first lecture if available
-                    if (courseData.sections && courseData.sections.length > 0 && courseData.sections[0].lectures.length > 0) {
-                        const firstLec = courseData.sections[0].lectures[0];
-                        setSelectedLecture(firstLec);
-                        fetchComments(firstLec._id);
-                    }
-                }
-                
-                // Fetch resource counts for this course
-                try {
-                    const countsRes = await api.get(`/resources/${id}/counts`);
-                    setResourceCounts(countsRes.data.counts || {});
-                } catch (err) {
-                    console.warn('Failed to fetch resource counts', err);
-                }
-            } catch (err) {
-                console.error(err);
-            }
-        };
-        fetchCourse();
-    }, [id]);
-
-    useEffect(() => {
         const fetchProgress = async () => {
             if (!user) return; // Skip if guest
             try {
@@ -170,10 +138,42 @@ const CourseView = () => {
         try {
             const res = await api.get(`/courses/lectures/${lectureId}/comments`);
             setComments(res.data);
-        } catch (err) {
+        } catch {
             console.error("Failed to fetch comments");
         }
     };
+
+    useEffect(() => {
+        const fetchCourse = async () => {
+            try {
+                const res = await api.get(`/courses/${id}`);
+                const courseData = res.data;
+                setCourse(courseData);
+
+                // All sections collapsed by default
+                if (courseData.sections && courseData.sections.length > 0) {
+                    setExpandedSections({});
+                    // Select first lecture if available
+                    if (courseData.sections && courseData.sections.length > 0 && courseData.sections[0].lectures.length > 0) {
+                        const firstLec = courseData.sections[0].lectures[0];
+                        setSelectedLecture(firstLec);
+                        fetchComments(firstLec._id);
+                    }
+                }
+                
+                // Fetch resource counts for this course
+                try {
+                    const countsRes = await api.get(`/resources/${id}/counts`);
+                    setResourceCounts(countsRes.data.counts || {});
+                } catch (err) {
+                    console.warn('Failed to fetch resource counts', err);
+                }
+            } catch (err) {
+                console.error(err);
+            }
+        };
+        fetchCourse();
+    }, [id]);
 
     // Show toast reminder once when a lecture is manually selected and its status hasn't been updated
     useEffect(() => {
@@ -350,7 +350,7 @@ const CourseView = () => {
                 }
             }));
             showSuccess('Notes saved!');
-        } catch (error) {
+        } catch {
             showError('Failed to save notes');
         } finally {
             setIsSavingNotes(false);
@@ -397,7 +397,7 @@ const CourseView = () => {
                 }
             }));
             showSuccess(markedForRevision ? 'Marked for revision!' : 'Removed from revision list');
-        } catch (err) {
+        } catch {
             showError('Failed to update revision mark');
         }
     };
@@ -415,7 +415,7 @@ const CourseView = () => {
             setNewComment('');
             fetchComments(selectedLecture._id);
             showSuccess('Comment posted!');
-        } catch (error) {
+        } catch {
             showError('Error posting comment');
         }
     };

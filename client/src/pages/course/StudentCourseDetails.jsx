@@ -226,23 +226,6 @@ const StudentCourseDetails = () => {
     }, [id]);
 
     // Lazy load broadcasts when announcements tab is activated
-    useEffect(() => {
-        if (activeTab === 'announcements' && id) {
-            if (!broadcastsLoaded) {
-                fetchBroadcasts();
-                fetchBroadcastPermission();
-            }
-            // Mark broadcasts as read when viewing the tab
-            if (unreadBroadcastCount > 0) {
-                markBroadcastsAsRead();
-            }
-        }
-        // Lazy load quizzes when quizzes tab is activated
-        if (activeTab === 'quizzes' && id && !quizzesLoaded) {
-            fetchQuizzes();
-        }
-    }, [activeTab, broadcastsLoaded, id, unreadBroadcastCount, quizzesLoaded]);
-
     // Fetch quizzes for this course
     const fetchQuizzes = async () => {
         try {
@@ -277,16 +260,6 @@ const StudentCourseDetails = () => {
         }
     };
 
-    // Fetch unread broadcast count
-    const fetchUnreadCount = async () => {
-        try {
-            const res = await api.get(`/broadcasts/course/${id}/unread-count`);
-            setUnreadBroadcastCount(res.data.unreadCount || 0);
-        } catch (err) {
-            console.error("Failed to fetch unread count", err);
-        }
-    };
-
     // Mark broadcasts as read
     const markBroadcastsAsRead = async () => {
         try {
@@ -296,6 +269,23 @@ const StudentCourseDetails = () => {
             console.error("Failed to mark broadcasts as read", err);
         }
     };
+
+    useEffect(() => {
+        if (activeTab === 'announcements' && id) {
+            if (!broadcastsLoaded) {
+                fetchBroadcasts();
+                fetchBroadcastPermission();
+            }
+            // Mark broadcasts as read when viewing the tab
+            if (unreadBroadcastCount > 0) {
+                markBroadcastsAsRead();
+            }
+        }
+        // Lazy load quizzes when quizzes tab is activated
+        if (activeTab === 'quizzes' && id && !quizzesLoaded) {
+            fetchQuizzes();
+        }
+    }, [activeTab, broadcastsLoaded, id, unreadBroadcastCount, quizzesLoaded]);
 
     // Find the lecture to resume from (last accessed, then next if completed)
     const getResumeLecture = () => {

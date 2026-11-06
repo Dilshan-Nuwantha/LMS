@@ -1,24 +1,2 @@
-FAIL AUTH-032 Reset request does not reveal Google-only accounts
-     expected HTTP 200, got 400 - {"message":"This account uses Google sign-in. Please log in with Google.","stack":"Error: This account uses Google sign-in. Please log in with Google.\n at C:\\Users\\pri
-FAIL AUTH-041 Login does not reveal Google-only accounts
-     message: expected "Invalid credentials", got "This account uses Google sign-in. Please log in with Google."
-FAIL CRS-009 A lecture field can be cleared
-     description: expected "", got "Public lecture body"
-FAIL QZ-023 Passing score of 0 is kept
-     passingScore: expected 0, got 70
-FAIL QZ-025 Reject a negative time limit
-     expected HTTP 400, got 201 - {"course":"6aee0fb7819615dc7a9640ed","section":null,"title":"T","description":"","questions":[],"passingScore":70,"timeLimit":-5,"attemptsAllowed":-1,"isRequired":false,"
-FAIL RES-014 Admin can open course resources
-     expected HTTP 200, got 403 - {"message":"Not enrolled in this course","stack":"Error: Not enrolled in this course\n at C:\\Users\\priya\\AppData\\Local\\Temp\\claude\\b4e8c6049af44d16\\71553799-c395-
-FAIL SEC-016 Rate limit cannot be dodged with a header
-     8 attempts, none limited
-FAIL SEC-017 Marketplace course creation is rate limited
-     expected HTTP 429, got 201 - {"title":"T","description":"D","status":"Draft","lectureStatuses":[{"label":"Not Started","color":"#64748b","_id":"6aee0fcd88643acf4ccbca0f","id":"6aee0fcd88643acf4ccbca0
-FAIL SEC-035 Upload filter cannot be bypassed
-     expected HTTP 400, got 201 - {"course":"6aee0fb7819615dc7a9640ed","uploadedBy":{"_id":"6aee0fb6819615dc7a9640e3","name":"QA owner","email":"owner.294b5ce8@qa.test"},"title":"x","description":"","file
-FAIL SEC-050 Login does not reveal blocked status without the password
-     expected HTTP 400, got 403 - {"message":"Secret reason","stack":"Error: Secret reason\n at C:\\Users\\priya\\AppData\\Local\\Temp\\claude\\b4e8c6049af44d16\\71553799-c395-40b4-882f-cad8bdbd945b\\scra
-FAIL ERR-004 Unknown API route returns JSON
-     HTML response
 
-395 run, 384 passed, 11 failed, 0 outbound calls blocked
+400 run, 400 passed, 0 failed, 0 outbound calls blocked

@@ -14,6 +14,7 @@ const {
     getEarnings
 } = require('../controllers/instructorController');
 const { protect, instructorOnly } = require('../middleware/authMiddleware');
+const { createCourseLimiter } = require('../middleware/rateLimiter');
 
 // Become instructor (available to students)
 router.post('/become', protect, becomeInstructor);
@@ -21,7 +22,7 @@ router.post('/become', protect, becomeInstructor);
 // Instructor-only routes
 router.get('/dashboard', protect, instructorOnly, getInstructorDashboard);
 router.get('/courses', protect, instructorOnly, getInstructorCourses);
-router.post('/course', protect, instructorOnly, createMarketplaceCourse);
+router.post('/course', protect, instructorOnly, createCourseLimiter, createMarketplaceCourse);
 router.put('/course/:id', protect, instructorOnly, updateMarketplaceCourse);
 router.get('/course/:id/sales', protect, instructorOnly, getCourseSales);
 router.get('/profile', protect, instructorOnly, getInstructorProfile);

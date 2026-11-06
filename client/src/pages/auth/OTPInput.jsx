@@ -20,7 +20,7 @@ const OTPInput = () => {
     const [isLoading, setIsLoading] = useState(false);
     const [isResending, setIsResending] = useState(false);
     const [countdown, setCountdown] = useState(RESEND_COOLDOWN);
-    const [canResend, setCanResend] = useState(false);
+    const canResend = countdown <= 0;
     const inputRefs = useRef([]);
     const navigate = useNavigate();
     const location = useLocation();
@@ -35,10 +35,7 @@ const OTPInput = () => {
 
     // Countdown timer for resend button
     useEffect(() => {
-        if (countdown <= 0) {
-            setCanResend(true);
-            return;
-        }
+        if (countdown <= 0) return;
         const timer = setTimeout(() => setCountdown(c => c - 1), 1000);
         return () => clearTimeout(timer);
     }, [countdown]);
@@ -136,7 +133,6 @@ const OTPInput = () => {
             showSuccess('A new OTP has been sent to your inbox.');
             setDigits(['', '', '', '', '', '']);
             setCountdown(RESEND_COOLDOWN);
-            setCanResend(false);
             setTimeout(() => focusInput(0), 100);
         } catch (error) {
             if (!error.handled) {

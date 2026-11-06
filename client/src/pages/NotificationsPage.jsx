@@ -20,6 +20,18 @@ const priorityBadge = {
     normal: ''
 };
 
+const timeAgo = (date) => {
+    const diff = Date.now() - new Date(date).getTime();
+    const mins = Math.floor(diff / 60000);
+    if (mins < 1) return 'Just now';
+    if (mins < 60) return `${mins}m ago`;
+    const hrs = Math.floor(mins / 60);
+    if (hrs < 24) return `${hrs}h ago`;
+    const days = Math.floor(hrs / 24);
+    if (days < 7) return `${days}d ago`;
+    return new Date(date).toLocaleDateString();
+};
+
 const NotificationsPage = () => {
     const navigate = useNavigate();
     const [notifications, setNotifications] = useState([]);
@@ -35,7 +47,7 @@ const NotificationsPage = () => {
             const res = await api.get(`/notifications?page=${p}&limit=${limit}`);
             setNotifications(res.data.notifications);
             setPagination(res.data.pagination);
-        } catch {} finally {
+        } catch { /* Not critical: the page keeps what it has */ } finally {
             setLoading(false);
         }
     };
@@ -53,38 +65,26 @@ const NotificationsPage = () => {
         try {
             await api.put('/notifications/mark-all-read');
             setNotifications(prev => prev.map(n => ({ ...n, read: true })));
-        } catch {}
+        } catch { /* Not critical: the page keeps what it has */ }
     };
 
     const handleMarkRead = async (id) => {
         try {
             await api.put(`/notifications/${id}/read`);
             setNotifications(prev => prev.map(n => n._id === id ? { ...n, read: true } : n));
-        } catch {}
+        } catch { /* Not critical: the page keeps what it has */ }
     };
 
     const handleDelete = async (id) => {
         try {
             await api.delete(`/notifications/${id}`);
             setNotifications(prev => prev.filter(n => n._id !== id));
-        } catch {}
+        } catch { /* Not critical: the page keeps what it has */ }
     };
 
     const handleClick = (notif) => {
         if (!notif.read) handleMarkRead(notif._id);
         if (notif.link) navigate(notif.link);
-    };
-
-    const timeAgo = (date) => {
-        const diff = Date.now() - new Date(date).getTime();
-        const mins = Math.floor(diff / 60000);
-        if (mins < 1) return 'Just now';
-        if (mins < 60) return `${mins}m ago`;
-        const hrs = Math.floor(mins / 60);
-        if (hrs < 24) return `${hrs}h ago`;
-        const days = Math.floor(hrs / 24);
-        if (days < 7) return `${days}d ago`;
-        return new Date(date).toLocaleDateString();
     };
 
     const filtered = filter === 'unread' ? notifications.filter(n => !n.read) : notifications;

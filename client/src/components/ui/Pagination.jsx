@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { FaChevronLeft, FaChevronRight } from 'react-icons/fa';
 
 /**
@@ -28,9 +28,11 @@ const Pagination = ({
     const [pageInput, setPageInput] = useState(currentPage.toString());
 
     // Sync pageInput with currentPage when it changes externally
-    useEffect(() => {
+    const [syncedPage, setSyncedPage] = useState(currentPage);
+    if (currentPage !== syncedPage) {
+        setSyncedPage(currentPage);
         setPageInput(currentPage.toString());
-    }, [currentPage]);
+    }
 
     // Calculate showing range
     const startItem = totalItems === 0 ? 0 : (currentPage - 1) * itemsPerPage + 1;

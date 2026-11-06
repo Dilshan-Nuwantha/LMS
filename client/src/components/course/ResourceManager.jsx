@@ -25,7 +25,7 @@ const formatFileSize = (bytes) => {
     return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
 };
 
-const ResourceManager = ({ courseId, isTeacher = false, userId = null, sections = [] }) => {
+const ResourceManager = ({ courseId, userId = null, sections = [] }) => {
     const [resources, setResources] = useState([]);
     const [loading, setLoading] = useState(true);
     const [uploading, setUploading] = useState(false);
@@ -77,7 +77,7 @@ const ResourceManager = ({ courseId, isTeacher = false, userId = null, sections 
             setResources(res.data.resources);
             setAllowStudentUploads(res.data.allowStudentUploads);
             setIsTeacherUser(res.data.isTeacher);
-        } catch (err) {
+        } catch {
             showError('Failed to load resources');
         } finally {
             setLoading(false);
@@ -148,7 +148,7 @@ const ResourceManager = ({ courseId, isTeacher = false, userId = null, sections 
             await api.delete(`/resources/${courseId}/${resourceId}`);
             setResources(prev => prev.filter(r => r._id !== resourceId));
             showSuccess('Resource deleted');
-        } catch (err) {
+        } catch {
             showError('Failed to delete resource');
         }
     };
@@ -172,7 +172,7 @@ const ResourceManager = ({ courseId, isTeacher = false, userId = null, sections 
             const res = await api.put(`/resources/${courseId}/toggle-student-uploads`);
             setAllowStudentUploads(res.data.allowStudentUploads);
             showSuccess(res.data.allowStudentUploads ? 'Student uploads enabled' : 'Student uploads disabled');
-        } catch (err) {
+        } catch {
             showError('Failed to toggle setting');
         }
     };
@@ -194,7 +194,7 @@ const ResourceManager = ({ courseId, isTeacher = false, userId = null, sections 
             link.click();
             link.remove();
             window.URL.revokeObjectURL(url);
-        } catch (err) {
+        } catch {
             showError('Download failed');
         }
     };
@@ -220,7 +220,7 @@ const ResourceManager = ({ courseId, isTeacher = false, userId = null, sections 
             const blobUrl = window.URL.createObjectURL(blob);
             setViewUrl(blobUrl);
             setViewingResource(resource);
-        } catch (err) {
+        } catch {
             showError('Failed to load resource for viewing');
         }
     };

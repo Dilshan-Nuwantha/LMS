@@ -20,10 +20,6 @@ const AIChatPanel = ({ courseId, courseTitle }) => {
     const fileInputRef = useRef(null);
     const titleInputRef = useRef(null);
 
-    useEffect(() => { loadAIStatus(); }, []);
-    useEffect(() => { if (selectedSource) loadConversations(); }, [selectedSource]);
-    useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages]);
-
     const loadAIStatus = async () => {
         try {
             if (courseId) {
@@ -43,14 +39,6 @@ const AIChatPanel = ({ courseId, courseTitle }) => {
         } finally { setLoading(false); }
     };
 
-    const loadConversations = async () => {
-        try {
-            const res = await api.get(`/student-ai/conversations?courseId=${courseId}`);
-            setConversations(res.data);
-            if (res.data.length > 0 && !activeConvo) loadConversation(res.data[0]._id);
-        } catch { }
-    };
-
     const loadConversation = async (id) => {
         try {
             const res = await api.get(`/student-ai/conversations/${id}`);
@@ -58,6 +46,20 @@ const AIChatPanel = ({ courseId, courseTitle }) => {
             setMessages(res.data.messages || []);
         } catch { showError('Failed to load conversation'); }
     };
+
+    const loadConversations = async () => {
+        try {
+            const res = await api.get(`/student-ai/conversations?courseId=${courseId}`);
+            setConversations(res.data);
+            if (res.data.length > 0 && !activeConvo) loadConversation(res.data[0]._id);
+        } catch { /* Not critical: the page keeps what it has */ }
+    };
+
+    useEffect(() => { if (selectedSource) loadConversations(); }, [selectedSource]);
+
+    useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages]);
+
+    useEffect(() => { loadAIStatus(); }, []);
 
     const createNew = async () => {
         try {

@@ -1,24 +1,15 @@
 import { useState, useEffect } from 'react';
-import { useSearchParams, useNavigate, Link } from 'react-router-dom';
+import { useSearchParams, Link } from 'react-router-dom';
 import { FaCheckCircle, FaTimesCircle, FaArrowRight } from 'react-icons/fa';
 import api from '../../api/axios';
 
 const CheckoutSuccess = () => {
     const [searchParams] = useSearchParams();
-    const navigate = useNavigate();
-    const [status, setStatus] = useState('loading');
+    const sessionId = searchParams.get('session_id');
+    const [status, setStatus] = useState(sessionId ? 'loading' : 'error');
     const [course, setCourse] = useState(null);
 
-    const sessionId = searchParams.get('session_id');
     const MAX_RETRIES = 15; // 15 retries * 2s = 30 seconds max
-
-    useEffect(() => {
-        if (sessionId) {
-            checkPaymentStatus(0);
-        } else {
-            setStatus('error');
-        }
-    }, [sessionId]);
 
     const checkPaymentStatus = async (retryCount) => {
         try {
@@ -36,10 +27,14 @@ const CheckoutSuccess = () => {
             } else {
                 setStatus('error');
             }
-        } catch (error) {
+        } catch {
             setStatus('error');
         }
     };
+
+    useEffect(() => {
+        if (sessionId) checkPaymentStatus(0);
+    }, [sessionId]);
 
     if (status === 'loading') {
         return (

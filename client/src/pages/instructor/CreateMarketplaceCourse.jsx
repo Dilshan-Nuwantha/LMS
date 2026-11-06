@@ -1,13 +1,11 @@
-import { useState, useEffect, useContext } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FaPlus, FaTimes, FaImage, FaVideo, FaSave, FaArrowLeft } from 'react-icons/fa';
 import api from '../../api/axios';
-import AuthContext from '../../context/AuthContext';
 import { showSuccess, showError } from '../../utils/toast';
 
 const CreateMarketplaceCourse = () => {
     const navigate = useNavigate();
-    const { user } = useContext(AuthContext);
     const [loading, setLoading] = useState(false);
     const [step, setStep] = useState(1);
 
@@ -43,7 +41,7 @@ const CreateMarketplaceCourse = () => {
                     const merged = [...new Set([...res.data, ...defaultCategories])].sort();
                     setCategories(merged);
                 }
-            } catch (error) {
+            } catch {
                 // Fall back to default categories
             }
         };

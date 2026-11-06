@@ -33,22 +33,13 @@ const CourseLanding = () => {
     const [submittingReview, setSubmittingReview] = useState(false);
     const [myReview, setMyReview] = useState(null);
 
-    useEffect(() => {
-        if (!id || id === 'undefined') return;
-        fetchCourse();
-        if (user) {
-            checkPurchase();
-            fetchMyReview();
-        }
-    }, [id, user]);
-
     const fetchCourse = async () => {
         try {
             const res = await api.get(`/marketplace/${id}`);
             setCourse(res.data.course);
             setReviews(res.data.reviews);
             // All sections collapsed by default
-        } catch (error) {
+        } catch {
             showError('Course not found');
             navigate('/marketplace');
         } finally {
@@ -73,10 +64,19 @@ const CourseLanding = () => {
                 setReviewRating(res.data.rating);
                 setReviewComment(res.data.comment);
             }
-        } catch (error) {
+        } catch {
             // No existing review - that's fine
         }
     };
+
+    useEffect(() => {
+        if (!id || id === 'undefined') return;
+        fetchCourse();
+        if (user) {
+            checkPurchase();
+            fetchMyReview();
+        }
+    }, [id, user]);
 
     const handleSubmitReview = async () => {
         if (!user) {
@@ -119,7 +119,7 @@ const CourseLanding = () => {
         try {
             await api.post(`/reviews/${reviewId}/helpful`);
             fetchCourse();
-        } catch (error) {
+        } catch {
             showError('Failed to mark review as helpful');
         }
     };
@@ -424,7 +424,7 @@ const CourseLanding = () => {
                                 Course Curriculum
                             </h2>
                             <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden">
-                                {course.sections?.map((section, index) => (
+                                {course.sections?.map((section) => (
                                     <div key={section._id} className="border-b border-slate-200 dark:border-slate-700 last:border-0">
                                         <button
                                             onClick={() => toggleSection(section._id)}

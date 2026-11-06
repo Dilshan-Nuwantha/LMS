@@ -8,20 +8,20 @@ const MyPurchases = () => {
     const [purchases, setPurchases] = useState([]);
     const [loading, setLoading] = useState(true);
 
-    useEffect(() => {
-        fetchPurchases();
-    }, []);
-
     const fetchPurchases = async () => {
         try {
             const res = await api.get('/purchase/my-purchases');
             setPurchases(res.data);
-        } catch (error) {
+        } catch {
             showError('Failed to load purchases');
         } finally {
             setLoading(false);
         }
     };
+
+    useEffect(() => {
+        fetchPurchases();
+    }, []);
 
     const formatDate = (date) => {
         return new Date(date).toLocaleDateString('en-US', {

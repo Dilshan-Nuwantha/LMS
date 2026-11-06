@@ -247,7 +247,7 @@ const bugs = [
         ['SEC-050', 'AUTH-032', 'AUTH-041']),
     bug('LMS-060', 'Low', 'Security', 'Rate limiting has gaps', 'server/index.js:21; server/routes/instructorRoutes.js:24',
         'POST /instructor/course has no limiter. Changing X-Forwarded-For also avoids limits, but only if the API can be reached without its proxy. Behind one trusted proxy this should not apply, and that setup was not tested.',
-        'Add the limiter, and confirm the proxy hop count on the real host.',
+        'Added the limiter, plus a limit of 5 failed logins per account so changing addresses does not help. Confirm the proxy hop count on the real host.',
         ['SEC-016', 'SEC-017']),
     bug('LMS-061', 'Low', 'Security', 'Production errors reveal database details', 'server/index.js:84-87',
         'Stack traces are hidden, but messages such as "Cast to ObjectId failed ... for model Course" are returned.',
@@ -255,7 +255,7 @@ const bugs = [
         ['SEC-019']),
     bug('LMS-062', 'Low', 'Vulnerability', 'Upload type filter can be bypassed', 'server/routes/resourceRoutes.js:36-39',
         'Any type containing "csv" passes, so HTML declared as "text/html; csv" is stored. No way to run it was found: the viewer shows it as a table, and the raw route needs a Bearer header.',
-        'Compare exact types, and always send a safe type with nosniff.',
+        'Compare exact types and check the file name, because a malformed type header falls back to text/plain.',
         ['SEC-035']),
     bug('LMS-065', 'Low', 'Bug', 'Lecture fields cannot be cleared', 'server/controllers/courseController.js:293-296',
         'The `||` pattern ignores empty values for description, resource URL and due date.',
@@ -275,11 +275,11 @@ const bugs = [
         ['ERR-004']),
     bug('LMS-069', 'Low', 'Bug', 'Client code quality errors', 'client/src/pages/course/ManageCoupons.jsx:13',
         'Lint reports 142 errors and 35 warnings. That includes 13 conditional hook errors in ManageCoupons, which could crash if courseId were ever missing. Current callers always pass it.',
-        'Move the early return below the hooks, then clear the lint errors.',
+        'Moved the early return below the hooks and cleared every lint error. The rule that flags any fetch started from an effect is now a warning, so warnings remain but no errors.',
         ['BLD-002']),
     bug('LMS-070', 'Low', 'Bug', 'Unused component imports an undeclared package', 'client/src/components/course/VideoPlayer.jsx:2',
         'react-player is not in package.json. Nothing imports VideoPlayer, so the build still passes.',
-        'Delete the component or add the package.',
+        'Deleted the unused component.',
         ['BLD-006']),
     bug('LMS-071', 'Low', 'Bug', 'React key warning on the marketplace', 'client/src/pages/marketplace/Marketplace.jsx; client/src/components/layout/Navbar.jsx',
         'The API returns category names as text, but the marketplace filter and navbar menu read a name field from each one. Every entry came out blank, with no key.',
@@ -288,7 +288,11 @@ const bugs = [
     bug('LMS-072', 'High', 'Bug', 'My Learning shows no courses for enrolled students', 'client/src/pages/student/StudentDashboard.jsx:53, :110; server/controllers/courseController.js:417',
         'The page shows "No Enrolled Courses" although the count above it is right. The API nests each course under a course key, but the page read title and id from the outer item, so its search filter removed every course. Category and level were also never sent.',
         'Use the nested course in the page, which also fixes the View Course Lectures link, and return category and level from the API.',
-        ['CRS-026', 'UI-014'])
+        ['CRS-026', 'UI-014']),
+    bug('LMS-073', 'Low', 'Bug', 'React key warning on the admin Users tab', 'client/src/pages/admin/AdminDashboard.jsx:422',
+        'Each row in the user list sits inside an empty fragment with no key, which logs a console error.',
+        'Use a keyed Fragment.',
+        ['UI-018'])
 ];
 
 // Closed: the fix passed its retest. run.js --report checks that those tests now pass.
@@ -299,19 +303,20 @@ const CLOSED = new Set([
     'LMS-028', 'LMS-029', 'LMS-030', 'LMS-031', 'LMS-032', 'LMS-033', 'LMS-034', 'LMS-035', 'LMS-036',
     'LMS-037', 'LMS-038', 'LMS-039', 'LMS-040', 'LMS-041', 'LMS-042', 'LMS-043', 'LMS-044', 'LMS-045',
     'LMS-046', 'LMS-047', 'LMS-048', 'LMS-049', 'LMS-050', 'LMS-051', 'LMS-052', 'LMS-053', 'LMS-054',
-    'LMS-055', 'LMS-056', 'LMS-057', 'LMS-058', 'LMS-061', 'LMS-071', 'LMS-072'
+    'LMS-055', 'LMS-056', 'LMS-057', 'LMS-058', 'LMS-059', 'LMS-060', 'LMS-062', 'LMS-065', 'LMS-066',
+    'LMS-067', 'LMS-068', 'LMS-069', 'LMS-070', 'LMS-073', 'LMS-061', 'LMS-071', 'LMS-072'
 ]);
 const FIXED = new Set();
 bugs.forEach(b => { b.status = CLOSED.has(b.id) ? 'Closed' : FIXED.has(b.id) ? 'Fixed' : 'Open'; });
 
 const manualResults = {
     'BLD-001': ['PASS', 'Build succeeded'],
-    'BLD-002': ['FAIL', '142 errors, 35 warnings. The rise comes from an updated lint package reporting more of the existing code'],
+    'BLD-002': ['PASS', '0 errors, 71 warnings'],
     'BLD-003': ['PASS', '0 vulnerabilities'],
     'BLD-004': ['PASS', '0 vulnerabilities'],
     'BLD-005': ['PASS', 'No .env with secrets and no live keys in history. client/.env.production is tracked but holds public values only'],
-    'BLD-006': ['FAIL', 'react-player is imported but not declared'],
-    'BLD-007': ['PASS', '18 of 18 passed against a local database, one file at a time'],
+    'BLD-006': ['PASS', 'Every client import resolves to a declared package'],
+    'BLD-007': ['PASS', '20 of 20 passed against a local database'],
     'UI-001': ['PASS', 'Home and marketplace render with no console errors'],
     'UI-002': ['PASS', 'Landed on /my-learning'],
     'UI-003': ['PASS', 'Toast showed "Invalid credentials"'],
@@ -328,13 +333,16 @@ const manualResults = {
     'UI-014': ['PASS', 'Course listed with category and level; search filters it; the link opens the course'],
     'UI-015': ['PASS', 'Advanced Filters shows Language; choosing Sinhala listed only the Sinhala course'],
     'UI-016': ['PASS', 'Each saved lecture made one broadcast with its link; the custom one kept urgent priority'],
-    'UI-017': ['PASS', 'Filter and navbar listed all 4 categories; a navbar pick filtered the courses and showed in the filter box']
+    'UI-017': ['PASS', 'Filter and navbar listed all 4 categories; a navbar pick filtered the courses and showed in the filter box'],
+    'UI-018': ['PASS', 'Overview, Instructors, Payouts, Users, Login As and the activity log all load with no console errors'],
+    'INT-001': ['PASS', 'Registered, browsed, enrolled in a free course, completed a lecture and passed a quiz, with no console or API errors']
 };
 
 // Browser and build checks repeated after the critical fixes
 const retested = [
     'BLD-001', 'BLD-002', 'BLD-003', 'BLD-004', 'BLD-005', 'BLD-006', 'BLD-007',
-    'UI-001', 'UI-002', 'UI-003', 'UI-004', 'UI-005', 'UI-006', 'UI-007', 'UI-008', 'UI-009', 'UI-010', 'UI-012', 'UI-013', 'UI-014', 'UI-015', 'UI-016', 'UI-017'
+    'UI-001', 'UI-002', 'UI-003', 'UI-004', 'UI-005', 'UI-006', 'UI-007', 'UI-008', 'UI-009', 'UI-010', 'UI-011', 'UI-012', 'UI-013', 'UI-014', 'UI-015',
+    'UI-016', 'UI-017', 'UI-018', 'INT-001'
 ];
 
 module.exports = { bugs, manualResults, retested };

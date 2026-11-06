@@ -68,7 +68,7 @@ const CourseManage = () => {
         try {
             const res = await api.get(`/courses/${id}/enrolled-students?keyword=${keyword}`);
             setNotifStudentList(res.data || []);
-        } catch {}
+        } catch { /* Not critical: the page keeps what it has */ }
     };
 
     useEffect(() => {
@@ -361,7 +361,7 @@ const CourseManage = () => {
             setSectionBroadcast({ enabled: false, message: '', priority: 'normal' });
             fetchCourse(true);
             showSuccess(editingSectionId ? 'Section updated!' : 'Section added!');
-        } catch (error) {
+        } catch {
             showError('Error saving section');
         }
     };
@@ -372,7 +372,7 @@ const CourseManage = () => {
             await api.delete(`/courses/${id}/sections/${sectionId}`);
             fetchCourse(true);
             showSuccess('Section deleted');
-        } catch (error) {
+        } catch {
             showError('Error deleting section');
         }
     };
@@ -425,7 +425,7 @@ const CourseManage = () => {
             await api.delete(`/courses/lectures/${lectureId}`);
             fetchCourse(true);
             showSuccess('Lecture deleted');
-        } catch (error) {
+        } catch {
             showError('Error deleting lecture');
         }
     };
@@ -435,7 +435,7 @@ const CourseManage = () => {
             await api.put(`/courses/${id}/sections/${sectionId}`, { isPublic: !currentStatus });
             fetchCourse(true);
             showSuccess(currentStatus ? 'Section hidden' : 'Section is now Public');
-        } catch (error) {
+        } catch {
             showError('Error updating visibility');
         }
     };
@@ -445,7 +445,7 @@ const CourseManage = () => {
             await api.put(`/courses/lectures/${lectureId}`, { isPublic: !currentStatus });
             fetchCourse(true);
             showSuccess(currentStatus ? 'Lecture hidden' : 'Lecture is now Public');
-        } catch (error) {
+        } catch {
             showError('Error updating visibility');
         }
     };
@@ -463,7 +463,7 @@ const CourseManage = () => {
             const res = await api.put(`/broadcasts/course/${id}/settings`);
             setAllowStudentBroadcasts(res.data.allowStudentBroadcasts);
             showSuccess(res.data.allowStudentBroadcasts ? 'Students can now broadcast' : 'Student broadcasts disabled');
-        } catch (error) {
+        } catch {
             showError('Error updating broadcast settings');
         }
     };
@@ -488,7 +488,7 @@ const CourseManage = () => {
             const res = await api.put(`/courses/${id}/ai-block/${studentId}`);
             fetchCourse(true);
             showSuccess(res.data.blocked ? 'Student blocked from using your AI key' : 'Student AI access restored');
-        } catch (error) {
+        } catch {
             showError('Failed to update AI block');
         }
     };
@@ -517,7 +517,7 @@ const CourseManage = () => {
             const res = await api.put(`/courses/${id}/toggle-student-ai`);
             fetchCourse(true);
             showSuccess(res.data.allowStudentAI ? 'Students can now use your AI key' : 'Student AI access disabled');
-        } catch (error) {
+        } catch {
             showError('Error updating AI access setting');
         }
     };
@@ -529,7 +529,7 @@ const CourseManage = () => {
             await api.put(`/courses/${id}`, { allowPeerProgress: newValue });
             setCourse({ ...course, allowPeerProgress: newValue });
             showSuccess(newValue ? 'Students can now view peer progress' : 'Peer progress viewing disabled');
-        } catch (err) {
+        } catch {
             showError('Failed to update setting');
         }
     };

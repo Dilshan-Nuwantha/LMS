@@ -19,10 +19,6 @@ const LectureSidebarItem = ({
     // Find the student-set progress status details
     const studentStatusInfo = customStatuses.find(s => s.label === status);
 
-    // Find the admin-set lecture status details (we'll reuse the same color mapping if possible, 
-    // or just use the label if no color is found)
-    const lectureStatusInfo = customStatuses.find(s => s.label === lecture.status);
-
     return (
         <button
             onClick={onClick}

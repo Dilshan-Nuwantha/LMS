@@ -2,7 +2,7 @@
 
 **Branch under test:** fix/payment-gateway  
 **Requirements source:** SRS.md v1.0  
-**Total cases:** 419 (Critical 52, High 203, Medium 139, Low 25)
+**Total cases:** 426 (Critical 53, High 209, Medium 139, Low 25)
 
 ## How to run
 
@@ -17,7 +17,7 @@ Run `npm install` in `server/` first. The run starts its own local MongoDB and t
 | Module | Cases |
 |---|---|
 | Authentication | 43 |
-| Course management | 27 |
+| Course management | 28 |
 | Lecture progress | 12 |
 | Co-instructors | 15 |
 | Marketplace | 11 |
@@ -28,14 +28,14 @@ Run `npm install` in `server/` first. The run starts its own local MongoDB and t
 | Quizzes | 29 |
 | AI features | 29 |
 | Broadcasts | 12 |
-| Resources | 15 |
+| Resources | 16 |
 | Reviews | 17 |
 | Notifications | 11 |
 | Activity log | 9 |
-| Security | 69 |
-| Error handling | 6 |
+| Security | 71 |
+| Error handling | 7 |
 | Build and dependencies | 7 |
-| User interface | 17 |
+| User interface | 19 |
 
 ## Authentication
 
@@ -72,7 +72,7 @@ Run `npm install` in `server/` first. The run starts its own local MongoDB and t
 | AUTH-029 | High | Reject an expired reset code | Move the code expiry into the past, then verify | HTTP 400 "OTP has expired" | PASS | - |
 | AUTH-030 | High | Users registered with capitals can reset their password | Register Mixed.Case@x, then request a reset using the same address | A reset code is emailed | PASS | - |
 | AUTH-031 | Medium | Reset request does not reveal unknown emails | POST /auth/forgot-password with an unknown email | Same HTTP 200 message as a known email | PASS | - |
-| AUTH-032 | Low | Reset request does not reveal Google-only accounts | POST /auth/forgot-password for a Google-only account | Same generic HTTP 200 message | FAIL | LMS-059 |
+| AUTH-032 | Low | Reset request does not reveal Google-only accounts | POST /auth/forgot-password for a Google-only account | Same generic HTTP 200 message | PASS | LMS-059 |
 | AUTH-033 | High | Password change ends existing sessions | Change the password, then reuse the old token | HTTP 401 | PASS | LMS-011 |
 | AUTH-034 | Low | Blocked user sees the block message on API calls | Block a user, then call /auth/me with their token | HTTP 403 with the block message | PASS | - |
 | AUTH-035 | Medium | Token of a deleted user is rejected | Delete the user record, then call /auth/me | HTTP 401 | PASS | - |
@@ -81,7 +81,7 @@ Run `npm install` in `server/` first. The run starts its own local MongoDB and t
 | AUTH-038 | Medium | Oversized profile data is handled cleanly | PUT /auth/profile with a 200 KB profileImage | HTTP 200 if accepted, or HTTP 413 if too large; never a 500 | PASS | LMS-035 |
 | AUTH-039 | Critical | Existing accounts with capitals in the email can still log in | Create a stored account as Legacy.x@QA.test (as older versions did), then log in with that exact email | HTTP 200 | PASS | LMS-004 |
 | AUTH-040 | High | Existing accounts with capitals can reset their password | Request a reset for a stored account with capitals in the email | A reset code is emailed | PASS | LMS-004 |
-| AUTH-041 | Low | Login does not reveal Google-only accounts | Log in to a Google-only account with any password | Same "Invalid credentials" message as a wrong password | FAIL | LMS-059 |
+| AUTH-041 | Low | Login does not reveal Google-only accounts | Log in to a Google-only account with any password | Same "Invalid credentials" message as a wrong password | PASS | LMS-059 |
 | AUTH-042 | High | A new account cannot duplicate an existing capitalised email | Register the lowercase form of a stored Legacy.x@QA.test account | HTTP 400 | PASS | - |
 | AUTH-043 | High | Google login finds an existing capitalised account | Sign in with Google using the lowercase form of a stored Legacy.x@QA.test account | The existing account is used and no second account is created | PASS | - |
 
@@ -97,7 +97,8 @@ Run `npm install` in `server/` first. The run starts its own local MongoDB and t
 | CRS-006 | High | Add, rename and delete a section | POST, PUT, DELETE on /courses/:id/sections | Each call succeeds | PASS | - |
 | CRS-007 | High | Add, edit and delete a lecture | POST lecture, PUT and DELETE /courses/lectures/:id | Each call succeeds | PASS | - |
 | CRS-008 | Medium | Reject an invalid section importance | PUT a section with importance "Banana" | HTTP 400 | PASS | LMS-036 |
-| CRS-009 | Medium | A lecture field can be cleared | PUT a lecture with description "" and resourceUrl "" | The stored values become empty | FAIL | LMS-065 |
+| CRS-009 | Medium | A lecture field can be cleared | PUT a lecture with description "" and resourceUrl "" | The stored values become empty | PASS | LMS-065 |
+| CRS-028 | High | Editing one lecture field keeps the others | PUT only isPreview on a lecture | Description, link and due date are unchanged | PASS | - |
 | CRS-010 | High | Enroll a student | POST /courses/:id/enroll | HTTP 201 | PASS | - |
 | CRS-011 | Medium | Reject a duplicate enrollment | Enroll the same student again | HTTP 400 | PASS | - |
 | CRS-012 | High | A student cannot enroll people | POST /courses/:id/enroll as a student | HTTP 403 | PASS | - |
@@ -306,9 +307,9 @@ Run `npm install` in `server/` first. The run starts its own local MongoDB and t
 | QZ-020 | High | Answer key stays hidden while retries remain | Submit one attempt on an unlimited-retry quiz | The response has no correct answers | PASS | LMS-022 |
 | QZ-021 | Medium | Submit without answers is a client error | POST submit with no answers field | HTTP 400 | PASS | LMS-037 |
 | QZ-022 | Medium | Numeric reply to a short-answer question | Answer the short question with 123 | Marked wrong, HTTP 200 | PASS | LMS-037 |
-| QZ-023 | Low | Passing score of 0 is kept | Create with passingScore 0 | passingScore is 0 | FAIL | LMS-066 |
+| QZ-023 | Low | Passing score of 0 is kept | Create with passingScore 0 | passingScore is 0 | PASS | LMS-066 |
 | QZ-024 | High | AI-generated true/false questions can be answered | Save a question as the AI returns it (correctAnswer 0 = True), answer true as the UI does | The answer is marked correct | PASS | LMS-018 |
-| QZ-025 | Low | Reject a negative time limit | Create with timeLimit -5 | HTTP 400 | FAIL | LMS-066 |
+| QZ-025 | Low | Reject a negative time limit | Create with timeLimit -5 | HTTP 400 | PASS | LMS-066 |
 | QZ-026 | High | A quiz in a blocked course cannot be started | Block a course, then start its quiz as an enrolled student | HTTP 403 | PASS | - |
 | QZ-027 | High | A finished attempt hides answers while retries remain | Submit on a two-attempt quiz, then GET /quizzes/attempts/:id as the student | No correctAnswer; the student still sees which answers were wrong | PASS | - |
 | QZ-028 | High | Answers are shown once no attempts remain | Use the only attempt on a one-attempt quiz | Correct answers are returned for review | PASS | - |
@@ -382,7 +383,8 @@ Run `npm install` in `server/` first. The run starts its own local MongoDB and t
 | RES-011 | Medium | Oversized file gets a clear error | Upload 11 MB | HTTP 413 with a clear message | PASS | LMS-035 |
 | RES-012 | Medium | Lecture-linked resources and counts | Upload linked to a lecture, read the lecture list and counts | Listed; count is 1 | PASS | - |
 | RES-013 | Medium | Sinhala and Tamil file names are preserved | Upload පාඩම.pdf | fileName is unchanged | PASS | LMS-051 |
-| RES-014 | Medium | Admin can open course resources | GET /resources/:id as an admin | HTTP 200 (moderation needs this) | FAIL | LMS-067 |
+| RES-014 | Medium | Admin can open course resources | GET /resources/:id as an admin | HTTP 200 (moderation needs this) | PASS | LMS-067 |
+| RES-016 | High | Common CSV and Excel types still upload | Upload a file as text/csv, application/vnd.ms-excel and the xlsx type | HTTP 201 for each | PASS | - |
 | RES-015 | High | Sinhala file names download correctly | Upload පාඩම.pdf, then download and view it | HTTP 200 with the real name in the header | PASS | - |
 
 ## Reviews
@@ -456,8 +458,10 @@ Run `npm install` in `server/` first. The run starts its own local MongoDB and t
 | SEC-013 | High | Registration is rate limited | Production mode: 4 registrations from one IP | Fourth request returns HTTP 429 | PASS | - |
 | SEC-014 | Medium | Reset code checks are rate limited | Production mode: 6 verify-otp calls from one IP | Sixth returns HTTP 429 | PASS | - |
 | SEC-015 | Medium | General API limit | Production mode: 301 requests from one IP | HTTP 429 at the limit | PASS | - |
-| SEC-016 | Medium | Rate limit cannot be dodged with a header | Production mode: 8 logins, changing X-Forwarded-For each time | Still limited (only valid if the app sits directly on the internet; see the bug note) | FAIL | LMS-060 |
-| SEC-017 | Medium | Marketplace course creation is rate limited | Production mode: 11 calls to POST /instructor/course | HTTP 429 at the limit (NFR-SEC-06 covers course creation) | FAIL | LMS-060 |
+| SEC-016 | Medium | Rate limit cannot be dodged with a header | Production mode: 8 logins, changing X-Forwarded-For each time | Still limited (only valid if the app sits directly on the internet; see the bug note) | PASS | LMS-060 |
+| SEC-070 | High | Successful logins never trip the account limit | Production mode: 7 correct logins to one account from different addresses | All HTTP 200 | PASS | - |
+| SEC-071 | High | A blocked user with the right password sees the reason | Log in to a blocked account with the correct password | HTTP 403 with the block reason | PASS | - |
+| SEC-017 | Medium | Marketplace course creation is rate limited | Production mode: 11 calls to POST /instructor/course | HTTP 429 at the limit (NFR-SEC-06 covers course creation) | PASS | LMS-060 |
 | SEC-018 | High | Production errors hide stack traces | Production mode: trigger an error | stack is null | PASS | - |
 | SEC-019 | Low | Production errors hide internals | Production mode: GET /marketplace/not-an-id | No database details in the message | PASS | LMS-061 |
 | SEC-020 | Medium | Security headers are set | Read the headers on an API response | nosniff, HSTS and frame protection present; X-Powered-By absent | PASS | LMS-031 |
@@ -475,7 +479,7 @@ Run `npm install` in `server/` first. The run starts its own local MongoDB and t
 | SEC-032 | Medium | Only members can read or post comments | POST and GET comments as a non-enrolled user | HTTP 403 | PASS | LMS-012 |
 | SEC-033 | High | Paywall: quiz questions are for members | GET /quizzes/:id and /quizzes/course/:id as a non-enrolled user | HTTP 403 | PASS | LMS-012 |
 | SEC-034 | Critical | Script links are rejected | Add a resource link and a lecture URL using javascript: | HTTP 400 each | PASS | LMS-003 |
-| SEC-035 | Medium | Upload filter cannot be bypassed | Upload HTML declared as "text/html; csv" | HTTP 400 | FAIL | LMS-062 |
+| SEC-035 | Medium | Upload filter cannot be bypassed | Upload HTML declared as "text/html; csv" | HTTP 400 | PASS | LMS-062 |
 | SEC-036 | Medium | Audit log cannot be evaded | Send a logged action with courseId "x" in the body | The action is still logged | PASS | LMS-033 |
 | SEC-037 | Medium | Impersonation sessions are short | Read the expiry of an impersonation token | One hour or less (SRS: temporary token) | PASS | LMS-011 |
 | SEC-038 | Medium | Impersonated actions stay out of the personal log | Act through the impersonation token, read /activities/me | The action is hidden and attributed to the admin (FR-AUTH-06) | PASS | LMS-029 |
@@ -490,7 +494,7 @@ Run `npm install` in `server/` first. The run starts its own local MongoDB and t
 | SEC-047 | High | Profile update cannot change role | PUT /auth/profile with role admin | Role is unchanged | PASS | - |
 | SEC-048 | High | Course update cannot lift an admin block | PUT /courses/:id with isAdminBlocked false on a blocked course | The block stays | PASS | - |
 | SEC-049 | Medium | Admins cannot be impersonated | POST /admin/impersonate with another admin email | Refused | PASS | LMS-029 |
-| SEC-050 | Low | Login does not reveal blocked status without the password | Log in to a blocked account with a wrong password | HTTP 400 "Invalid credentials" | FAIL | LMS-059 |
+| SEC-050 | Low | Login does not reveal blocked status without the password | Log in to a blocked account with a wrong password | HTTP 400 "Invalid credentials" | PASS | LMS-059 |
 | SEC-051 | Critical | Role in the Google sign-in body is ignored | POST /auth/google with a new identity and role admin in the body | Refused, and no admin account is created | PASS | - |
 | SEC-052 | High | Existing admins can still sign in | Log in at /auth/admin/login and with Google at /auth/admin/google | HTTP 200 for both | PASS | - |
 | SEC-053 | Critical | Disguised script links are rejected | Add links using mixed case, spaces, a newline, data: and vbscript: | HTTP 400 for each | PASS | - |
@@ -518,7 +522,8 @@ Run `npm install` in `server/` first. The run starts its own local MongoDB and t
 | ERR-001 | High | Health check | GET /health | HTTP 200 | PASS | - |
 | ERR-002 | Medium | Invalid id is a client error | GET /courses/not-an-id | HTTP 400 or 404 | PASS | LMS-036 |
 | ERR-003 | Medium | Malformed JSON is a client error | POST invalid JSON to /auth/login | HTTP 400 | PASS | LMS-035 |
-| ERR-004 | Low | Unknown API route returns JSON | GET /api/nope | HTTP 404 with a JSON body (NFR-REL-03) | FAIL | LMS-068 |
+| ERR-004 | Low | Unknown API route returns JSON | GET /api/nope | HTTP 404 with a JSON body (NFR-REL-03) | PASS | LMS-068 |
+| ERR-009 | High | The reminder route still works | GET /api/cron/due-reminders on the development API | HTTP 200, not the new 404 | PASS | - |
 | ERR-006 | High | Intended error messages reach the user | Send an invalid token in production mode | The real message is returned, not a generic one | PASS | - |
 | ERR-005 | Medium | Validation failures are client errors | POST /instructor/course with level "Banana" | HTTP 400 | PASS | LMS-036 |
 
@@ -527,11 +532,11 @@ Run `npm install` in `server/` first. The run starts its own local MongoDB and t
 | ID | Priority | Test case | Steps | Expected result | Result | Bug |
 |---|---|---|---|---|---|---|
 | BLD-001 | Critical | Client production build | Run npm run build in client/ | Build succeeds | PASS | - |
-| BLD-002 | Medium | Client lint | Run npm run lint in client/ | No lint errors | FAIL | LMS-069 |
+| BLD-002 | Medium | Client lint | Run npm run lint in client/ | No lint errors | PASS | LMS-069 |
 | BLD-003 | High | Server dependency audit | Run npm audit --omit=dev in server/ | No high or critical advisories | PASS | LMS-020 |
 | BLD-004 | High | Client dependency audit | Run npm audit --omit=dev in client/ | No high or critical advisories | PASS | LMS-021 |
 | BLD-005 | Critical | No secrets in git history | Search all branches for .env files and live keys | Nothing found | PASS | - |
-| BLD-006 | Low | Every import has a declared dependency | Compare client imports with package.json | All imports resolve to declared packages | FAIL | LMS-070 |
+| BLD-006 | Low | Every import has a declared dependency | Compare client imports with package.json | All imports resolve to declared packages | PASS | LMS-070 |
 | BLD-007 | High | Existing team test suites | Run the tests in server/tests with MONGO_URI and MONGO_TEST_URI set to a local database | All tests pass | PASS | - |
 
 ## User interface
@@ -555,3 +560,5 @@ Run `npm install` in `server/` first. The run starts its own local MongoDB and t
 | UI-015 | High | Marketplace language filter | Open Advanced Filters, choose Sinhala, apply | Only Sinhala courses are listed | PASS | - |
 | UI-016 | High | New lecture is announced once | As a teacher on a published course, save one lecture normally and one with a custom announcement | One broadcast each, with a direct link, and the chosen priority is kept | PASS | - |
 | UI-017 | High | Category lists show every category | Open the marketplace filter and the navbar Category menu, then pick a category that contains an ampersand | All category names show, the courses are filtered, and the filter box shows that category | PASS | - |
+| UI-018 | High | Admin pages load cleanly | As an admin, open every dashboard tab and the activity log | All render with no console errors | PASS | LMS-073 |
+| INT-001 | Critical | Full user journey | Register, log in, browse, enroll, open a lecture, complete it, then take a quiz | The whole journey works with no console or API errors | PASS | - |

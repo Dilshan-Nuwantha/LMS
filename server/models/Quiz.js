@@ -50,11 +50,13 @@ const quizSchema = new mongoose.Schema({
     },
     timeLimit: {
         type: Number, // Minutes, 0 = no limit
-        default: 0
+        default: 0,
+        min: [0, 'Time limit cannot be negative']
     },
     attemptsAllowed: {
         type: Number, // -1 = unlimited
-        default: -1
+        default: -1,
+        min: [-1, 'Attempts allowed must be -1 for unlimited, or a positive number']
     },
     isRequired: {
         type: Boolean,
