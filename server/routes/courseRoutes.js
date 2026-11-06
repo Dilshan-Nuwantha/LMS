@@ -43,7 +43,10 @@ const {
     leaveCourse,
     getMyPermissions
 } = require('../controllers/courseTeacherController');
-const { protect } = require('../middleware/authMiddleware');
+const {
+    protect,
+    instructorOnly
+} = require('../middleware/authMiddleware');
 const {
     verifyCourseOwnership,
     verifyLectureOwnership,
@@ -60,7 +63,13 @@ router.get('/search', protect, searchCourses);
 router.get('/my/enrolled', protect, getEnrolledCourses);
 router.get('/my/created', protect, getCreatedCourses);
 router.get('/my/stats', protect, getUserStats);
-router.post('/', protect, createCourseLimiter, createCourse);
+router.post(
+    '/',
+    protect,
+    instructorOnly,
+    createCourseLimiter,
+    createCourse
+);
 
 // Lecture routes (before :id routes to avoid conflicts)
 router.put('/lectures/:id/progress', protect, updateLectureProgress);
