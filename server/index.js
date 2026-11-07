@@ -1,8 +1,7 @@
-const dns = require("dns").promises;
-dns.setServers(["1.1.1.1", "8.8.8.8"]);
-
 const express = require('express');
-const dotenv = require('dotenv').config();
+if (process.env.CF_WORKER !== "true") {
+    require("dotenv").config();
+}
 const { errorHandler } = require('./middleware/errorMiddleware');
 const activityLogger = require('./middleware/activityLogger');
 const { apiLimiter } = require('./middleware/rateLimiter');
@@ -14,7 +13,9 @@ const http = require('http');
 
 const port = process.env.PORT || 5000;
 
-connectDB();
+if (require.main === module) {
+    connectDB();
+}
 
 const app = express();
 

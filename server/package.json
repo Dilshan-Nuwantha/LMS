@@ -7,7 +7,9 @@
     "start": "node index.js",
     "dev": "nodemon index.js",
     "test": "node --test --test-concurrency=1 tests/**/*.test.js",
-    "inspect:incomplete": "node scripts/inspectIncompleteAccounts.js"
+    "inspect:incomplete": "node scripts/inspectIncompleteAccounts.js",
+    "deploy": "wrangler deploy",
+    "cf:dev": "wrangler dev"
   },
   "engines": {
     "node": "22.x"

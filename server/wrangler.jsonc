@@ -1,0 +1,13 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "my-fullstack-api",
+  "main": "worker.mjs",
+  "compatibility_date": "2026-11-07",
+  "compatibility_flags": [
+    "nodejs_compat"
+  ],
+  "vars": {
+    "CF_WORKER": "true",
+    "NODE_ENV": "production"
+  }
+}
