@@ -39,6 +39,12 @@ app.post('/api/purchase/webhook',
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
+// Express 5 leaves req.body undefined on a request with no body
+app.use((req, res, next) => {
+    req.body ??= {};
+    next();
+});
+
 // Health check route (no auth, no rate limit)
 app.get('/api/health', (req, res) => {
     res.status(200).json({ status: 'ok', timestamp: Date.now() });
@@ -66,6 +72,10 @@ app.use('/api/reviews', require('./routes/reviewRoutes'));
 
 // Resource routes
 app.use('/api/resources', require('./routes/resourceRoutes'));
+
+// Uploaded images and the shared category list
+app.use('/api/uploads', require('./routes/uploadRoutes'));
+app.use('/api/categories', require('./routes/categoryRoutes'));
 
 // AI generation routes
 app.use('/api/ai', require('./routes/aiRoutes'));

@@ -31,8 +31,8 @@ const ResourceManager = ({ courseId, userId = null, sections = [] }) => {
     const [uploading, setUploading] = useState(false);
     const [allowStudentUploads, setAllowStudentUploads] = useState(false);
     const [showUploadForm, setShowUploadForm] = useState(false);
-    const [filter, setFilter] = useState('all'); // all, teacher, student
-    const [isTeacherUser, setIsTeacherUser] = useState(false);
+    const [filter, setFilter] = useState('all'); // all, instructor, student
+    const [isInstructorUser, setIsInstructorUser] = useState(false);
     const fileInputRef = useRef(null);
 
     // Upload form state
@@ -76,7 +76,7 @@ const ResourceManager = ({ courseId, userId = null, sections = [] }) => {
             const res = await api.get(`/resources/${courseId}`);
             setResources(res.data.resources);
             setAllowStudentUploads(res.data.allowStudentUploads);
-            setIsTeacherUser(res.data.isTeacher);
+            setIsInstructorUser(res.data.isInstructor);
         } catch {
             showError('Failed to load resources');
         } finally {
@@ -245,10 +245,10 @@ const ResourceManager = ({ courseId, userId = null, sections = [] }) => {
         if (fileInputRef.current) fileInputRef.current.value = '';
     };
 
-    const canUpload = isTeacherUser || allowStudentUploads;
+    const canUpload = isInstructorUser || allowStudentUploads;
 
     const filteredResources = resources.filter(r => {
-        if (filter === 'teacher') return r.uploaderRole === 'teacher';
+        if (filter === 'instructor') return r.uploaderRole === 'instructor';
         if (filter === 'student') return r.uploaderRole === 'student';
         return true;
     });
@@ -367,8 +367,8 @@ const ResourceManager = ({ courseId, userId = null, sections = [] }) => {
                     </p>
                 </div>
                 <div className="flex items-center gap-2">
-                    {/* Teacher: toggle student uploads */}
-                    {isTeacherUser && (
+                    {/* Instructor: toggle student uploads */}
+                    {isInstructorUser && (
                         <button
                             onClick={handleToggleStudentUploads}
                             className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium transition-colors border ${allowStudentUploads
@@ -537,7 +537,7 @@ const ResourceManager = ({ courseId, userId = null, sections = [] }) => {
                 <div className="flex gap-1 bg-slate-100 dark:bg-slate-800/50 rounded-lg p-1">
                     {[
                         { id: 'all', label: 'All' },
-                        { id: 'teacher', label: 'Teacher', icon: FaChalkboardTeacher },
+                        { id: 'instructor', label: 'Instructor', icon: FaChalkboardTeacher },
                         { id: 'student', label: 'Student', icon: FaUserGraduate },
                     ].map(f => (
                         <button
@@ -616,7 +616,7 @@ const ResourceManager = ({ courseId, userId = null, sections = [] }) => {
                                         <>
                                             <div className="flex items-center gap-2 flex-wrap">
                                                 <h4 className="text-sm font-semibold text-slate-800 dark:text-white truncate">{resource.title || resource.fileName}</h4>
-                                                <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wide shrink-0 ${resource.uploaderRole === 'teacher'
+                                                <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wide shrink-0 ${resource.uploaderRole === 'instructor'
                                                     ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400'
                                                     : 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400'
                                                     }`}>
@@ -660,7 +660,7 @@ const ResourceManager = ({ courseId, userId = null, sections = [] }) => {
                                     >
                                         {resource.fileType === 'link' ? <FaLink size={12} /> : <FaDownload size={12} />}
                                     </button>
-                                    {(isTeacherUser || (userId && resource.uploadedBy?._id === userId)) && (
+                                    {(isInstructorUser || (userId && resource.uploadedBy?._id === userId)) && (
                                         <>
                                             <button
                                                 onClick={() => {

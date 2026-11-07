@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FaPlus, FaTimes, FaImage, FaVideo, FaSave, FaArrowLeft } from 'react-icons/fa';
 import api from '../../api/axios';
+import ImageUpload from '../../components/ui/ImageUpload';
 import { showSuccess, showError } from '../../utils/toast';
 
 const CreateMarketplaceCourse = () => {
@@ -24,28 +25,12 @@ const CreateMarketplaceCourse = () => {
         whatYouWillLearn: ['']
     });
 
-    const defaultCategories = [
-        'Development', 'Business', 'Design', 'Marketing',
-        'IT & Software', 'Personal Development', 'Photography',
-        'Music', 'Health & Fitness', 'Other'
-    ];
-
-    const [categories, setCategories] = useState(defaultCategories);
+    const [categories, setCategories] = useState([]);
 
     useEffect(() => {
-        const fetchCategories = async () => {
-            try {
-                const res = await api.get('/marketplace/categories');
-                if (res.data.length > 0) {
-                    // Merge fetched categories with defaults, keeping unique values
-                    const merged = [...new Set([...res.data, ...defaultCategories])].sort();
-                    setCategories(merged);
-                }
-            } catch {
-                // Fall back to default categories
-            }
-        };
-        fetchCategories();
+        api.get('/marketplace/categories')
+            .then(res => setCategories(res.data))
+            .catch(() => showError('Failed to load categories'));
     }, []);
 
     const levels = ['Beginner', 'Intermediate', 'Advanced'];
@@ -281,7 +266,7 @@ const CreateMarketplaceCourse = () => {
                                     </label>
                                     <div className="relative">
                                         <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-xs font-semibold">
-                                            {formData.currency === 'USD' ? '$' : 'LKR'}
+                                            {formData.currency === 'USD' ? '$' : 'Rs.'}
                                         </span>
                                         <input
                                             type="number"
@@ -300,7 +285,7 @@ const CreateMarketplaceCourse = () => {
                                     </label>
                                     <div className="relative">
                                         <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-xs font-semibold">
-                                            {formData.currency === 'USD' ? '$' : 'LKR'}
+                                            {formData.currency === 'USD' ? '$' : 'Rs.'}
                                         </span>
                                         <input
                                             type="number"
@@ -323,7 +308,7 @@ const CreateMarketplaceCourse = () => {
                                         onChange={handleChange}
                                         className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg focus:outline-none focus:border-indigo-500"
                                     >
-                                        <option value="LKR">LKR (Rs)</option>
+                                        <option value="LKR">Rs. (LKR)</option>
                                         <option value="USD">USD ($)</option>
                                     </select>
                                 </div>
@@ -332,15 +317,11 @@ const CreateMarketplaceCourse = () => {
                             <div>
                                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
                                     <FaImage className="inline mr-2" />
-                                    Thumbnail URL
+                                    Thumbnail
                                 </label>
-                                <input
-                                    type="url"
-                                    name="thumbnail"
+                                <ImageUpload
                                     value={formData.thumbnail}
-                                    onChange={handleChange}
-                                    placeholder="https://example.com/image.jpg"
-                                    className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg focus:outline-none focus:border-indigo-500"
+                                    onChange={(url) => setFormData(current => ({ ...current, thumbnail: url }))}
                                 />
                             </div>
 

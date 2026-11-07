@@ -36,13 +36,13 @@ const {
     toggleAIBlockStudent
 } = require('../controllers/courseController');
 const {
-    addTeacher,
-    getCourseTeachers,
-    updateTeacherPermissions,
-    removeTeacher,
+    addInstructor,
+    getCourseInstructors,
+    updateInstructorPermissions,
+    removeInstructor,
     leaveCourse,
     getMyPermissions
-} = require('../controllers/courseTeacherController');
+} = require('../controllers/courseInstructorController');
 const {
     protect,
     instructorOnly
@@ -52,7 +52,7 @@ const {
     verifyLectureOwnership,
     verifyCourseContentPermission,
     verifyStudentManagementPermission,
-    verifyTeacherManagementPermission,
+    verifyInstructorManagementPermission,
     verifyCourseAccess
 } = require('../middleware/ownershipMiddleware');
 const { createCourseLimiter } = require('../middleware/rateLimiter');
@@ -81,13 +81,13 @@ router.put('/lectures/:id', protect, verifyLectureOwnership, updateLecture);
 router.delete('/lectures/:id', protect, verifyLectureOwnership, deleteLecture);
 
 // Course-specific routes with sub-paths (before generic :id)
-// Teacher management routes
+// Instructor management routes
 router.get('/:courseId/my-permissions', protect, getMyPermissions);
-router.get('/:courseId/teachers', protect, verifyCourseAccess, getCourseTeachers);
-router.post('/:courseId/teachers', protect, verifyTeacherManagementPermission, addTeacher);
-router.delete('/:courseId/teachers/leave', protect, leaveCourse); // Teacher leaves course (must be before :teacherId)
-router.put('/:courseId/teachers/:teacherId', protect, verifyTeacherManagementPermission, updateTeacherPermissions);
-router.delete('/:courseId/teachers/:teacherId', protect, verifyTeacherManagementPermission, removeTeacher);
+router.get('/:courseId/instructors', protect, verifyCourseAccess, getCourseInstructors);
+router.post('/:courseId/instructors', protect, verifyInstructorManagementPermission, addInstructor);
+router.delete('/:courseId/instructors/leave', protect, leaveCourse); // Instructor leaves course (must be before :instructorId)
+router.put('/:courseId/instructors/:instructorId', protect, verifyInstructorManagementPermission, updateInstructorPermissions);
+router.delete('/:courseId/instructors/:instructorId', protect, verifyInstructorManagementPermission, removeInstructor);
 
 // Course content routes
 router.post('/:id/sections', protect, verifyCourseContentPermission, addSection);

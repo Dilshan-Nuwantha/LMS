@@ -1,6 +1,6 @@
 // Security checks and error handling. Rate limit and production checks use the production instance.
-const { tc, api, prod, ok, is, eq, lastOtp, googleCode, newUser, multipart, sleep, uid, lines, webhook, serverRequire, env } = require('./lib');
-const { F, models, mkCourse, addSection, addLecture, enroll, buy } = require('./fixtures');
+const { tc, api, prod, ok, is, eq, lastOtp, googleCode, newUser, multipart, sleep, uid, lines, webhook, serverRequire, env, MINIMAL_PDF } = require('./lib');
+const { F, models, mkCourse, addSection, addLecture, enroll, buy, mongoose } = require('./fixtures');
 const jwt = serverRequire('jsonwebtoken');
 
 const S = 'Security';
@@ -35,13 +35,13 @@ tc('SEC-006', S, 'Critical', 'Passwords never reach the activity log', 'Change a
     ok(!JSON.stringify(row).includes('PlainNewPass99!'), 'plaintext old and new passwords are stored in Activity.data');
 });
 tc('SEC-007', S, 'Critical', 'AI keys never reach the activity log', 'Save an AI key, read the log entry', 'No key value stored', async () => {
-    const u = await newUser('teacher', 'logkey');
+    const u = await newUser('instructor', 'logkey');
     await api('POST', '/ai/config', { token: u.token, body: { provider: 'openai', apiKey: 'sk-plain-secret-key-9999', model: 'm' } });
     await sleep(150);
     ok(!(await models.Activity.exists({ user: u.id, 'data.apiKey': 'sk-plain-secret-key-9999' })), 'plaintext AI key is stored in Activity.data, bypassing AES encryption');
 });
 tc('SEC-008', S, 'High', 'Bank details never reach the activity log', 'Save bank details, read the log entry', 'No account number stored', async () => {
-    const u = await newUser('teacher', 'logbank');
+    const u = await newUser('instructor', 'logbank');
     await api('POST', '/instructor/bank-details', { token: u.token, body: { accountHolderName: 'Q', accountNumber: '998877665544' } });
     await sleep(150);
     ok(!(await models.Activity.exists({ user: u.id, 'data.accountNumber': '998877665544' })), 'account number stored in Activity.data');
@@ -108,10 +108,25 @@ tc('SEC-071', S, 'High', 'A blocked user with the right password sees the reason
     const r = await api('POST', '/auth/login', { body: { email: u.email, password: u.password } });
     is(r, 403); eq(r.json.message, 'Policy reason', 'message');
 });
+tc('SEC-072', S, 'High', 'Only instructors can be added to a course', 'As a course owner, add a student account by email with manage_content', 'HTTP 400, and the student gets no course access', async () => {
+    const u = await newUser('student', 'noninstructor');
+    const c = await mkCourse(F.instr);
+    const r = await api('POST', `/courses/${c.id}/instructors`, { token: F.instr.token, body: { email: u.email, permissions: { manage_content: true } } });
+    if (r.status === 201) {
+        const l = await api('POST', `/courses/${c.id}/sections/${c.sectionId}/lectures`, { token: u.token, body: { title: 'By a student', number: 2 } });
+        ok(false, `student was added, then adding a lecture returned HTTP ${l.status}`);
+    }
+    is(r, 400);
+});
 tc('SEC-017', S, 'Medium', 'Marketplace course creation is rate limited', 'Production mode: 11 calls to POST /instructor/course', 'HTTP 429 at the limit (NFR-SEC-06 covers course creation)', async () => {
     const h = ip();
-    const reg = await prod('POST', '/auth/teacher/register', { headers: h, body: { name: 'T', email: `t.${uid()}@qa.test`, password: 'Secret123!' } });
+    const email = `t.${uid()}@qa.test`;
+    const reg = await prod('POST', '/auth/instructor/register', { headers: h, body: { name: 'T', email, password: 'Secret123!' } });
     is(reg, 201);
+    const prodDb = mongoose.createConnection(env.MONGO.replace('/lms_qa', '/lms_qa_prod'));
+    await prodDb.asPromise();
+    await prodDb.collection('users').updateOne({ email }, { $set: { role: 'instructor' } });
+    await prodDb.close();
     let last;
     for (let i = 0; i < 11; i++) last = await prod('POST', '/instructor/course', { headers: h, token: reg.json.token, body: { title: 'T', description: 'D', price: 1 } });
     is(last, 429);
@@ -205,10 +220,10 @@ tc('SEC-038', S, 'Medium', 'Impersonated actions stay out of the personal log', 
     await sleep(150);
     eq(await count(), before, 'entries in the student log');
 });
-tc('SEC-039', S, 'Medium', 'Student notes stay private from teachers', 'Read progress and analytics as the course owner', 'Personal notes are not returned (code comment: "Teachers should not see")', async () => {
+tc('SEC-039', S, 'Medium', 'Student notes stay private from instructors', 'Read progress and analytics as the course owner', 'Personal notes are not returned (code comment: "Instructors should not see")', async () => {
     const a = await api('GET', `/courses/${F.course.id}/progress/${F.s1.id}`, { token: F.instr.token });
     const b = await api('GET', `/courses/${F.course.id}/progresses`, { token: F.instr.token });
-    ok(!a.text.includes('PRIVATE-NOTE') && !b.text.includes('PRIVATE-NOTE'), 'notes returned to the teacher');
+    ok(!a.text.includes('PRIVATE-NOTE') && !b.text.includes('PRIVATE-NOTE'), 'notes returned to the instructor');
 });
 tc('SEC-040', S, 'High', 'Peer progress is anonymous', 'Enable allowPeerProgress, GET /courses/:id/peers as a student', 'No names or emails (FR-COURSE-11)', async () => {
     await api('PUT', `/courses/${F.course.id}`, { token: F.instr.token, body: { allowPeerProgress: true } });
@@ -348,14 +363,14 @@ tc('PAY-033', 'Payments', 'High', 'Refunding a removed buyer does not lower the 
 tc('TCH-015', 'Co-instructors', 'High', 'A co-instructor without manage_content cannot edit lectures', 'PUT and DELETE a lecture as a co-instructor with no permissions', 'HTTP 403', async () => {
     const c = await mkCourse(F.instr);
     const u = await newUser('student', 'noperm');
-    await api('POST', `/courses/${c.id}/teachers`, { token: F.instr.token, body: { email: u.email } });
+    await api('POST', `/courses/${c.id}/instructors`, { token: F.instr.token, body: { email: u.email } });
     is(await api('PUT', `/courses/lectures/${c.lectureId}`, { token: u.token, body: { title: 'x' } }), 403, 'edit');
     is(await api('DELETE', `/courses/lectures/${c.lectureId}`, { token: u.token }), 403, 'delete');
 });
 tc('NTF-010', 'Notifications', 'Medium', 'A co-instructor with manage_students can notify the course', 'POST /notifications/course/:id/send as that co-instructor', 'HTTP 200', async () => {
     const c = await mkCourse(F.instr);
-    const u = await newUser('teacher', 'notifier');
-    await api('POST', `/courses/${c.id}/teachers`, { token: F.instr.token, body: { email: u.email, permissions: { manage_students: true } } });
+    const u = await newUser('instructor', 'notifier');
+    await api('POST', `/courses/${c.id}/instructors`, { token: F.instr.token, body: { email: u.email, permissions: { manage_students: true } } });
     is(await api('POST', `/notifications/course/${c.id}/send`, { token: u.token, body: { title: 'Hi' } }), 200);
 });
 const retakeQuiz = async (attemptsAllowed) => {
@@ -428,7 +443,7 @@ tc('SEC-067', S, 'Medium', 'Course analytics hide private notes', 'Read recent a
     const r = await api('GET', `/courses/${F.course.id}/analytics`, { token: F.instr.token });
     is(r, 200); ok(!r.text.includes('ANALYTICS-PRIVATE'), 'note returned');
 });
-tc('SEC-068', S, 'High', 'Teachers still see student progress status', 'GET progress detail and progress list as the owner', 'Lecture statuses are returned', async () => {
+tc('SEC-068', S, 'High', 'Instructors still see student progress status', 'GET progress detail and progress list as the owner', 'Lecture statuses are returned', async () => {
     const a = await api('GET', `/courses/${F.course.id}/progress/${F.s1.id}`, { token: F.instr.token });
     is(a, 200); ok(a.json.sections.some(s => s.lectures.some(l => l.status === 'Completed')), 'status missing');
     ok((await api('GET', `/courses/${F.course.id}/progresses`, { token: F.instr.token })).json.some(p => p.completedLectures.length > 0), 'progress missing');
@@ -538,6 +553,374 @@ tc('ACT-009', 'Activity log', 'Medium', 'Refused actions are recorded as failed'
     await api('PUT', `/courses/${F.course.id}`, { token: u.token, body: { title: 'x' } });
     await sleep(150);
     ok(await models.Activity.exists({ user: u.id, action: 'Failed: Course Updated' }), 'no failed entry');
+});
+
+// Fixes for the team's manual UI findings
+const PNG = Buffer.concat([Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]), Buffer.alloc(32)]);
+const fileForm = (field, name, type, data, fields = {}) => {
+    const form = new FormData();
+    Object.entries(fields).forEach(([k, v]) => form.append(k, v));
+    form.append(field, new Blob([data], { type }), name);
+    return form;
+};
+const sendSlip = (u, courseId, fields = {}) => api('POST', '/purchase/slip', { token: u.token, form: fileForm('slip', 'slip.png', 'image/png', PNG, { courseId, ...fields }) });
+const newStudentAndCourse = async (price = 500) => [await newUser('student', 'slip'), await mkCourse(F.instr, { price })];
+const slipOf = (u, c) => models.Purchase.findOne({ user: u.id, course: c.id }).lean();
+
+tc('AUTH-044', 'Authentication', 'High', 'A login lasts one hour', 'Register and read the token expiry', 'exp minus iat is 3600 seconds', async () => {
+    const u = await newUser('student', 'ttl');
+    const payload = JSON.parse(Buffer.from(u.token.split('.')[1], 'base64url').toString());
+    eq(payload.exp - payload.iat, 3600, 'lifetime');
+});
+tc('ERR-010', 'Error handling', 'High', 'Start Teaching works with no request body', 'POST /instructor/become with an empty request', 'HTTP 200 and the request is saved', async () => {
+    const u = await newUser('student', 'become');
+    const r = await api('POST', '/instructor/become', { token: u.token });
+    is(r, 200); eq(r.json.user.instructorRequest.status, 'pending', 'request');
+});
+tc('MKT-012', 'Marketplace', 'High', 'Search finds courses by instructor name', 'Search the marketplace for an instructor name', 'That instructor\'s course is returned', async () => {
+    const name = `Findme${uid()}`;
+    const r = await api('POST', '/auth/instructor/register', { body: { name, email: `${name}@qa.test`.toLowerCase(), password: 'Secret123!' } });
+    await models.User.updateOne({ _id: r.json._id }, { role: 'instructor' });
+    const c = await mkCourse({ token: r.json.token });
+    const found = (await api('GET', `/marketplace/search?q=${name}`)).json.courses;
+    eq(found.length, 1, 'courses'); eq(found[0]._id, c.id, 'course');
+});
+tc('MKT-013', 'Marketplace', 'High', 'Every category is listed', 'GET /marketplace/categories', 'Saved categories and those used by published courses are returned', async () => {
+    const list = (await api('GET', '/marketplace/categories')).json;
+    for (const name of ['Web Development', 'Marketing', 'Health & Fitness', 'Testing']) ok(list.includes(name), `missing ${name}`);
+});
+tc('MKT-014', 'Marketplace', 'High', 'Admins manage categories', 'Add, repeat and delete a category as an admin', 'Added with HTTP 201, repeat refused, deleted with HTTP 200', async () => {
+    const name = `Cat ${uid()}`;
+    const r = await api('POST', '/categories', { token: F.admin.token, body: { name } });
+    is(r, 201);
+    ok((await api('GET', '/marketplace/categories')).json.includes(name), 'not listed');
+    is(await api('POST', '/categories', { token: F.admin.token, body: { name: name.toUpperCase() } }), 400, 'repeat');
+    is(await api('DELETE', `/categories/${r.json._id}`, { token: F.admin.token }), 200);
+    ok(!(await api('GET', '/marketplace/categories')).json.includes(name), 'still listed');
+});
+tc('MKT-015', 'Marketplace', 'High', 'Only admins change categories', 'POST /categories as a student, an instructor and a guest', 'HTTP 403, 403 and 401', async () => {
+    is(await api('POST', '/categories', { token: F.s1.token, body: { name: 'No' } }), 403, 'student');
+    is(await api('POST', '/categories', { token: F.instr.token, body: { name: 'No' } }), 403, 'instructor');
+    is(await api('POST', '/categories', { body: { name: 'No' } }), 401, 'guest');
+});
+tc('NTF-012', 'Notifications', 'Medium', 'A comment notifies the course owner', 'Comment as an enrolled student, then as the owner', 'One notification for the student comment, none for the owner\'s own', async () => {
+    const c = await mkCourse(F.instr);
+    const u = await newUser('student', 'commenter');
+    await enroll(F.instr, c.id, u);
+    is(await api('POST', `/courses/lectures/${c.lectureId}/comments`, { token: u.token, body: { content: 'Hello' } }), 201);
+    is(await api('POST', `/courses/lectures/${c.lectureId}/comments`, { token: F.instr.token, body: { content: 'Reply' } }), 201);
+    eq(await models.Notification.countDocuments({ user: F.instr.id, course: c.id, type: 'comment' }), 1, 'notifications');
+});
+tc('PRG-013', 'Lecture progress', 'Medium', 'Enrolled list includes progress', 'Complete one of two lectures, then GET /courses/my/enrolled', 'progressPercent is 50', async () => {
+    const c = await mkCourse(F.instr);
+    await addLecture(F.instr, c.id, c.sectionId, 'Second');
+    const u = await newUser('student', 'pct');
+    await enroll(F.instr, c.id, u);
+    await api('PUT', `/courses/lectures/${c.lectureId}/progress`, { token: u.token, body: { status: 'Completed' } });
+    eq((await api('GET', '/courses/my/enrolled', { token: u.token })).json[0].progressPercent, 50, 'progressPercent');
+});
+tc('TCH-020', 'Co-instructors', 'High', 'The Instructor Center lists assigned courses', 'Add an instructor to a course, then read their dashboard', 'The course is listed and marked as assigned', async () => {
+    const c = await mkCourse(F.instr);
+    const co = await newUser('instructor', 'assigned');
+    await api('POST', `/courses/${c.id}/instructors`, { token: F.instr.token, body: { email: co.email, permissions: { manage_content: true } } });
+    const listed = (await api('GET', '/instructor/dashboard', { token: co.token })).json.courses.find(x => x._id === c.id);
+    ok(listed?.isAssigned, 'not listed as assigned');
+});
+tc('SEC-073', S, 'Critical', 'Students cannot reach instructor or admin routes', 'Call instructor and admin routes as a student', 'HTTP 403 every time', async () => {
+    const calls = [['GET', '/instructor/dashboard'], ['GET', '/instructor/courses'], ['POST', '/instructor/course'], ['POST', '/courses'], ['POST', '/coupons'],
+        ['GET', `/coupons/course/${F.course.id}`], ['POST', '/ai/generate-quiz'], ['GET', '/purchase/slips'], ['GET', '/categories'], ['GET', '/admin/dashboard'], ['GET', '/admin/users'], ['GET', '/activities']];
+    for (const [method, path] of calls) is(await api(method, path, { token: F.s1.token, ...(method !== 'GET' && { body: {} }) }), 403, path);
+});
+tc('SEC-074', S, 'Critical', 'Instructors cannot reach admin routes', 'Call admin routes as an instructor', 'HTTP 403 every time', async () => {
+    const calls = [['GET', '/admin/dashboard'], ['GET', '/admin/users'], ['POST', '/admin/impersonate'], ['POST', `/admin/users/${F.s1.id}/block`], ['POST', `/admin/users/${F.s1.id}/role`],
+        ['GET', '/admin/payouts'], ['GET', '/activities'], ['GET', '/categories']];
+    for (const [method, path] of calls) is(await api(method, path, { token: F.instr.token, ...(method !== 'GET' && { body: {} }) }), 403, path);
+});
+tc('SEC-075', S, 'Critical', 'An instructor cannot change another instructor\'s course', 'Call course routes as an unrelated instructor', 'Refused every time', async () => {
+    const id = F.course.id;
+    const calls = [['PUT', `/courses/${id}`], ['DELETE', `/courses/${id}`], ['POST', `/courses/${id}/sections`], ['POST', `/courses/${id}/enroll`], ['PUT', `/instructor/course/${id}`],
+        ['GET', `/instructor/course/${id}/sales`], ['PUT', `/courses/${id}/toggle-student-ai`], ['PUT', `/courses/${id}/ai-block/${F.s1.id}`], ['GET', `/ai/course/${id}/student-conversations`],
+        ['PUT', `/courses/lectures/${F.L1}`], ['DELETE', `/courses/lectures/${F.L1}`], ['GET', `/coupons/course/${id}`], ['PUT', `/notifications/course/${id}/settings`]];
+    for (const [method, path] of calls) {
+        const { status } = await api(method, path, { token: F.instr2.token, ...(method !== 'GET' && { body: { title: 'x' } }) });
+        ok(status === 403 || status === 404, `${method} ${path} returned HTTP ${status}`);
+    }
+});
+tc('PAY-040', 'Payments', 'Critical', 'A slip gives access only after approval', 'Send a slip, then approve it as the course owner', 'No access while pending; access, a paid invoice and a notification after approval', async () => {
+    const [u, c] = await newStudentAndCourse();
+    is(await sendSlip(u, c.id), 201);
+    eq((await api('GET', `/purchase/verify/${c.id}`, { token: u.token })).json.slipStatus, 'pending', 'slipStatus');
+    ok(!(await models.Progress.exists({ student: u.id, course: c.id })), 'access before approval');
+    const pending = await slipOf(u, c);
+    ok((await api('GET', '/purchase/slips', { token: F.instr.token })).json.some(s => s._id === pending._id.toString()), 'not in the instructor list');
+    is(await api('PUT', `/purchase/${pending._id}/slip/approve`, { token: F.instr.token }), 200);
+    ok(await models.Progress.exists({ student: u.id, course: c.id }), 'no access after approval');
+    const paid = await slipOf(u, c);
+    eq(paid.status, 'completed', 'status'); eq(paid.invoiceStatus, 'paid', 'invoiceStatus');
+    is(await api('PUT', `/purchase/${pending._id}/slip/approve`, { token: F.instr.token }), 400, 'second approval');
+    eq((await models.Course.findById(c.id).lean()).enrollmentCount, 1, 'enrollmentCount');
+    ok(await models.Notification.exists({ user: u.id, type: 'payment' }), 'no notification');
+});
+tc('PAY-041', 'Payments', 'High', 'A rejected slip can be replaced', 'Reject a slip with a reason, then send a new one', 'The reason is shown and the new slip is accepted', async () => {
+    const [u, c] = await newStudentAndCourse();
+    is(await sendSlip(u, c.id), 201);
+    const first = await slipOf(u, c);
+    is(await api('PUT', `/purchase/${first._id}/slip/reject`, { token: F.instr.token, body: { reason: 'Unclear photo' } }), 200);
+    const v = (await api('GET', `/purchase/verify/${c.id}`, { token: u.token })).json;
+    eq(v.slipStatus, 'failed', 'slipStatus'); eq(v.rejectionReason, 'Unclear photo', 'reason');
+    ok(!(await models.Progress.exists({ student: u.id, course: c.id })), 'access after rejection');
+    is(await sendSlip(u, c.id), 201, 'second slip');
+});
+tc('PAY-042', 'Payments', 'High', 'A pending slip cannot be paid twice', 'Send a slip, then send another and try card checkout', 'HTTP 400 for both', async () => {
+    const [u, c] = await newStudentAndCourse();
+    is(await sendSlip(u, c.id), 201);
+    is(await sendSlip(u, c.id), 400, 'second slip');
+    is(await api('POST', '/purchase/checkout', { token: u.token, body: { courseId: c.id } }), 400, 'checkout');
+});
+tc('PAY-043', 'Payments', 'High', 'Only the course owner or an admin reviews a slip', 'Approve and reject as another instructor and as a student', 'HTTP 403 every time', async () => {
+    const [u, c] = await newStudentAndCourse();
+    await sendSlip(u, c.id);
+    const { _id } = await slipOf(u, c);
+    is(await api('PUT', `/purchase/${_id}/slip/approve`, { token: F.instr2.token }), 403, 'other instructor');
+    is(await api('PUT', `/purchase/${_id}/slip/reject`, { token: F.instr2.token }), 403, 'other instructor');
+    is(await api('PUT', `/purchase/${_id}/slip/approve`, { token: u.token }), 403, 'student');
+    ok(!(await api('GET', '/purchase/slips', { token: F.instr2.token })).json.some(s => s._id === _id.toString()), 'listed for another instructor');
+});
+tc('PAY-044', 'Payments', 'High', 'A slip file stays private', 'Read the slip as the student, the owner, a stranger, and through the public image route', 'HTTP 200, 200, 404 and 404', async () => {
+    const [u, c] = await newStudentAndCourse();
+    await sendSlip(u, c.id);
+    const p = await slipOf(u, c);
+    is(await api('GET', `/purchase/${p._id}/slip`, { token: u.token }), 200, 'student');
+    is(await api('GET', `/purchase/${p._id}/slip`, { token: F.instr.token }), 200, 'owner');
+    is(await api('GET', `/purchase/${p._id}/slip`, { token: F.s3.token }), 404, 'stranger');
+    is(await api('GET', `/uploads/${p.slip}`), 404, 'public route');
+});
+tc('PAY-045', 'Payments', 'Medium', 'Bad slips are refused', 'Send HTML named as an image, no file, and a slip for a free course', 'HTTP 400 each time', async () => {
+    const [u, c] = await newStudentAndCourse();
+    is(await api('POST', '/purchase/slip', { token: u.token, form: fileForm('slip', 'a.png', 'image/png', Buffer.from('<script>alert(1)</script>'), { courseId: c.id }) }), 400, 'html');
+    is(await api('POST', '/purchase/slip', { token: u.token, form: multipart({ courseId: c.id }) }), 400, 'no file');
+    const free = await mkCourse(F.instr, { price: 0 });
+    is(await sendSlip(u, free.id), 400, 'free course');
+    is(await api('POST', '/purchase/slip', { token: u.token, form: fileForm('slip', 's.pdf', 'application/pdf', MINIMAL_PDF, { courseId: c.id }) }), 201, 'pdf');
+});
+tc('PAY-046', 'Payments', 'Medium', 'A coupon works with a slip', 'Send a slip with a 10 percent coupon, then approve it', 'The amount is discounted and the coupon is used once', async () => {
+    const [u, c] = await newStudentAndCourse(1000);
+    const code = `SL${uid()}`.toUpperCase();
+    await api('POST', '/coupons', { token: F.instr.token, body: { code, courseId: c.id, discountType: 'percentage', discountValue: 10, validUntil: new Date(Date.now() + 864e5).toISOString() } });
+    is(await sendSlip(u, c.id, { couponCode: code }), 201);
+    const p = await slipOf(u, c);
+    eq(p.amount, 900, 'amount');
+    await api('PUT', `/purchase/${p._id}/slip/approve`, { token: F.instr.token });
+    eq((await models.Coupon.findOne({ code }).lean()).usedCount, 1, 'usedCount');
+});
+tc('RES-020', 'Resources', 'High', 'Images can be uploaded and shown', 'Upload a PNG, then open its URL as a guest', 'HTTP 201, then the image with an image type', async () => {
+    const r = await api('POST', '/uploads/image', { token: F.s1.token, form: fileForm('image', 'me.png', 'image/png', PNG) });
+    is(r, 201);
+    const img = await fetch(r.json.url);
+    eq(img.status, 200, 'status'); eq(img.headers.get('content-type'), 'image/png', 'type');
+});
+tc('RES-021', 'Resources', 'High', 'Only real images are accepted', 'Upload HTML and a PDF named as images, then a file over 2 MB, then as a guest', 'HTTP 400, 400, 413 and 401', async () => {
+    is(await api('POST', '/uploads/image', { token: F.s1.token, form: fileForm('image', 'a.png', 'image/png', Buffer.from('<svg onload=alert(1)>')) }), 400, 'html');
+    is(await api('POST', '/uploads/image', { token: F.s1.token, form: fileForm('image', 'a.png', 'image/png', MINIMAL_PDF) }), 400, 'pdf');
+    is(await api('POST', '/uploads/image', { token: F.s1.token, form: fileForm('image', 'a.png', 'image/png', Buffer.concat([PNG, Buffer.alloc(2 * 1024 * 1024)])) }), 413, 'size');
+    is(await api('POST', '/uploads/image', { form: fileForm('image', 'a.png', 'image/png', PNG) }), 401, 'guest');
+});
+
+const claimReady = async (price = 1000) => {
+    const u = await newUser('instructor', 'claimer');
+    const c = await mkCourse(u, { price });
+    await buy(F.s3, c, u);
+    is(await api('POST', '/instructor/bank-details', { token: u.token, body: { accountHolderName: 'QA', accountNumber: '123', bankName: 'Test' } }), 200);
+    return u;
+};
+const earningsOf = async (u) => (await api('GET', '/instructor/earnings', { token: u.token })).json.byCurrency.LKR;
+
+tc('INS-020', 'Instructor tools', 'Critical', 'A claim keeps 10 percent for the admin', 'Claim 1000 of earnings', 'Commission 100, instructor gets 900, and nothing is paid until approval', async () => {
+    const u = await claimReady();
+    const r = await api('POST', '/instructor/claims', { token: u.token, body: { amount: 1000 } });
+    is(r, 201);
+    eq(r.json.grossAmount, 1000, 'claimed'); eq(r.json.commissionAmount, 100, 'commission'); eq(r.json.amount, 900, 'net'); eq(r.json.status, 'pending', 'status');
+    const t = await earningsOf(u);
+    eq(t.paidOut, 0, 'paidOut'); eq(t.waitingApproval, 900, 'waitingApproval'); eq(t.available, 0, 'available'); eq(t.pending, 900, 'pending');
+});
+tc('INS-021', 'Instructor tools', 'Critical', 'Approving a claim records paid and remaining amounts', 'Claim 400 of 1000, approve it with a reference, then read earnings as instructor and admin', 'Paid 360, commission 40, still to pay 540, and both sides agree', async () => {
+    const u = await claimReady();
+    const claim = (await api('POST', '/instructor/claims', { token: u.token, body: { amount: 400 } })).json;
+    is(await api('PUT', `/admin/payouts/${claim._id}/approve`, { token: F.admin.token, body: {} }), 400, 'no reference');
+    const r = await api('PUT', `/admin/payouts/${claim._id}/approve`, { token: F.admin.token, body: { transactionId: 'TX-1' } });
+    is(r, 200); eq(r.json.transactionId, 'TX-1', 'reference');
+    is(await api('PUT', `/admin/payouts/${claim._id}/approve`, { token: F.admin.token, body: { transactionId: 'TX-2' } }), 404, 'second approval');
+    const t = await earningsOf(u);
+    eq(t.paidOut, 360, 'paidOut'); eq(t.commission, 40, 'commission'); eq(t.pending, 540, 'pending'); eq(t.available, 600, 'available');
+    const admin = (await api('GET', `/admin/instructors/${u.id}`, { token: F.admin.token })).json;
+    eq(admin.totalPaidOut, 360, 'admin paid'); eq(admin.totalCommission, 40, 'admin commission'); eq(admin.pendingAmount, 540, 'admin still to pay');
+    ok(await models.Notification.exists({ user: u.id, type: 'payment', title: 'Claim paid' }), 'no notification');
+});
+tc('INS-022', 'Instructor tools', 'High', 'A rejected claim can be claimed again', 'Reject a claim with a reason, then claim again', 'The amount is free again and the reason is kept', async () => {
+    const u = await claimReady();
+    const claim = (await api('POST', '/instructor/claims', { token: u.token, body: { amount: 500 } })).json;
+    const r = await api('PUT', `/admin/payouts/${claim._id}/reject`, { token: F.admin.token, body: { note: 'Wrong account' } });
+    is(r, 200); eq(r.json.status, 'failed', 'status'); eq(r.json.note, 'Wrong account', 'note');
+    eq((await earningsOf(u)).available, 1000, 'available');
+    is(await api('POST', '/instructor/claims', { token: u.token, body: { amount: 500 } }), 201, 'second claim');
+});
+tc('INS-023', 'Instructor tools', 'High', 'Claims cannot exceed the balance', 'Claim too much, zero, a negative amount, and a second claim while one is open', 'HTTP 400 each time', async () => {
+    const u = await claimReady();
+    for (const amount of [1001, 0, -5, 'abc']) is(await api('POST', '/instructor/claims', { token: u.token, body: { amount } }), 400, String(amount));
+    is(await api('POST', '/instructor/claims', { token: u.token, body: { amount: 100 } }), 201);
+    is(await api('POST', '/instructor/claims', { token: u.token, body: { amount: 100 } }), 400, 'second open claim');
+});
+tc('INS-024', 'Instructor tools', 'High', 'Two claims sent together cannot both pass', 'Send two claims for the whole balance at the same time', 'Only one is created', async () => {
+    const u = await claimReady();
+    const send = () => api('POST', '/instructor/claims', { token: u.token, body: { amount: 1000 } });
+    const results = await Promise.all([send(), send()]);
+    eq(results.filter(r => r.status === 201).length, 1, 'claims created');
+    eq((await earningsOf(u)).claimed, 1000, 'claimed');
+});
+tc('INS-025', 'Instructor tools', 'High', 'A claim needs payment details', 'Claim with no bank details saved', 'HTTP 400', async () => {
+    const u = await newUser('instructor', 'nobank');
+    const c = await mkCourse(u, { price: 1000 });
+    await buy(F.s3, c, u);
+    is(await api('POST', '/instructor/claims', { token: u.token, body: { amount: 100 } }), 400);
+});
+tc('INS-026', 'Instructor tools', 'Critical', 'Only admins review claims', 'Approve and reject a claim as the instructor and a student', 'HTTP 403 each time', async () => {
+    const u = await claimReady();
+    const claim = (await api('POST', '/instructor/claims', { token: u.token, body: { amount: 100 } })).json;
+    for (const who of [u, F.s1]) {
+        is(await api('PUT', `/admin/payouts/${claim._id}/approve`, { token: who.token, body: { transactionId: 'X' } }), 403, 'approve');
+        is(await api('PUT', `/admin/payouts/${claim._id}/reject`, { token: who.token, body: {} }), 403, 'reject');
+    }
+    is(await api('POST', '/instructor/claims', { token: F.s1.token, body: { amount: 1 } }), 403, 'student claim');
+});
+tc('INS-027', 'Instructor tools', 'High', 'Old payouts keep their full amount', 'Add a payout from before commission, then read earnings', 'It counts as paid with no commission', async () => {
+    const u = await claimReady();
+    await models.Payout.collection.insertOne({ instructor: new mongoose.Types.ObjectId(u.id), amount: 200, currency: 'LKR', method: 'bank_transfer', status: 'completed', createdAt: new Date() });
+    const t = await earningsOf(u);
+    eq(t.paidOut, 200, 'paidOut'); eq(t.commission, 0, 'commission'); eq(t.available, 800, 'available'); eq(t.pending, 720, 'pending');
+});
+
+const asForm = (fields, withProof = true) => {
+    const form = withProof ? fileForm('proof', 'p.png', 'image/png', PNG, fields) : new FormData();
+    if (!withProof) Object.entries(fields).forEach(([k, v]) => form.append(k, v));
+    return form;
+};
+const sellBySlip = async (price = 1000) => {
+    const u = await newUser('instructor', 'collector');
+    const c = await mkCourse(u, { price });
+    const buyer = await newUser('student', 'slipbuyer');
+    is(await sendSlip(buyer, c.id), 201);
+    const { _id } = await slipOf(buyer, c);
+    is(await api('PUT', `/purchase/${_id}/slip/approve`, { token: u.token }), 200);
+    return u;
+};
+const payCommission = (u, amount, withProof = true) => api('POST', '/instructor/commission', { token: u.token, form: asForm({ amount, reference: 'REF-1' }, withProof) });
+const lastCommission = (u) => models.CommissionPayment.findOne({ instructor: u.id }).sort({ createdAt: -1 }).lean();
+
+tc('INS-030', 'Instructor tools', 'Critical', 'A slip sale creates 10 percent commission owed', 'Sell a Rs. 1000 course by slip, then read earnings', 'Collected 1000, due 100, owed 100, and nothing to claim because the instructor has the money', async () => {
+    const t = await earningsOf(await sellBySlip());
+    eq(t.collected, 1000, 'collected'); eq(t.commissionDue, 100, 'due'); eq(t.commissionOwed, 100, 'owed'); eq(t.available, 0, 'available'); eq(t.pending, 0, 'pending');
+});
+tc('INS-031', 'Instructor tools', 'Critical', 'An approved commission payment reduces what is owed', 'Pay 60 of 100 with proof, approve it, then read both screens', 'Paid 60 and 40 still owed, on both sides', async () => {
+    const u = await sellBySlip();
+    is(await payCommission(u, 60), 201);
+    let t = await earningsOf(u);
+    eq(t.commissionWaiting, 60, 'waiting'); eq(t.commissionPaid, 0, 'paid before approval'); eq(t.commissionOwed, 100, 'owed before approval');
+    const p = await lastCommission(u);
+    ok((await api('GET', '/admin/commission-payments?status=pending', { token: F.admin.token })).json.some(x => x._id === p._id.toString()), 'not listed for the admin');
+    is(await api('GET', `/admin/commission-payments/${p._id}/proof`, { token: F.admin.token }), 200, 'proof');
+    is(await api('PUT', `/admin/commission-payments/${p._id}/approve`, { token: F.admin.token, body: {} }), 200);
+    is(await api('PUT', `/admin/commission-payments/${p._id}/approve`, { token: F.admin.token, body: {} }), 404, 'second approval');
+    t = await earningsOf(u);
+    eq(t.commissionPaid, 60, 'paid'); eq(t.commissionOwed, 40, 'owed');
+    const admin = (await api('GET', `/admin/instructors/${u.id}`, { token: F.admin.token })).json;
+    eq(admin.totalCommission, 60, 'admin received'); eq(admin.commissionOwed, 40, 'admin owed');
+});
+tc('INS-032', 'Instructor tools', 'High', 'A rejected commission payment is owed again', 'Reject a payment with a reason', 'The whole amount is owed and the reason is kept', async () => {
+    const u = await sellBySlip();
+    await payCommission(u, 100);
+    const p = await lastCommission(u);
+    const r = await api('PUT', `/admin/commission-payments/${p._id}/reject`, { token: F.admin.token, body: { note: 'Not received' } });
+    is(r, 200); eq(r.json.note, 'Not received', 'note');
+    const t = await earningsOf(u);
+    eq(t.commissionPaid, 0, 'paid'); eq(t.commissionPayable, 100, 'payable');
+    is(await payCommission(u, 100), 201, 'second payment');
+});
+tc('INS-033', 'Instructor tools', 'High', 'Bad commission payments are refused', 'Pay too much, zero, no proof, HTML as proof, and twice while one is open', 'HTTP 400 each time', async () => {
+    const u = await sellBySlip();
+    is(await payCommission(u, 101), 400, 'too much');
+    is(await payCommission(u, 0), 400, 'zero');
+    is(await payCommission(u, 10, false), 400, 'no proof');
+    is(await api('POST', '/instructor/commission', { token: u.token, form: fileForm('proof', 'a.png', 'image/png', Buffer.from('<b>x</b>'), { amount: 10 }) }), 400, 'html');
+    is(await payCommission(u, 10), 201);
+    is(await payCommission(u, 10), 400, 'second open');
+});
+tc('INS-034', 'Instructor tools', 'Critical', 'Only admins verify commission', 'Approve, reject and read proof as the instructor and a student', 'HTTP 403 each time', async () => {
+    const u = await sellBySlip();
+    await payCommission(u, 50);
+    const p = await lastCommission(u);
+    for (const who of [u, F.s1]) {
+        is(await api('PUT', `/admin/commission-payments/${p._id}/approve`, { token: who.token, body: {} }), 403, 'approve');
+        is(await api('GET', `/admin/commission-payments/${p._id}/proof`, { token: who.token }), 403, 'proof');
+    }
+    is(await api('GET', `/uploads/${p.proof}`), 404, 'public route');
+});
+tc('INS-035', 'Instructor tools', 'High', 'Students see the instructor account for slips', 'Read the bank details of a course as a student and a guest', 'Holder, bank and account for the student, HTTP 401 for a guest', async () => {
+    const u = await newUser('instructor', 'bankshow');
+    const c = await mkCourse(u, { price: 100 });
+    eq((await api('GET', `/purchase/course/${c.id}/bank-details`, { token: F.s1.token })).json, null, 'none saved');
+    await api('POST', '/instructor/bank-details', { token: u.token, body: { accountHolderName: 'QA', bankName: 'Test', accountNumber: '999', upiId: 'secret' } });
+    const r = await api('GET', `/purchase/course/${c.id}/bank-details`, { token: F.s1.token });
+    is(r, 200); eq(r.json.accountNumber, '999', 'account'); eq(r.json.upiId, undefined, 'upi');
+    is(await api('GET', `/purchase/course/${c.id}/bank-details`), 401, 'guest');
+});
+tc('AUTH-045', 'Authentication', 'Critical', 'Asking to teach needs admin approval', 'Ask as a student, try an instructor route, then approve as an admin', 'HTTP 403 before approval and access after', async () => {
+    const u = await newUser('student', 'asker');
+    is(await api('POST', '/instructor/become', { token: u.token }), 200);
+    is(await api('GET', '/instructor/dashboard', { token: u.token }), 403, 'before approval');
+    is(await api('POST', '/instructor/become', { token: u.token }), 400, 'second request');
+    ok((await api('GET', '/admin/instructor-requests', { token: F.admin.token })).json.some(x => x._id === u.id), 'not listed');
+    ok(await models.Notification.exists({ user: F.admin.id, title: 'New instructor request' }), 'admin not told');
+    is(await api('PUT', `/admin/instructor-requests/${u.id}/approve`, { token: F.admin.token, body: {} }), 200);
+    is(await api('GET', '/instructor/dashboard', { token: u.token }), 200, 'after approval');
+});
+tc('AUTH-046', 'Authentication', 'High', 'A rejected request can be sent again', 'Reject with a reason, read it, then ask again', 'Role stays student, the reason shows, and the new request is accepted', async () => {
+    const u = await newUser('student', 'rejected');
+    await api('POST', '/instructor/become', { token: u.token });
+    is(await api('PUT', `/admin/instructor-requests/${u.id}/reject`, { token: F.admin.token, body: { note: 'Need more detail' } }), 200);
+    const me = (await api('GET', '/auth/me', { token: u.token })).json;
+    eq(me.role, 'student', 'role'); eq(me.instructorRequest.note, 'Need more detail', 'note');
+    is(await api('POST', '/instructor/become', { token: u.token }), 200, 'second request');
+});
+tc('AUTH-047', 'Authentication', 'Critical', 'Instructor sign-up does not skip approval', 'Register at /auth/instructor/register, then try the instructor login and routes', 'The account is a student with a pending request, and login explains why', async () => {
+    const email = `signup.${uid()}@qa.test`, password = 'Secret123!';
+    const r = await api('POST', '/auth/instructor/register', { body: { name: 'Sign Up', email, password } });
+    is(r, 201); eq(r.json.role, 'student', 'role'); eq(r.json.instructorRequest.status, 'pending', 'request');
+    is(await api('GET', '/instructor/dashboard', { token: r.json.token }), 403, 'route');
+    const login = await api('POST', '/auth/instructor/login', { body: { email, password } });
+    is(login, 400); ok(/waiting for admin approval/.test(login.json.message), login.json.message);
+});
+tc('AUTH-048', 'Authentication', 'Critical', 'Only admins approve instructors', 'Approve as a student and as an instructor', 'HTTP 403 each time', async () => {
+    const u = await newUser('student', 'selfapprove');
+    await api('POST', '/instructor/become', { token: u.token });
+    is(await api('PUT', `/admin/instructor-requests/${u.id}/approve`, { token: u.token, body: {} }), 403, 'self');
+    is(await api('PUT', `/admin/instructor-requests/${u.id}/approve`, { token: F.instr.token, body: {} }), 403, 'instructor');
+});
+tc('MKT-016', 'Marketplace', 'High', 'Courses can be filtered by tag', 'Tag a course, then filter by the tag in another letter case', 'Only that course is returned, with its tags', async () => {
+    const tag = `Tag${uid()}`;
+    const c = await mkCourse(F.instr);
+    await mkCourse(F.instr);
+    is(await api('PUT', `/courses/${c.id}`, { token: F.instr.token, body: { tags: [tag, 'Other'] } }), 200);
+    const list = (await api('GET', `/marketplace?tag=${tag.toUpperCase()}`)).json.courses;
+    eq(list.length, 1, 'courses'); eq(list[0]._id, c.id, 'course'); ok(list[0].tags.includes(tag), 'tags missing');
+    eq((await api('GET', `/marketplace?tag=${tag.slice(0, 4)}`)).json.courses.length, 0, 'part of a tag');
+});
+tc('MKT-017', 'Marketplace', 'Medium', 'Search keeps the other filters', 'Search with a tag set', 'Only courses matching both are returned', async () => {
+    const tag = `Mix${uid()}`;
+    const c = await mkCourse(F.instr, { title: 'Filtered search' });
+    const other = await mkCourse(F.instr, { title: 'Filtered search' });
+    await api('PUT', `/courses/${c.id}`, { token: F.instr.token, body: { tags: [tag] } });
+    const list = (await api('GET', `/marketplace/search?q=Filtered&tag=${tag}`)).json.courses;
+    eq(list.length, 1, 'courses'); ok(list[0]._id !== other.id, 'wrong course');
 });
 
 const E = 'Error handling';

@@ -41,11 +41,11 @@ const resourceSchema = new mongoose.Schema({
     url: {
         type: String
     },
-    // Who uploaded: teacher or student
+    // Who uploaded: instructor or student
     uploaderRole: {
         type: String,
-        enum: ['teacher', 'student'],
-        default: 'teacher'
+        enum: ['instructor', 'student'],
+        default: 'instructor'
     },
     // Linking to section or lecture (optional — null/course = course-level resource)
     linkedType: {

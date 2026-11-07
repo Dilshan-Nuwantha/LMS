@@ -6,6 +6,8 @@ import { showSuccess, showError } from '../../utils/toast';
 import { FaCheckCircle, FaBookOpen, FaChalkboardTeacher, FaEye, FaEyeSlash, FaFacebook, FaYoutube } from 'react-icons/fa';
 import { SiTiktok } from 'react-icons/si';
 
+const CURRENT_YEAR = new Date().getFullYear();
+
 const GoogleIcon = () => (
     <svg viewBox="0 0 24 24" className="w-5 h-5 shrink-0" xmlns="http://www.w3.org/2000/svg">
         <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#357aeaff" />
@@ -32,7 +34,7 @@ const studentPerks = [
     'Quiz builder and interactive learning tools',
 ];
 
-const teacherPerks = [
+const instructorPerks = [
     'Publish courses with a guided curriculum editor',
     'Manage enrolled learners and course progress',
     'Broadcast updates and announcements instantly',
@@ -93,10 +95,10 @@ const Register = () => {
     const { register, googleLogin } = useContext(AuthContext);
     const navigate = useNavigate();
     const location = useLocation();
-    const isTeacherRegister = location.pathname.startsWith('/teacher/register');
-    const isStudentRegister = !isTeacherRegister;
-    const perks = isTeacherRegister ? teacherPerks : studentPerks;
-    const targetRole = isTeacherRegister ? 'instructor' : 'student';
+    const isInstructorRegister = location.pathname.startsWith('/instructor/register');
+    const isStudentRegister = !isInstructorRegister;
+    const perks = isInstructorRegister ? instructorPerks : studentPerks;
+    const targetRole = isInstructorRegister ? 'instructor' : 'student';
 
     const { name, email, password } = formData;
     const onChange = (e) => setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
@@ -109,9 +111,9 @@ const Register = () => {
             } else if (user.role === 'instructor') {
                 navigate('/instructor/dashboard');
             } else {
-                navigate('/');
+                navigate(user.instructorRequest?.status === 'pending' ? '/become-instructor' : '/');
             }
-            showSuccess('Account created successfully');
+            showSuccess(user.instructorRequest?.status === 'pending' ? 'Account created. An admin will review your instructor request.' : 'Account created successfully');
         } catch (error) {
             if (!error.handled) showError(error, 'Google sign-up failed');
         }
@@ -148,9 +150,9 @@ const Register = () => {
             } else if (user.role === 'instructor') {
                 navigate('/instructor/dashboard');
             } else {
-                navigate('/');
+                navigate(user.instructorRequest?.status === 'pending' ? '/become-instructor' : '/');
             }
-            showSuccess('Account created successfully');
+            showSuccess(user.instructorRequest?.status === 'pending' ? 'Account created. An admin will review your instructor request.' : 'Account created successfully');
         } catch (error) {
             if (!error.handled) showError(error, 'Registration failed');
         } finally {
@@ -158,29 +160,29 @@ const Register = () => {
         }
     };
 
-    const panelBg = isTeacherRegister
+    const panelBg = isInstructorRegister
         ? 'from-blue-700 to-blue-900'
         : 'from-blue-600 to-blue-800';
 
-    const accentColor = isTeacherRegister ? 'bg-blue-600' : 'bg-blue-500';
-    const accentHover = isTeacherRegister ? 'hover:bg-blue-500' : 'hover:bg-blue-600';
-    const accentText = isTeacherRegister ? 'text-blue-600' : 'text-blue-500';
-    const accentHoverText = isTeacherRegister ? 'hover:text-blue-500' : 'hover:text-blue-600';
-    const accentCheckColor = isTeacherRegister ? 'text-blue-400' : 'text-blue-300';
+    const accentColor = isInstructorRegister ? 'bg-blue-600' : 'bg-blue-500';
+    const accentHover = isInstructorRegister ? 'hover:bg-blue-500' : 'hover:bg-blue-600';
+    const accentText = isInstructorRegister ? 'text-blue-600' : 'text-blue-500';
+    const accentHoverText = isInstructorRegister ? 'hover:text-blue-500' : 'hover:text-blue-600';
+    const accentCheckColor = isInstructorRegister ? 'text-blue-400' : 'text-blue-300';
 
-    const panelTitle = isTeacherRegister
+    const panelTitle = isInstructorRegister
         ? 'Start Teaching Today'
         : 'Everything You Need';
 
-    const panelSubtitle = isTeacherRegister
+    const panelSubtitle = isInstructorRegister
         ? 'Build courses and inspire thousands of learners'
         : 'Join thousands of students and educators on Tenz Learn';
 
-    const formTitle = isTeacherRegister
-        ? 'Teacher Registration'
+    const formTitle = isInstructorRegister
+        ? 'Instructor Registration'
         : 'Create Account';
 
-    const formSubtitle = isTeacherRegister
+    const formSubtitle = isInstructorRegister
         ? 'Create an instructor account to manage and publish courses'
         : 'Start your learning journey — it\'s completely free';
 
@@ -199,7 +201,7 @@ const Register = () => {
                     {/* Logo */}
                     <div className="flex items-center gap-2">
                         <div className="w-9 h-9 bg-white/20 rounded-lg flex items-center justify-center backdrop-blur-sm">
-                            {isTeacherRegister ? <FaChalkboardTeacher className="text-white text-base" /> : <FaBookOpen className="text-white text-base" />}
+                            {isInstructorRegister ? <FaChalkboardTeacher className="text-white text-base" /> : <FaBookOpen className="text-white text-base" />}
                         </div>
                         <span className="text-white font-bold text-xl tracking-tight">Tenz Learn</span>
                     </div>
@@ -235,7 +237,7 @@ const Register = () => {
 
                     {/* Footer */}
                     <div className="text-white/50 text-xs text-center">
-                        © 2024 All rights reserved <span className="text-white/80 font-medium">TenZe</span>
+                        © {CURRENT_YEAR} All rights reserved <span className="text-white/80 font-medium">TenZe</span>
                     </div>
                 </div>
             </div>
@@ -356,9 +358,9 @@ const Register = () => {
                                             <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                                             <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                                         </svg>
-                                        {isTeacherRegister ? 'Creating teacher account...' : 'Creating account...'}
+                                        {isInstructorRegister ? 'Creating instructor account...' : 'Creating account...'}
                                     </>
-                                ) : (isTeacherRegister ? 'Create Teacher Account' : 'Create Account')}
+                                ) : (isInstructorRegister ? 'Create Instructor Account' : 'Create Account')}
                             </button>
                         </form>
 
@@ -372,10 +374,10 @@ const Register = () => {
                                     </Link>
                                 </p>
                             )}
-                            {isTeacherRegister && (
+                            {isInstructorRegister && (
                                 <p>
-                                    Already have a teacher account?{' '}
-                                    <Link to="/teacher/login" className={`font-semibold ${accentText} ${accentHoverText} transition-colors`}>
+                                    Already have an instructor account?{' '}
+                                    <Link to="/instructor/login" className={`font-semibold ${accentText} ${accentHoverText} transition-colors`}>
                                         Sign In
                                     </Link>
                                 </p>
@@ -387,7 +389,7 @@ const Register = () => {
                 {/* Footer */}
                 <div className="flex items-center justify-between px-6 sm:px-12 lg:px-16 xl:px-24 py-4 border-t border-gray-100">
                     <p className="text-xs text-gray-400">
-                        © 2024 All rights reserved{' '}
+                        © {CURRENT_YEAR} All rights reserved{' '}
                         <span className={`font-semibold ${accentText}`}>TenZe</span>
                     </p>
                     <div className="flex items-center gap-3">

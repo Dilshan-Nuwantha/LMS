@@ -2,10 +2,15 @@ const asyncHandler = require('express-async-handler');
 const User = require('../models/User');
 const Course = require('../models/Course');
 const Purchase = require('../models/Purchase');
+const CourseInstructor = require('../models/CourseInstructor');
 const Lecture = require('../models/Lecture');
 const BankDetail = require('../models/BankDetail');
 const Payout = require('../models/Payout');
-const { CURRENCIES, getEarningsByCurrency, totalsFor, toSummary } = require('../services/earningsService');
+const CommissionPayment = require('../models/CommissionPayment');
+const Upload = require('../models/Upload');
+const { sniffFileType } = require('../utils/fileType');
+const { CURRENCIES, COMMISSION_PERCENT, getEarningsByCurrency, totalsFor, toSummary, splitClaim } = require('../services/earningsService');
+const { notifyAdmins } = require('./notificationController');
 
 // @desc    Become an instructor (upgrade from student)
 // @route   POST /api/instructor/become
@@ -23,17 +28,29 @@ const becomeInstructor = asyncHandler(async (req, res) => {
         throw new Error('Admins cannot become instructors');
     }
 
+    if (req.user.instructorRequest?.status === 'pending') {
+        res.status(400);
+        throw new Error('Your instructor request is already waiting for approval');
+    }
+
     const user = await User.findByIdAndUpdate(
         req.user.id,
         {
-            role: 'instructor',
-            bio: bio || ''
+            instructorRequest: { status: 'pending', note: '', requestedAt: new Date() },
+            ...(bio !== undefined && { bio })
         },
         { new: true }
     ).select('-password');
 
+    await notifyAdmins({
+        title: 'New instructor request',
+        message: `${user.name} asked to become an instructor`,
+        type: 'custom',
+        link: '/admin/dashboard'
+    });
+
     res.status(200).json({
-        message: 'You are now an instructor!',
+        message: 'Your request was sent. An admin will review it.',
         user
     });
 });
@@ -44,11 +61,12 @@ const becomeInstructor = asyncHandler(async (req, res) => {
 const getInstructorDashboard = asyncHandler(async (req, res) => {
     const instructorId = req.user.id;
 
-    // Get all marketplace courses by instructor
-    const courses = await Course.find({
-        user: instructorId,
-        isMarketplace: true
-    }).select('title enrollmentCount rating price status');
+    // Courses this instructor owns, then the ones they were added to
+    const fields = 'title enrollmentCount rating price status';
+    const owned = await Course.find({ user: instructorId }).select(fields);
+    const assignments = await CourseInstructor.find({ instructor: instructorId }).select('course').lean();
+    const assigned = await Course.find({ _id: { $in: assignments.map(a => a.course) } }).select(fields).lean();
+    const courses = [...owned, ...assigned.map(course => ({ ...course, isAssigned: true }))];
 
     // Get total revenue, per currency. Aggregations don't cast ids, so use the ObjectId.
     const revenue = toSummary(totalsFor(await getEarningsByCurrency({ instructor: req.user._id })));
@@ -71,7 +89,7 @@ const getInstructorDashboard = asyncHandler(async (req, res) => {
 
     res.status(200).json({
         courses,
-        totalCourses: courses.length,
+        totalCourses: owned.length,
         totalRevenue: revenue.totalEarnings, // LKR
         totalSales: revenue.totalSales,
         revenueByCurrency: revenue.byCurrency,
@@ -324,12 +342,13 @@ const saveBankDetails = asyncHandler(async (req, res) => {
 const getEarnings = asyncHandler(async (req, res) => {
     const instructorId = req.user.id;
 
-    const [earnings, payouts, monthlyRows] = await Promise.all([
+    const [earnings, payouts, commissionPayments, monthlyRows] = await Promise.all([
         getEarningsByCurrency({ instructor: req.user._id }),
         Payout.find({ instructor: instructorId })
             .populate('processedBy', 'name')
             .sort({ createdAt: -1 })
             .limit(20),
+        CommissionPayment.find({ instructor: instructorId }).sort({ createdAt: -1 }).limit(20),
         Purchase.aggregate([
             { $match: { instructor: req.user._id, status: 'completed' } },
             {
@@ -362,9 +381,142 @@ const getEarnings = asyncHandler(async (req, res) => {
 
     res.status(200).json({
         ...toSummary(totalsFor(earnings)),
+        commissionPercent: COMMISSION_PERCENT,
         payouts,
+        commissionPayments,
         monthlyEarnings
     });
+});
+
+// @desc    Pay the platform its commission on slip sales, with proof, for an admin to approve
+// @route   POST /api/instructor/commission
+// @access  Private (Instructor)
+const payCommission = asyncHandler(async (req, res) => {
+    const amount = Number(req.body.amount);
+    const currency = req.body.currency || 'LKR';
+    const reference = typeof req.body.reference === 'string' ? req.body.reference.trim().slice(0, 100) : '';
+
+    if (!Number.isFinite(amount) || amount <= 0) {
+        res.status(400);
+        throw new Error('Amount must be a positive number');
+    }
+
+    if (!CURRENCIES.includes(currency)) {
+        res.status(400);
+        throw new Error(`Currency must be one of ${CURRENCIES.join(', ')}`);
+    }
+
+    if (!req.file) {
+        res.status(400);
+        throw new Error('Please attach proof of the payment');
+    }
+
+    const mimeType = sniffFileType(req.file.buffer);
+    if (!mimeType) {
+        res.status(400);
+        throw new Error('The proof must be a PNG, JPEG, WebP or PDF file');
+    }
+
+    if (await CommissionPayment.exists({ instructor: req.user.id, currency, status: 'pending' })) {
+        res.status(400);
+        throw new Error('You already have a commission payment waiting for approval');
+    }
+
+    const { commissionPayable } = totalsFor(await getEarningsByCurrency({ instructor: req.user._id }))[currency];
+    if (amount > commissionPayable) {
+        res.status(400);
+        throw new Error(`You owe ${commissionPayable} ${currency}`);
+    }
+
+    const proof = await Upload.create({
+        owner: req.user.id,
+        kind: 'slip',
+        data: req.file.buffer,
+        mimeType,
+        size: req.file.size
+    });
+
+    let payment;
+    try {
+        payment = await CommissionPayment.create({ instructor: req.user.id, amount, currency, reference, proof: proof._id });
+    } catch (err) {
+        await Upload.deleteOne({ _id: proof._id });
+        if (err.code !== 11000) throw err;
+        res.status(400);
+        throw new Error('You already have a commission payment waiting for approval');
+    }
+
+    await notifyAdmins({
+        title: 'Commission payment to review',
+        message: `${req.user.name} paid ${amount} ${currency} commission`,
+        type: 'payment',
+        link: '/admin/dashboard'
+    });
+
+    res.status(201).json(payment);
+});
+
+// @desc    Claim earnings. The platform commission comes out of the claimed amount.
+// @route   POST /api/instructor/claims
+// @access  Private (Instructor)
+const createClaim = asyncHandler(async (req, res) => {
+    const amount = Number(req.body.amount);
+    const currency = req.body.currency || 'LKR';
+
+    if (!Number.isFinite(amount) || amount <= 0) {
+        res.status(400);
+        throw new Error('Claim amount must be a positive number');
+    }
+
+    if (!CURRENCIES.includes(currency)) {
+        res.status(400);
+        throw new Error(`Currency must be one of ${CURRENCIES.join(', ')}`);
+    }
+
+    const bank = await BankDetail.findOne({ user: req.user.id });
+    if (!bank) {
+        res.status(400);
+        throw new Error('Please add your payment details first');
+    }
+
+    if (await Payout.exists({ instructor: req.user.id, currency, status: 'pending' })) {
+        res.status(400);
+        throw new Error('You already have a claim waiting for approval');
+    }
+
+    const { available } = totalsFor(await getEarningsByCurrency({ instructor: req.user._id }))[currency];
+    if (amount > available) {
+        res.status(400);
+        throw new Error(`You can claim up to ${available} ${currency}`);
+    }
+
+    const { grossAmount, commissionAmount, netAmount } = splitClaim(amount);
+
+    let claim;
+    try {
+        claim = await Payout.create({
+            instructor: req.user.id,
+            amount: netAmount,
+            grossAmount,
+            commissionAmount,
+            currency,
+            method: bank.preferredMethod || 'bank_transfer',
+            status: 'pending'
+        });
+    } catch (err) {
+        if (err.code !== 11000) throw err;
+        res.status(400);
+        throw new Error('You already have a claim waiting for approval');
+    }
+
+    await notifyAdmins({
+        title: 'New earnings claim',
+        message: `${req.user.name} claimed ${grossAmount} ${currency}`,
+        type: 'payment',
+        link: '/admin/dashboard'
+    });
+
+    res.status(201).json(claim);
 });
 
 module.exports = {
@@ -378,5 +530,7 @@ module.exports = {
     getCourseSales,
     getBankDetails,
     saveBankDetails,
-    getEarnings
+    getEarnings,
+    createClaim,
+    payCommission
 };

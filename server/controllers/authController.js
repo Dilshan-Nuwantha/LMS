@@ -5,6 +5,7 @@ const asyncHandler = require('express-async-handler');
 const { OAuth2Client } = require('google-auth-library');
 const User = require('../models/User');
 const { sendOTPEmail } = require('../utils/email');
+const { notifyAdmins } = require('./notificationController');
 
 const googleClient = new OAuth2Client(
     process.env.GOOGLE_CLIENT_ID,
@@ -17,9 +18,28 @@ const isBcryptHash = (str) => typeof str === 'string' && /^\$2[aby]\$\d{2}\$[./A
 // Generate JWT
 const generateToken = (user) => {
     return jwt.sign({ id: user._id, v: user.tokenVersion || 0 }, process.env.JWT_SECRET, {
-        expiresIn: '7d',
+        expiresIn: '1h',
     });
 };
+
+// New instructor accounts start as students until an admin approves them
+const instructorRequestFor = (role) => (role === 'instructor'
+    ? { role: 'student', instructorRequest: { status: 'pending', requestedAt: new Date() } }
+    : { role: 'student' });
+
+const tellAdminsAboutRequest = (user) => {
+    if (user.instructorRequest?.status !== 'pending') return null;
+    return notifyAdmins({
+        title: 'New instructor request',
+        message: `${user.name} asked to become an instructor`,
+        type: 'custom',
+        link: '/admin/dashboard'
+    });
+};
+
+const roleError = (user, role) => (role === 'instructor' && user.instructorRequest?.status === 'pending'
+    ? 'Your instructor request is waiting for admin approval.'
+    : `Account role is not ${role}.`);
 
 const MAX_OTP_ATTEMPTS = 5;
 
@@ -56,8 +76,6 @@ const registerUser = asyncHandler(async (req, res) => {
     }
 
     // Admins are never created here, see scripts/createAdmin.js
-    const validatedRole = role === 'instructor' ? 'instructor' : 'student';
-
     // Check if user already exists
     const userExists = await User.findByEmail(normalizedEmail, '+password');
     if (userExists) {
@@ -92,7 +110,7 @@ const registerUser = asyncHandler(async (req, res) => {
             name: name.trim(),
             email: normalizedEmail,
             password: hashedPassword,
-            role: validatedRole,
+            ...instructorRequestFor(role),
             googleId: null,
         });
     } catch (err) {
@@ -108,11 +126,14 @@ const registerUser = asyncHandler(async (req, res) => {
         // Set user for Activity Logger
         res.locals.user = user;
 
+        await tellAdminsAboutRequest(user);
+
         res.status(201).json({
             _id: user.id,
             name: user.name,
             email: user.email,
             role: user.role,
+            instructorRequest: user.instructorRequest,
             token: generateToken(user),
         });
     } else {
@@ -155,7 +176,7 @@ const loginUser = asyncHandler(async (req, res) => {
 
     if (role && user.role !== role) {
         res.status(400);
-        throw new Error(`Account role is not ${role === 'instructor' ? 'teacher' : role}.`);
+        throw new Error(roleError(user, role));
     }
 
     res.locals.user = user; // For Activity Logger
@@ -256,7 +277,7 @@ const googleLogin = asyncHandler(async (req, res) => {
 
         if (role && user.role !== role) {
             res.status(400);
-            throw new Error(`Account role is not ${role === 'instructor' ? 'teacher' : role}.`);
+            throw new Error(roleError(user, role));
         }
     } else {
         // Admins are never created here, see scripts/createAdmin.js
@@ -272,8 +293,10 @@ const googleLogin = asyncHandler(async (req, res) => {
             googleId,
             password: null,
             profileImage: picture || '',
-            role: role === 'instructor' ? 'instructor' : 'student',
+            ...instructorRequestFor(role),
         });
+
+        await tellAdminsAboutRequest(user);
     }
 
     res.locals.user = user;
@@ -283,6 +306,7 @@ const googleLogin = asyncHandler(async (req, res) => {
         name: user.name,
         email: user.email,
         role: user.role,
+        instructorRequest: user.instructorRequest,
         bio: user.bio || '',
         profileImage: user.profileImage || '',
         googleId: user.googleId || null,

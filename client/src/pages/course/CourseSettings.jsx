@@ -3,6 +3,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import api from '../../api/axios';
 import { FaArrowLeft, FaSave, FaPlus, FaTrash, FaPalette, FaStore, FaTag, FaTimes, FaTicketAlt, FaCog, FaChartBar, FaGift, FaBell, FaPaperPlane } from 'react-icons/fa';
 import { showSuccess, showError } from '../../utils/toast';
+import ImageUpload from '../../components/ui/ImageUpload';
 import ManageCoupons from './ManageCoupons';
 
 const CourseSettings = ({ isEmbedded = false }) => {
@@ -33,11 +34,13 @@ const CourseSettings = ({ isEmbedded = false }) => {
         whatYouWillLearn: []
     });
 
-    const categories = [
-        'Web Development', 'Mobile Development', 'Data Science', 'Machine Learning',
-        'Programming Languages', 'DevOps', 'Database', 'Security', 'Cloud Computing',
-        'Design', 'Business', 'Marketing', 'Other'
-    ];
+    const [categories, setCategories] = useState([]);
+
+    useEffect(() => {
+        api.get('/marketplace/categories')
+            .then(res => setCategories(res.data))
+            .catch(() => showError('Failed to load categories'));
+    }, []);
 
     const levels = ['Beginner', 'Intermediate', 'Advanced'];
 
@@ -284,19 +287,11 @@ const CourseSettings = ({ isEmbedded = false }) => {
                                         />
                                     </div>
                                     <div className="space-y-1.5">
-                                        <label className="text-xs font-bold text-slate-400 uppercase">Thumbnail URL</label>
-                                        <input
-                                            type="url"
-                                            className="w-full bg-white dark:bg-slate-950 border border-gray-200 dark:border-slate-800 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
+                                        <label className="text-xs font-bold text-slate-400 uppercase">Thumbnail</label>
+                                        <ImageUpload
                                             value={formData.thumbnail}
-                                            onChange={(e) => setFormData({ ...formData, thumbnail: e.target.value })}
-                                            placeholder="https://example.com/thumbnail.jpg"
+                                            onChange={(url) => setFormData(current => ({ ...current, thumbnail: url }))}
                                         />
-                                        {formData.thumbnail && (
-                                            <div className="mt-2">
-                                                <img src={formData.thumbnail} alt="Thumbnail preview" className="h-32 rounded-lg object-cover" onError={(e) => e.target.style.display = 'none'} />
-                                            </div>
-                                        )}
                                     </div>
                                 </div>
                             </div>
@@ -347,7 +342,7 @@ const CourseSettings = ({ isEmbedded = false }) => {
                                                         value={formData.currency}
                                                         onChange={(e) => setFormData({ ...formData, currency: e.target.value })}
                                                     >
-                                                        <option value="LKR">LKR (Rs)</option>
+                                                        <option value="LKR">Rs. (LKR)</option>
                                                         <option value="USD">$ USD (US Dollar)</option>
                                                     </select>
                                                     <div className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none text-xs">▼</div>
@@ -357,7 +352,7 @@ const CourseSettings = ({ isEmbedded = false }) => {
                                                 <label className="text-xs font-semibold text-slate-500 dark:text-slate-400">Selling Price</label>
                                                 <div className="relative">
                                                     <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-medium">
-                                                        {formData.currency === 'LKR' ? 'Rs' : '$'}
+                                                        {formData.currency === 'LKR' ? 'Rs.' : '$'}
                                                     </span>
                                                     <input
                                                         type="number"
@@ -373,7 +368,7 @@ const CourseSettings = ({ isEmbedded = false }) => {
                                                 <label className="text-xs font-semibold text-slate-500 dark:text-slate-400">Original Price <span className="text-[10px] font-normal opacity-70">(Strike-through)</span></label>
                                                 <div className="relative">
                                                     <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-medium opacity-70">
-                                                        {formData.currency === 'LKR' ? 'Rs' : '$'}
+                                                        {formData.currency === 'LKR' ? 'Rs.' : '$'}
                                                     </span>
                                                     <input
                                                         type="number"
@@ -407,7 +402,7 @@ const CourseSettings = ({ isEmbedded = false }) => {
                                                         onChange={(e) => setFormData({ ...formData, category: e.target.value })}
                                                     >
                                                         <option value="">Select Category</option>
-                                                        {categories.map(cat => (
+                                                        {[...new Set([...categories, formData.category].filter(Boolean))].map(cat => (
                                                             <option key={cat} value={cat}>{cat}</option>
                                                         ))}
                                                     </select>

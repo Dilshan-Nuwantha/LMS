@@ -6,15 +6,17 @@ import {
     FaBook,
     FaChartLine,
     FaEdit,
-    FaEye,
+    FaTrash,
     FaCog,
-    FaUser,
-    FaRupeeSign
+    FaUser
 } from 'react-icons/fa';
 
 import api from '../../api/axios';
 import AuthContext from '../../context/AuthContext';
-import { showError } from '../../utils/toast';
+import { showError, showSuccess } from '../../utils/toast';
+import { formatMoney } from '../../utils/currency';
+import PaymentSlips from '../../components/instructor/PaymentSlips';
+import EarningsPanel from '../../components/instructor/EarningsPanel';
 
 
 // --------------------------------------------------
@@ -101,8 +103,18 @@ const InstructorDashboard = () => {
     // --------------------------------------------------
     // FORMAT CURRENCY
     // --------------------------------------------------
-    const formatCurrency = (amount) => {
-        return `LKR ${(amount || 0).toLocaleString('en-LK')} `;
+    const formatCurrency = (amount) => formatMoney(amount);
+
+    const handleDeleteCourse = async (course) => {
+        if (!window.confirm(`Delete "${course.title}"? This cannot be undone.`)) return;
+
+        try {
+            await api.delete(`/courses/${course._id}`);
+            showSuccess('Course deleted');
+            fetchDashboard();
+        } catch (error) {
+            showError(error, 'Failed to delete course');
+        }
     };
 
 
@@ -151,10 +163,10 @@ const InstructorDashboard = () => {
 
                             <div className="relative">
 
-                                {user?.profilePicture ? (
+                                {user?.profileImage ? (
 
                                     <img
-                                        src={user.profilePicture}
+                                        src={user.profileImage}
                                         alt={user.name || 'Instructor'}
                                         className="w-20 h-20 rounded-full object-cover border-4 border-white dark:border-slate-800 shadow-TenZe"
                                     />
@@ -230,6 +242,8 @@ const InstructorDashboard = () => {
             ================================================== */}
             <div className="container mx-auto px-4 lg:px-8 -mt-10">
 
+                <PaymentSlips onReviewed={fetchDashboard} />
+
 
                 {/* ==================================================
                     METRICS
@@ -285,7 +299,7 @@ const InstructorDashboard = () => {
                     <div className="bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-200/80 dark:border-slate-800 shadow-TenZe flex items-center gap-4">
 
                         <div className="w-12 h-12 rounded-xl bg-success-light text-success flex items-center justify-center text-xl font-bold">
-                            <FaRupeeSign />
+                            <span className="text-sm font-black">Rs.</span>
                         </div>
 
                         <div>
@@ -337,6 +351,8 @@ const InstructorDashboard = () => {
                 {/* ==================================================
                     OVERVIEW
                 ================================================== */}
+                <EarningsPanel />
+
                 <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-TenZe overflow-hidden">
 
 
@@ -496,7 +512,7 @@ const InstructorDashboard = () => {
 
                                                 {course.price === 0
                                                     ? 'Free'
-                                                    : `Rs.${course.price} `
+                                                    : formatMoney(course.price)
                                                 }
 
                                             </td>
@@ -509,7 +525,7 @@ const InstructorDashboard = () => {
 
                                                     {/* Edit */}
                                                     <Link
-                                                        to={`/ instructor / course / ${course._id}/edit`}
+                                                        to={`/instructor/course/${course._id}/edit`}
                                                         className="p-2 rounded-lg bg-primary-light text-primary hover:bg-primary hover:text-white transition-colors"
                                                         title="Edit Course"
                                                     >
@@ -517,14 +533,17 @@ const InstructorDashboard = () => {
                                                     </Link >
 
 
-                                                    {/* Manage / View */}
-                                                    < Link
-                                                        to={`/admin/course/${course._id}`}
-                                                        className="p-2 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:text-primary transition-colors"
-                                                        title="Manage"
-                                                    >
-                                                        <FaEye className="text-xs" />
-                                                    </Link >
+
+                                                    {!course.isAssigned && (
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => handleDeleteCourse(course)}
+                                                            className="p-2 rounded-lg bg-danger-light text-danger hover:bg-danger hover:text-white transition-colors"
+                                                            title="Delete Course"
+                                                        >
+                                                            <FaTrash className="text-xs" />
+                                                        </button>
+                                                    )}
 
                                                 </div >
 

@@ -153,19 +153,19 @@ const checkBroadcastPermission = asyncHandler(async (req, res) => {
     const isAdmin = req.user.role === 'admin';
     const isOwner = course.user.toString() === userId;
 
-    // Check if user is a teacher
-    const CourseTeacher = require('../models/CourseTeacher');
-    const teacherRecord = await CourseTeacher.findOne({ course: course._id, teacher: userId });
-    const isTeacher = !!teacherRecord;
+    // Check if user is an instructor
+    const CourseInstructor = require('../models/CourseInstructor');
+    const instructorRecord = await CourseInstructor.findOne({ course: course._id, instructor: userId });
+    const isInstructor = !!instructorRecord;
 
     // Check if user is enrolled
     const isEnrolled = await Progress.exists({ student: userId, course: course._id });
     const canStudentBroadcast = course.allowStudentBroadcasts && isEnrolled;
 
     res.status(200).json({
-        canBroadcast: isAdmin || isOwner || isTeacher || canStudentBroadcast,
+        canBroadcast: isAdmin || isOwner || isInstructor || canStudentBroadcast,
         isOwner: isAdmin || isOwner,
-        isTeacher,
+        isInstructor,
         allowStudentBroadcasts: course.allowStudentBroadcasts
     });
 });

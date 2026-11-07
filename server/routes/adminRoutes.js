@@ -4,7 +4,16 @@ const {
     getAdminDashboard,
     getInstructors,
     getInstructorDetail,
+    getCommissionPayments,
+    getCommissionProof,
+    approveCommission,
+    rejectCommission,
+    getInstructorRequests,
+    approveInstructorRequest,
+    rejectInstructorRequest,
     createPayout,
+    approvePayout,
+    rejectPayout,
     getPayouts,
     getAllUsers,
     warnUser,
@@ -22,7 +31,16 @@ const { protect, admin } = require('../middleware/authMiddleware');
 router.get('/dashboard', protect, admin, getAdminDashboard);
 router.get('/instructors', protect, admin, getInstructors);
 router.get('/instructors/:id', protect, admin, getInstructorDetail);
+router.get('/commission-payments', protect, admin, getCommissionPayments);
+router.get('/commission-payments/:id/proof', protect, admin, getCommissionProof);
+router.put('/commission-payments/:id/approve', protect, admin, approveCommission);
+router.put('/commission-payments/:id/reject', protect, admin, rejectCommission);
+router.get('/instructor-requests', protect, admin, getInstructorRequests);
+router.put('/instructor-requests/:id/approve', protect, admin, approveInstructorRequest);
+router.put('/instructor-requests/:id/reject', protect, admin, rejectInstructorRequest);
 router.post('/payouts', protect, admin, createPayout);
+router.put('/payouts/:id/approve', protect, admin, approvePayout);
+router.put('/payouts/:id/reject', protect, admin, rejectPayout);
 router.get('/payouts', protect, admin, getPayouts);
 
 // User management

@@ -58,6 +58,12 @@ const userSchema = new mongoose.Schema({
         type: String,
         default: ''
     },
+    // Becoming an instructor needs an admin's approval
+    instructorRequest: {
+        status: { type: String, enum: ['none', 'pending', 'approved', 'rejected'], default: 'none' },
+        note: { type: String, default: '' },
+        requestedAt: { type: Date, default: null }
+    },
     stripeAccountId: {
         type: String,
         default: ''

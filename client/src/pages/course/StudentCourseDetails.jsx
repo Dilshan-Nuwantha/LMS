@@ -3,7 +3,6 @@ import { useParams, useNavigate, useSearchParams, Link } from 'react-router-dom'
 import api from '../../api/axios';
 import { FaPlayCircle, FaBook, FaCheckCircle, FaChevronDown, FaChevronUp, FaBullhorn, FaClipboardList, FaTrophy, FaClock, FaRedo, FaLock, FaUnlock, FaRobot, FaUserGraduate, FaSearch, FaTimes, FaGripVertical, FaGripHorizontal, FaChartLine, FaFolderOpen, FaBookmark } from 'react-icons/fa';
 import BroadcastList from '../../components/broadcast/BroadcastList';
-import AIChatPanel from '../../components/chat/AIChatPanel';
 import StudentAnalytics from '../../components/course/StudentAnalytics';
 import ResourceManager from '../../components/course/ResourceManager';
 import AuthContext from '../../context/AuthContext';
@@ -154,7 +153,6 @@ const StudentCourseDetails = () => {
         { id: 'announcements', label: 'Announcements', icon: FaBullhorn },
         { id: 'resources', label: 'Resources', icon: FaFolderOpen },
         { id: 'analytics', label: 'Analytics', icon: FaChartLine },
-        { id: 'ai-assistant', label: 'AI Assistant', icon: FaRobot },
     ];
 
     // Tab change handler
@@ -358,10 +356,10 @@ const StudentCourseDetails = () => {
 
         // Determine progress color based on percentage
         const getProgressColor = () => {
-            if (stats.percent >= 80) return { bg: 'bg-green-500', text: 'text-green-600 dark:text-green-400', border: 'border-green-200 dark:border-green-900/30', light: 'bg-green-50 dark:bg-green-900/10' };
-            if (stats.percent >= 50) return { bg: 'bg-blue-500', text: 'text-blue-600 dark:text-blue-400', border: 'border-blue-200 dark:border-blue-900/30', light: 'bg-blue-50 dark:bg-blue-900/10' };
-            if (stats.percent >= 20) return { bg: 'bg-amber-500', text: 'text-amber-600 dark:text-amber-400', border: 'border-amber-200 dark:border-amber-900/30', light: 'bg-amber-50 dark:bg-amber-900/10' };
-            return { bg: 'bg-purple-500', text: 'text-purple-600 dark:text-purple-400', border: 'border-purple-200 dark:border-purple-900/30', light: 'bg-purple-50 dark:bg-purple-900/10' };
+            if (stats.percent >= 80) return { bg: 'bg-green-500', text: 'text-green-600 dark:text-green-400', stroke: 'stroke-green-600 dark:stroke-green-400', border: 'border-green-200 dark:border-green-900/30', light: 'bg-green-50 dark:bg-green-900/10' };
+            if (stats.percent >= 50) return { bg: 'bg-blue-500', text: 'text-blue-600 dark:text-blue-400', stroke: 'stroke-blue-600 dark:stroke-blue-400', border: 'border-blue-200 dark:border-blue-900/30', light: 'bg-blue-50 dark:bg-blue-900/10' };
+            if (stats.percent >= 20) return { bg: 'bg-amber-500', text: 'text-amber-600 dark:text-amber-400', stroke: 'stroke-amber-600 dark:stroke-amber-400', border: 'border-amber-200 dark:border-amber-900/30', light: 'bg-amber-50 dark:bg-amber-900/10' };
+            return { bg: 'bg-purple-500', text: 'text-purple-600 dark:text-purple-400', stroke: 'stroke-purple-600 dark:stroke-purple-400', border: 'border-purple-200 dark:border-purple-900/30', light: 'bg-purple-50 dark:bg-purple-900/10' };
         };
 
         const getEncouragingMessage = () => {
@@ -404,7 +402,7 @@ const StudentCourseDetails = () => {
                                     strokeWidth="5"
                                     strokeDasharray={`${stats.percent * 2.827} 283`}
                                     strokeLinecap="round"
-                                    className={colors.text.replace('text-', 'stroke-')}
+                                    className={colors.stroke}
                                     style={{ transition: 'stroke-dasharray 0.5s ease' }}
                                 />
                             </svg>
@@ -533,7 +531,7 @@ const StudentCourseDetails = () => {
                                 ...(course.lectureStatuses || []).filter(s => s.label !== 'Not Started').map(s => ({ v: s.label, l: s.label })),
                                 { v: 'revision', l: `Revision${revisionCount > 0 ? ` (${revisionCount})` : ''}` }
                             ].map(f => (
-                                <button key={f.v} onClick={() => setCurrStatus(f.v)}
+                                <button key={f.v} onClick={() => { setCurrStatus(f.v); setCurrImportance('all'); }}
                                     className={`px-3 py-2.5 text-[11px] sm:text-xs font-medium border-b-2 -mb-px transition-colors whitespace-nowrap ${currStatus === f.v
                                         ? 'border-slate-900 dark:border-white text-slate-900 dark:text-white'
                                         : 'border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:border-slate-300 dark:hover:border-slate-600'}`}>
@@ -544,8 +542,8 @@ const StudentCourseDetails = () => {
                         {/* Importance Group */}
                         <div className="flex items-center shrink-0">
                             <span className="text-[9px] font-bold text-slate-400 dark:text-slate-600 uppercase tracking-widest mr-1">Importance</span>
-                            {[{ v: 'all', l: 'All' }, { v: 'Very Important', l: 'Critical' }, { v: 'Important', l: 'Important' }, { v: 'Normal', l: 'Normal' }, { v: 'Optional', l: 'Optional' }].map(f => (
-                                <button key={f.v} onClick={() => setCurrImportance(f.v)}
+                            {[{ v: 'all', l: 'All' }, { v: 'Very Important', l: 'Very Important' }, { v: 'Important', l: 'Important' }, { v: 'Normal', l: 'Normal' }, { v: 'Optional', l: 'Optional' }].map(f => (
+                                <button key={f.v} onClick={() => { setCurrImportance(f.v); setCurrStatus('all'); }}
                                     className={`px-3 py-2.5 text-[11px] sm:text-xs font-medium border-b-2 -mb-px transition-colors whitespace-nowrap ${currImportance === f.v
                                         ? 'border-slate-900 dark:border-white text-slate-900 dark:text-white'
                                         : 'border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:border-slate-300 dark:hover:border-slate-600'}`}>
@@ -570,10 +568,11 @@ const StudentCourseDetails = () => {
                                     const has = visibleLectures.some(l => progressMap[l._id]?.status === currStatus);
                                     if (!has) return false;
                                 }
-                                // Importance filter — section-level only
+                                // A lecture with no importance of its own takes the section's
                                 if (currImportance !== 'all') {
-                                    const secImp = section.importance || '';
-                                    if (secImp !== currImportance) return false;
+                                    const secImp = section.importance || 'Normal';
+                                    const has = secImp === currImportance || visibleLectures.some(l => (l.importance || secImp) === currImportance);
+                                    if (!has) return false;
                                 }
                                 // Search filter
                                 if (lectureSearch.trim()) {
@@ -604,16 +603,19 @@ const StudentCourseDetails = () => {
                                                 <h3 className="font-semibold text-sm text-slate-800 dark:text-white flex items-center gap-2">
                                                     <FaBook className="text-slate-300 dark:text-slate-600 text-xs" />
                                                     {section.title}
-                                                    {section.importance && (
+                                                    {(
                                                         <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wide shrink-0 ${
-                                                            section.importance === 'Very Important' ? 'bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-800' :
+                                                            (section.importance || 'Normal') === 'Very Important' ? 'bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-800' :
                                                             section.importance === 'Important' ? 'bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800' :
-                                                            section.importance === 'Normal' ? 'bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800' :
+                                                            (section.importance || 'Normal') === 'Normal' ? 'bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800' :
                                                             'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-700'
                                                         }`}>
-                                                            {section.importance}
+                                                            {section.importance || 'Normal'}
                                                         </span>
                                                     )}
+                                                    <span className="text-[9px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wide shrink-0 bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-700">
+                                                        {secPercent === 100 ? 'Completed' : secPercent > 0 ? 'In Progress' : 'Not Started'}
+                                                    </span>
                                                 </h3>
                                                 {isExpanded ?
                                                     <FaChevronUp className="text-slate-400 text-xs" /> :
@@ -1207,13 +1209,6 @@ const StudentCourseDetails = () => {
                                 </button>
                             );
                         })}
-                        <Link
-                            to={`/ai-chat?courseId=${id}`}
-                            className="relative flex-1 flex flex-col items-center gap-0.5 py-2 pt-2.5 text-slate-400 dark:text-slate-500"
-                        >
-                            <FaRobot className="text-[17px]" />
-                            <span className="text-[9px] font-semibold leading-tight">AI Chat</span>
-                        </Link>
                     </div>
                 </div>
             )}
@@ -1257,14 +1252,6 @@ const StudentCourseDetails = () => {
                         })}
                     </div>
                     <div className="flex flex-col gap-1 px-1.5">
-                        <Link
-                            to={`/ai-chat?courseId=${id}`}
-                            className="glass-nav-item text-slate-500 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400"
-                            title="AI Chat Assistant"
-                        >
-                            <FaRobot className="glass-nav-icon text-[18px]" />
-                            <span className="glass-nav-label text-[12px] font-semibold">AI Chat</span>
-                        </Link>
                         <button
                             onClick={toggleTabLayout}
                             className="glass-nav-item text-slate-300 dark:text-slate-600 hover:text-slate-500 dark:hover:text-slate-400"
@@ -1285,7 +1272,6 @@ const StudentCourseDetails = () => {
                 {activeTab === 'announcements' && renderAnnouncementsTab()}
                 {activeTab === 'resources' && <ResourceManager courseId={id} userId={user?._id || user?.id} sections={course?.sections || []} />}
                 {activeTab === 'analytics' && <StudentAnalytics courseId={id} />}
-                {activeTab === 'ai-assistant' && <AIChatPanel courseId={id} courseTitle={course?.title} />}
             </div>
         </div>
     );

@@ -4,7 +4,7 @@ import api from '../../api/axios';
 import { FaEye, FaEyeSlash, FaEdit, FaTrash, FaChevronDown, FaBook, FaCog, FaUsers, FaBullhorn, FaUserTie, FaTimes, FaSignOutAlt, FaChartBar, FaClipboardList, FaSearch, FaUserPlus, FaHistory, FaRobot, FaUserGraduate, FaCheckCircle, FaPlayCircle, FaClock, FaGripVertical, FaGripHorizontal, FaFolderOpen, FaBan, FaComments, FaChevronRight, FaUser, FaFilter, FaBell, FaPaperPlane, FaCheck } from 'react-icons/fa';
 import Modal from '../../components/ui/Modal';
 import BroadcastList from '../../components/broadcast/BroadcastList';
-import TeacherManagement from '../../components/course/TeacherManagement';
+import InstructorManagement from '../../components/course/InstructorManagement';
 import CurriculumTab from '../../components/course/CurriculumTab';
 import StudentsTab from '../../components/course/StudentsTab';
 import AINotesGenerator from '../../components/course/AINotesGenerator';
@@ -100,13 +100,6 @@ const CourseManage = () => {
         finally { setSendingNotif(false); }
     };
 
-    // AI Chat Viewer State (instructor view of student conversations using instructor key)
-    const [aiChatDrawerOpen, setAiChatDrawerOpen] = useState(false);
-    const [aiChatViewStudent, setAiChatViewStudent] = useState(null); // { _id, name, email }
-    const [aiChatConversations, setAiChatConversations] = useState([]);
-    const [aiChatLoading, setAiChatLoading] = useState(false);
-    const [aiChatSelectedConv, setAiChatSelectedConv] = useState(null);
-
     // Student Progress Overlay State (used by CurriculumTab)
     const [selectedStudentId, setSelectedStudentId] = useState(null);
     const [selectedStudentName, setSelectedStudentName] = useState('');
@@ -150,31 +143,29 @@ const CourseManage = () => {
     const [userPermissions, setUserPermissions] = useState({
         isAdmin: false,
         isCreator: false,
-        isTeacher: false,
+        isInstructor: false,
         permissions: {
             manage_content: false,
             manage_students: false,
-            full_access: false,
-            manage_teachers: false
+            full_access: false
         }
     });
 
-    // Check if user can manage teachers
-    const canManageTeachers = userPermissions.isAdmin || userPermissions.isCreator ||
-        userPermissions.permissions.manage_teachers || userPermissions.permissions.full_access;
+    // Check if user can manage instructors
+    const canManageInstructors = userPermissions.isAdmin || userPermissions.isCreator;
 
     // Check if user is owner (admin or creator)
     const isOwner = userPermissions.isAdmin || userPermissions.isCreator;
 
-    // State for dismissing teacher permissions banner
+    // State for dismissing instructor permissions banner
     const [showPermissionsBanner, setShowPermissionsBanner] = useState(true);
 
-    // Tab configuration - Curriculum, Broadcasts, Students, Teachers, AI Notes
+    // Tab configuration - Curriculum, Broadcasts, Students, Instructors, AI Notes
     const tabs = [
         { id: 'curriculum', label: 'Curriculum', icon: FaBook },
         { id: 'broadcasts', label: 'Broadcasts', icon: FaBullhorn },
         { id: 'students', label: 'Students', icon: FaUsers },
-        { id: 'teachers', label: 'Teachers', icon: FaUserTie },
+        { id: 'instructors', label: 'Instructors', icon: FaUserTie },
         { id: 'resources', label: 'Resources', icon: FaFolderOpen },
         { id: 'ai-notes', label: 'AI Notes', icon: FaRobot },
     ];
@@ -468,57 +459,17 @@ const CourseManage = () => {
         }
     };
 
-    // Leave course (for teachers)
+    // Leave course (for instructors)
     const handleLeaveCourse = async () => {
         if (!window.confirm('Are you sure you want to leave this course? You will lose access to manage this course.')) return;
         try {
-            await api.delete(`/courses/${id}/teachers/leave`);
+            await api.delete(`/courses/${id}/instructors/leave`);
             showSuccess('You have left the course');
             navigate('/dashboard');
         } catch (error) {
             if (!error.handled) {
                 showError(error, 'Error leaving course');
             }
-        }
-    };
-
-    // Toggle AI block for a specific student
-    const handleToggleAIBlock = async (studentId) => {
-        try {
-            const res = await api.put(`/courses/${id}/ai-block/${studentId}`);
-            fetchCourse(true);
-            showSuccess(res.data.blocked ? 'Student blocked from using your AI key' : 'Student AI access restored');
-        } catch {
-            showError('Failed to update AI block');
-        }
-    };
-
-    // Open AI chat viewer drawer for a student
-    const handleViewStudentAIChats = async (student) => {
-        setAiChatViewStudent(student);
-        setAiChatSelectedConv(null);
-        setAiChatConversations([]);
-        setAiChatDrawerOpen(true);
-        setAiChatLoading(true);
-        try {
-            const res = await api.get(`/ai/course/${id}/student-conversations`);
-            const filtered = res.data.filter(c => c.user?._id === student._id || c.user === student._id);
-            setAiChatConversations(filtered);
-        } catch {
-            showError('Failed to load student conversations');
-        } finally {
-            setAiChatLoading(false);
-        }
-    };
-
-    // Toggle student AI access
-    const handleToggleStudentAI = async () => {
-        try {
-            const res = await api.put(`/courses/${id}/toggle-student-ai`);
-            fetchCourse(true);
-            showSuccess(res.data.allowStudentAI ? 'Students can now use your AI key' : 'Student AI access disabled');
-        } catch {
-            showError('Error updating AI access setting');
         }
     };
 
@@ -563,17 +514,17 @@ const CourseManage = () => {
         );
     };
 
-    // Render Teachers Tab Content
-    const renderTeachersTab = () => (
+    // Render Instructors Tab Content
+    const renderInstructorsTab = () => (
         <div className="space-y-6">
             <div>
-                <h2 className="text-lg font-bold text-slate-800 dark:text-white">Course Teachers</h2>
-                <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Manage teachers and their permissions for this course</p>
+                <h2 className="text-lg font-bold text-slate-800 dark:text-white">Course Instructors</h2>
+                <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Manage instructors and their permissions for this course</p>
             </div>
             <div className="bg-white dark:bg-slate-900 rounded-xl border border-gray-200 dark:border-slate-800 p-6">
-                <TeacherManagement
+                <InstructorManagement
                     courseId={id}
-                    canManageTeachers={canManageTeachers}
+                    canManageInstructors={canManageInstructors}
                     isOwner={isOwner}
                 />
             </div>
@@ -656,8 +607,8 @@ const CourseManage = () => {
                 </div>
             </div>
 
-            {/* Teacher Permissions Banner - Compact & Mobile Friendly */}
-            {userPermissions.isTeacher && !isOwner && showPermissionsBanner && (
+            {/* Instructor Permissions Banner - Compact & Mobile Friendly */}
+            {userPermissions.isInstructor && !isOwner && showPermissionsBanner && (
                 <div className="container mx-auto px-4 pt-3">
                     <div className="bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-indigo-900/20 dark:to-purple-900/20 border border-indigo-200 dark:border-indigo-800 rounded-lg px-3 py-2 sm:px-4 sm:py-2.5">
                         <div className="flex items-center justify-between gap-2">
@@ -668,7 +619,7 @@ const CourseManage = () => {
                                 </div>
                                 <div className="min-w-0 flex-1">
                                     <div className="flex items-center gap-1.5 flex-wrap">
-                                        <span className="text-xs sm:text-sm font-medium text-slate-800 dark:text-white whitespace-nowrap">You're a Teacher</span>
+                                        <span className="text-xs sm:text-sm font-medium text-slate-800 dark:text-white whitespace-nowrap">You're an Instructor</span>
                                         <span className="hidden sm:inline text-slate-400 dark:text-slate-500">|</span>
                                         <div className="flex flex-wrap gap-1">
                                             {userPermissions.permissions.full_access ? (
@@ -687,14 +638,14 @@ const CourseManage = () => {
                                                             Students
                                                         </span>
                                                     )}
-                                                    {userPermissions.permissions.manage_teachers && (
+                                                    {userPermissions.permissions.manage_instructors && (
                                                         <span className="text-[10px] sm:text-[11px] px-1.5 sm:px-2 py-0.5 rounded-full bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-300 font-medium">
-                                                            Teachers
+                                                            Instructors
                                                         </span>
                                                     )}
                                                     {!userPermissions.permissions.manage_content &&
                                                         !userPermissions.permissions.manage_students &&
-                                                        !userPermissions.permissions.manage_teachers && (
+                                                        !userPermissions.permissions.manage_instructors && (
                                                             <span className="text-[10px] sm:text-[11px] px-1.5 sm:px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300 font-medium">
                                                                 View Only
                                                             </span>
@@ -756,13 +707,6 @@ const CourseManage = () => {
                                 </button>
                             );
                         })}
-                        <Link
-                            to="/ai-chat"
-                            className="relative flex-1 flex flex-col items-center gap-0.5 py-2 pt-2.5 text-slate-400 dark:text-slate-500"
-                        >
-                            <FaRobot className="text-[17px]" />
-                            <span className="text-[9px] font-semibold leading-tight">AI Chat</span>
-                        </Link>
                     </div>
                 </div>
             )}
@@ -800,14 +744,6 @@ const CourseManage = () => {
                         })}
                     </div>
                     <div className="flex flex-col gap-1 px-1.5">
-                        <Link
-                            to="/ai-chat"
-                            className="glass-nav-item text-slate-500 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400"
-                            title="AI Chat Assistant"
-                        >
-                            <FaRobot className="glass-nav-icon text-[18px]" />
-                            <span className="glass-nav-label text-[12px] font-semibold">AI Chat</span>
-                        </Link>
                         <button
                             onClick={toggleTabLayout}
                             className="glass-nav-item text-slate-300 dark:text-slate-600 hover:text-slate-500 dark:hover:text-slate-400"
@@ -861,7 +797,6 @@ const CourseManage = () => {
                         onDeleteLecture={handleDeleteLecture}
                         onToggleLectureVisibility={handleToggleLectureVisibility}
                         onTogglePeerProgress={handleTogglePeerProgress}
-                        onToggleStudentAI={handleToggleStudentAI}
                         selectedStudentId={selectedStudentId}
                         selectedStudentName={selectedStudentName}
                         studentProgressData={studentProgressData}
@@ -887,12 +822,10 @@ const CourseManage = () => {
                     <StudentsTab
                         courseId={id}
                         course={course}
-                        onViewStudentAIChats={handleViewStudentAIChats}
-                        onToggleAIBlock={handleToggleAIBlock}
                     />
                 )}
-                {activeTab === 'teachers' && renderTeachersTab()}
-                {activeTab === 'resources' && <ResourceManager courseId={id} isTeacher={true} sections={course?.sections || []} />}
+                {activeTab === 'instructors' && renderInstructorsTab()}
+                {activeTab === 'resources' && <ResourceManager courseId={id} isInstructor={true} sections={course?.sections || []} />}
                 {activeTab === 'ai-notes' && <AINotesGenerator courseId={id} />}
             </div>
 
@@ -1330,96 +1263,6 @@ const CourseManage = () => {
                     </button>
                 </div>
             </Modal>
-
-            {/* AI Chat Viewer Drawer */}
-            {aiChatDrawerOpen && (
-                <div className="fixed inset-0 z-50 flex">
-                    {/* Backdrop */}
-                    <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setAiChatDrawerOpen(false)} />
-
-                    {/* Drawer */}
-                    <div className="relative ml-auto w-full max-w-3xl h-full bg-white dark:bg-slate-900 shadow-2xl flex flex-col">
-                        {/* Header */}
-                        <div className="flex items-center gap-3 px-5 py-4 border-b border-gray-200 dark:border-slate-800 shrink-0">
-                            <div className="w-8 h-8 rounded-full bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center">
-                                <FaRobot className="text-indigo-500" size={14} />
-                            </div>
-                            <div className="flex-1 min-w-0">
-                                <p className="text-sm font-bold text-slate-900 dark:text-white truncate">
-                                    {aiChatViewStudent?.name}'s AI Conversations
-                                </p>
-                                <p className="text-[11px] text-slate-400 truncate">{aiChatViewStudent?.email} · Using your API key</p>
-                            </div>
-                            <button onClick={() => setAiChatDrawerOpen(false)} className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-800 text-slate-400 transition-colors">
-                                <FaTimes size={16} />
-                            </button>
-                        </div>
-
-                        <div className="flex flex-1 min-h-0">
-                            {/* Conversation List */}
-                            <div className="w-56 shrink-0 border-r border-gray-200 dark:border-slate-800 flex flex-col">
-                                <div className="px-3 py-2.5 border-b border-gray-100 dark:border-slate-800">
-                                    <p className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Conversations</p>
-                                </div>
-                                <div className="flex-1 overflow-y-auto">
-                                    {aiChatLoading ? (
-                                        <div className="flex items-center justify-center py-10">
-                                            <div className="w-5 h-5 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
-                                        </div>
-                                    ) : aiChatConversations.length === 0 ? (
-                                        <div className="flex flex-col items-center justify-center py-10 px-4 text-center">
-                                            <FaComments className="text-slate-300 dark:text-slate-600 mb-2" size={24} />
-                                            <p className="text-xs text-slate-400">No conversations yet</p>
-                                            <p className="text-[10px] text-slate-300 dark:text-slate-600 mt-1">Student hasn't used your AI key</p>
-                                        </div>
-                                    ) : (
-                                        aiChatConversations.map(conv => (
-                                            <button
-                                                key={conv._id}
-                                                onClick={() => setAiChatSelectedConv(conv)}
-                                                className={`w-full text-left px-3 py-3 border-b border-gray-100 dark:border-slate-800/60 hover:bg-gray-50 dark:hover:bg-slate-800/50 transition-colors ${aiChatSelectedConv?._id === conv._id ? 'bg-indigo-50 dark:bg-indigo-900/20 border-l-2 border-l-indigo-500' : ''}`}
-                                            >
-                                                <p className="text-xs font-medium text-slate-800 dark:text-slate-200 truncate">{conv.title || 'Untitled'}</p>
-                                                <p className="text-[10px] text-slate-400 mt-0.5">{conv.messages?.length || 0} messages · {new Date(conv.updatedAt).toLocaleDateString()}</p>
-                                            </button>
-                                        ))
-                                    )}
-                                </div>
-                            </div>
-
-                            {/* Messages Panel */}
-                            <div className="flex-1 flex flex-col min-w-0">
-                                {!aiChatSelectedConv ? (
-                                    <div className="flex flex-col items-center justify-center h-full text-center px-8">
-                                        <FaChevronRight className="text-slate-200 dark:text-slate-700 mb-3" size={28} />
-                                        <p className="text-sm text-slate-400">Select a conversation</p>
-                                        <p className="text-xs text-slate-300 dark:text-slate-600 mt-1">to view messages</p>
-                                    </div>
-                                ) : (
-                                    <>
-                                        <div className="px-4 py-3 border-b border-gray-100 dark:border-slate-800 shrink-0">
-                                            <p className="text-sm font-semibold text-slate-800 dark:text-slate-100 truncate">{aiChatSelectedConv.title}</p>
-                                            <p className="text-[10px] text-slate-400">{aiChatSelectedConv.messages?.length || 0} messages · Read-only</p>
-                                        </div>
-                                        <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
-                                            {(aiChatSelectedConv.messages || []).map((msg, i) => (
-                                                <div key={i} className={`flex gap-2.5 ${msg.role === 'user' ? 'flex-row-reverse' : ''}`}>
-                                                    <div className={`w-7 h-7 rounded-full shrink-0 flex items-center justify-center text-xs font-bold ${msg.role === 'user' ? 'bg-indigo-100 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400' : 'bg-slate-100 dark:bg-slate-800 text-slate-500'}`}>
-                                                        {msg.role === 'user' ? <FaUser size={10} /> : <FaRobot size={10} />}
-                                                    </div>
-                                                    <div className={`max-w-[75%] rounded-2xl px-3.5 py-2.5 text-xs leading-relaxed ${msg.role === 'user' ? 'bg-indigo-500 text-white rounded-tr-sm' : 'bg-gray-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-tl-sm'}`}>
-                                                        <p className="whitespace-pre-wrap break-words">{msg.content}</p>
-                                                    </div>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </>
-                                )}
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            )}
         </div>
     );
 };

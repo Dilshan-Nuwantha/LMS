@@ -353,7 +353,7 @@ const ManageCoupons = ({ embeddedCourseId }) => {
                                             className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl focus:outline-none focus:border-slate-900 dark:focus:border-white text-sm font-medium transition-colors"
                                         >
                                             <option value="percentage">Percentage (%)</option>
-                                            <option value="fixed">Fixed Amount (LKR)</option>
+                                            <option value="fixed">Fixed Amount (Rs.)</option>
                                         </select>
                                     </div>
                                     <div>
@@ -362,7 +362,7 @@ const ManageCoupons = ({ embeddedCourseId }) => {
                                         </label>
                                         <div className="relative">
                                             <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-xs font-semibold">
-                                                {formData.discountType === 'percentage' ? '%' : 'LKR'}
+                                                {formData.discountType === 'percentage' ? '%' : 'Rs.'}
                                             </span>
                                             <input
                                                 type="number"
@@ -396,7 +396,7 @@ const ManageCoupons = ({ embeddedCourseId }) => {
                                             type="date"
                                             value={formData.validUntil}
                                             onChange={(e) => setFormData({ ...formData, validUntil: e.target.value })}
-                                            min={new Date().toISOString().split('T')[0]}
+                                            min={editingCoupon ? undefined : new Date().toISOString().split('T')[0]}
                                             className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl focus:outline-none focus:border-slate-900 dark:focus:border-white text-sm font-medium transition-colors"
                                         />
                                     </div>

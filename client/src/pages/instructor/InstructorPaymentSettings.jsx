@@ -87,7 +87,7 @@ const InstructorPaymentSettings = () => {
                 <div className="mb-6">
                     <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Payment Settings</h1>
                     <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">
-                        Add your payment details so the admin can pay you for your course sales
+                        Students who pay by bank slip see these details, and they are used for card sales paid to you
                     </p>
                 </div>
 

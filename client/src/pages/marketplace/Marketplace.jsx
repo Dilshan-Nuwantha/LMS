@@ -1,10 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useContext } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import {
     FaSearch, FaFilter, FaTimes, FaChevronDown, FaStore, FaBookOpen,
     FaChalkboardTeacher, FaCheckCircle, FaGraduationCap, FaStar, FaUsers, FaArrowRight
 } from 'react-icons/fa';
 import api from '../../api/axios';
+import AuthContext from '../../context/AuthContext';
 import CourseCard from '../../components/ui/CourseCard';
 import { showError } from '../../utils/toast';
 
@@ -13,7 +14,9 @@ const Marketplace = () => {
 
     const [courses, setCourses] = useState([]);
     const [loading, setLoading] = useState(true);
+    const { user } = useContext(AuthContext);
     const [categories, setCategories] = useState([]);
+    const [enrolledIds, setEnrolledIds] = useState(new Set());
     const [showFilters, setShowFilters] = useState(false);
     const [pagination, setPagination] = useState({
         page: 1,
@@ -26,17 +29,19 @@ const Marketplace = () => {
         category: searchParams.get('category') || '',
         level: searchParams.get('level') || '',
         language: searchParams.get('language') || '',
+        tag: searchParams.get('tag') || '',
         minPrice: searchParams.get('minPrice') || '',
         maxPrice: searchParams.get('maxPrice') || '',
         minRating: searchParams.get('minRating') || '',
         sortBy: searchParams.get('sortBy') || 'newest'
     });
     // The navbar menu changes the category without reloading this page
+    const urlTag = searchParams.get('tag') || '';
     const urlCategory = searchParams.get('category') || '';
-    const [lastUrlCategory, setLastUrlCategory] = useState(urlCategory);
-    if (urlCategory !== lastUrlCategory) {
-        setLastUrlCategory(urlCategory);
-        setFilters({ ...filters, category: urlCategory });
+    const [lastUrl, setLastUrl] = useState({ category: urlCategory, tag: urlTag });
+    if (urlCategory !== lastUrl.category || urlTag !== lastUrl.tag) {
+        setLastUrl({ category: urlCategory, tag: urlTag });
+        setFilters({ ...filters, category: urlCategory, tag: urlTag });
     }
 
     const [searchQuery, setSearchQuery] = useState(searchParams.get('q') || '');
@@ -64,6 +69,14 @@ const Marketplace = () => {
         fetchCategories();
     }, []);
 
+    // Enrolled courses get marked on their cards
+    useEffect(() => {
+        if (!user) return;
+        api.get('/courses/my/enrolled')
+            .then(res => setEnrolledIds(new Set(res.data.map(enrollment => enrollment.course._id))))
+            .catch(() => { /* Not critical: cards just stay unmarked */ });
+    }, [user]);
+
     const fetchCourses = async () => {
         setLoading(true);
         try {
@@ -74,6 +87,7 @@ const Marketplace = () => {
                 category: searchParams.get('category') || '',
                 level: searchParams.get('level') || '',
                 language: searchParams.get('language') || '',
+                tag: searchParams.get('tag') || '',
                 minPrice: searchParams.get('minPrice') || '',
                 maxPrice: searchParams.get('maxPrice') || '',
                 minRating: searchParams.get('minRating') || '',
@@ -119,6 +133,7 @@ const Marketplace = () => {
         if (filters.category) newParams.set('category', filters.category);
         if (filters.level) newParams.set('level', filters.level);
         if (filters.language) newParams.set('language', filters.language);
+        if (filters.tag.trim()) newParams.set('tag', filters.tag.trim());
         if (filters.minPrice) newParams.set('minPrice', filters.minPrice);
         if (filters.maxPrice) newParams.set('maxPrice', filters.maxPrice);
         if (filters.minRating) newParams.set('minRating', filters.minRating);
@@ -133,6 +148,7 @@ const Marketplace = () => {
             category: '',
             level: '',
             language: '',
+            tag: '',
             minPrice: '',
             maxPrice: '',
             minRating: '',
@@ -142,7 +158,7 @@ const Marketplace = () => {
         setSearchParams({});
     };
 
-    const hasActiveFilters = searchParams.get('category') || searchParams.get('level') || searchParams.get('language') ||
+    const hasActiveFilters = searchParams.get('category') || searchParams.get('level') || searchParams.get('language') || searchParams.get('tag') ||
         searchParams.get('minPrice') || searchParams.get('maxPrice') || searchParams.get('minRating');
 
     return (
@@ -344,6 +360,17 @@ const Marketplace = () => {
                             </div>
 
                             <div>
+                                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-2">Tag</label>
+                                <input
+                                    type="text"
+                                    value={filters.tag}
+                                    onChange={(e) => setFilters({ ...filters, tag: e.target.value })}
+                                    placeholder="e.g. javascript"
+                                    className="w-full bg-slate-100 dark:bg-slate-800 text-xs font-medium rounded-xl px-3 py-2.5 outline-none"
+                                />
+                            </div>
+
+                            <div>
                                 <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-2">Language</label>
                                 <select
                                     value={filters.language}
@@ -358,7 +385,7 @@ const Marketplace = () => {
                             </div>
 
                             <div>
-                                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Min Price (LKR)</label>
+                                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Min Price (Rs.)</label>
                                 <input
                                     type="number"
                                     placeholder="0"
@@ -369,7 +396,7 @@ const Marketplace = () => {
                             </div>
 
                             <div>
-                                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Max Price (LKR)</label>
+                                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Max Price (Rs.)</label>
                                 <input
                                     type="number"
                                     placeholder="Any"
@@ -418,7 +445,7 @@ const Marketplace = () => {
                     ) : (
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                             {courses.map((course) => (
-                                <CourseCard key={course._id} course={course} />
+                                <CourseCard key={course._id} course={course} enrolled={!!user && enrolledIds.has(course._id)} />
                             ))}
                         </div>
                     )}
@@ -449,32 +476,34 @@ const Marketplace = () => {
             </section>
 
             {/* 4. BECOME AN INSTRUCTOR CTA BANNER */}
-            <section className="py-12">
-                <div className="container mx-auto px-4 lg:px-8">
-                    <div className="relative rounded-3xl overflow-hidden bg-gradient-to-r from-slate-900 via-primary-700 to-slate-900 text-white p-8 sm:p-12 shadow-TenZe-lg">
-                        <div className="relative z-10 max-w-2xl space-y-3">
-                            <span className="bg-white/20 backdrop-blur-md px-3 py-1 rounded-full text-[10px] font-extrabold uppercase tracking-wider">
-                                Teach on LMS
-                            </span>
-                            <h2 className="text-2xl sm:text-3xl font-extrabold leading-tight">
-                                Become an Instructor & Share Your Knowledge
-                            </h2>
-                            <p className="text-xs sm:text-sm text-slate-200 font-medium leading-relaxed">
-                                Join our community of instructors, create engaging courses, and inspire students worldwide.
-                            </p>
-                            <div className="pt-2">
-                                <Link
-                                    to="/become-instructor"
-                                    className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-white text-slate-900 font-extrabold text-xs hover:bg-slate-100 transition-all shadow-md"
-                                >
-                                    <FaChalkboardTeacher className="text-primary text-sm" />
-                                    <span>Start Teaching Today</span>
-                                </Link>
+            {user?.role !== 'instructor' && user?.role !== 'admin' && (
+                <section className="py-12">
+                    <div className="container mx-auto px-4 lg:px-8">
+                        <div className="relative rounded-3xl overflow-hidden bg-gradient-to-r from-slate-900 via-primary-700 to-slate-900 text-white p-8 sm:p-12 shadow-TenZe-lg">
+                            <div className="relative z-10 max-w-2xl space-y-3">
+                                <span className="bg-white/20 backdrop-blur-md px-3 py-1 rounded-full text-[10px] font-extrabold uppercase tracking-wider">
+                                    Teach on LMS
+                                </span>
+                                <h2 className="text-2xl sm:text-3xl font-extrabold leading-tight">
+                                    Become an Instructor & Share Your Knowledge
+                                </h2>
+                                <p className="text-xs sm:text-sm text-slate-200 font-medium leading-relaxed">
+                                    Join our community of instructors, create engaging courses, and inspire students worldwide.
+                                </p>
+                                <div className="pt-2">
+                                    <Link
+                                        to="/become-instructor"
+                                        className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-white text-slate-900 font-extrabold text-xs hover:bg-slate-100 transition-all shadow-md"
+                                    >
+                                        <FaChalkboardTeacher className="text-primary text-sm" />
+                                        <span>Start Teaching Today</span>
+                                    </Link>
+                                </div>
                             </div>
                         </div>
                     </div>
-                </div>
-            </section>
+                </section>
+            )}
 
         </div>
     );
