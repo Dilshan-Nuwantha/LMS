@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const multer = require('multer');
 const {
     becomeInstructor,
     getInstructorDashboard,
@@ -11,10 +12,17 @@ const {
     getCourseSales,
     getBankDetails,
     saveBankDetails,
-    getEarnings
+    getEarnings,
+    createClaim,
+    payCommission
 } = require('../controllers/instructorController');
 const { protect, instructorOnly } = require('../middleware/authMiddleware');
 const { createCourseLimiter } = require('../middleware/rateLimiter');
+
+const proofUpload = multer({
+    storage: multer.memoryStorage(),
+    limits: { fileSize: 2 * 1024 * 1024 }
+});
 
 // Become instructor (available to students)
 router.post('/become', protect, becomeInstructor);
@@ -30,5 +38,7 @@ router.put('/profile', protect, instructorOnly, updateInstructorProfile);
 router.get('/bank-details', protect, instructorOnly, getBankDetails);
 router.post('/bank-details', protect, instructorOnly, saveBankDetails);
 router.get('/earnings', protect, instructorOnly, getEarnings);
+router.post('/claims', protect, instructorOnly, createClaim);
+router.post('/commission', protect, instructorOnly, proofUpload.single('proof'), payCommission);
 
 module.exports = router;

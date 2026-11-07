@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const multer = require('multer');
 const {
+    getCourseBankDetails,
     submitPaymentSlip,
     getPendingSlips,
     getSlipFile,
@@ -31,6 +32,7 @@ router.post('/webhook', handleStripeWebhook);
 router.get('/invoice/:invoiceNumber', protect, getInvoiceData);
 router.get('/invoice/:invoiceNumber/pdf', protect, downloadInvoicePDF);
 router.post('/checkout', protect, createCheckoutSession);
+router.get('/course/:courseId/bank-details', protect, getCourseBankDetails);
 router.post('/slip', protect, slipUpload.single('slip'), submitPaymentSlip);
 router.get('/slips', protect, instructorOnly, getPendingSlips);
 router.get('/:id/slip', protect, getSlipFile);

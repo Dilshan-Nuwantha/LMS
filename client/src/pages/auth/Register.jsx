@@ -111,9 +111,9 @@ const Register = () => {
             } else if (user.role === 'instructor') {
                 navigate('/instructor/dashboard');
             } else {
-                navigate('/');
+                navigate(user.instructorRequest?.status === 'pending' ? '/become-instructor' : '/');
             }
-            showSuccess('Account created successfully');
+            showSuccess(user.instructorRequest?.status === 'pending' ? 'Account created. An admin will review your instructor request.' : 'Account created successfully');
         } catch (error) {
             if (!error.handled) showError(error, 'Google sign-up failed');
         }
@@ -150,9 +150,9 @@ const Register = () => {
             } else if (user.role === 'instructor') {
                 navigate('/instructor/dashboard');
             } else {
-                navigate('/');
+                navigate(user.instructorRequest?.status === 'pending' ? '/become-instructor' : '/');
             }
-            showSuccess('Account created successfully');
+            showSuccess(user.instructorRequest?.status === 'pending' ? 'Account created. An admin will review your instructor request.' : 'Account created successfully');
         } catch (error) {
             if (!error.handled) showError(error, 'Registration failed');
         } finally {

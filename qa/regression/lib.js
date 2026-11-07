@@ -83,6 +83,8 @@ const newUser = async (kind = 'student', label = 'user') => {
     const password = 'Qa-' + uid() + uid();
     const r = await api('POST', `/auth/${kind}/register`, { body: { name: `QA ${label}`, email, password } });
     is(r, 201, `register ${label}`);
+    // New instructors wait for an admin, which most cases don't need to repeat
+    if (kind === 'instructor') await serverRequire('./models/User').updateOne({ _id: r.json._id }, { role: 'instructor', 'instructorRequest.status': 'approved' });
     return { id: r.json._id, email, password, token: r.json.token, name: r.json.name };
 };
 

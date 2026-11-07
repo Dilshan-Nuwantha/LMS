@@ -291,10 +291,10 @@ tc('CPN-023', C, 'Low', 'Non-text coupon code is a client error', 'POST /coupons
 });
 
 const I = 'Instructor tools';
-tc('INS-001', I, 'High', 'Student becomes an instructor', 'POST /instructor/become', 'Role is instructor', async () => {
+tc('INS-001', I, 'High', 'A student can ask to become an instructor', 'POST /instructor/become', 'The request waits for an admin and the role stays student', async () => {
     const u = await newUser('student', 'become');
     const r = await api('POST', '/instructor/become', { token: u.token, body: { bio: 'Hi' } });
-    is(r, 200); eq(r.json.user.role, 'instructor', 'role');
+    is(r, 200); eq(r.json.user.role, 'student', 'role'); eq(r.json.user.instructorRequest.status, 'pending', 'request');
 });
 tc('INS-002', I, 'High', 'Instructor dashboard and earnings totals', 'GET /instructor/dashboard and /earnings', 'Revenue equals completed sales', async () => {
     const u = await newUser('instructor', 'earn');
@@ -303,7 +303,7 @@ tc('INS-002', I, 'High', 'Instructor dashboard and earnings totals', 'GET /instr
     const d = await api('GET', '/instructor/dashboard', { token: u.token });
     is(d, 200); eq(d.json.totalRevenue, 2500, 'totalRevenue');
     const e = await api('GET', '/instructor/earnings', { token: u.token });
-    eq(e.json.pendingAmount, 2500, 'pendingAmount');
+    eq(e.json.pendingAmount, 2250, 'pendingAmount after 10% commission');
     F.earner = { u, c };
 });
 tc('INS-003', I, 'High', 'LKR and USD earnings stay separate', 'Sell in USD too, then read earnings', 'USD total is separate and not added to LKR', async () => {
@@ -389,9 +389,10 @@ tc('ADM-016', A, 'High', 'Instructor list and detail', 'GET /admin/instructors a
     is(await adm('GET', '/instructors'), 200);
     is(await adm('GET', `/instructors/${F.earner.u.id}`), 200);
 });
-tc('ADM-017', A, 'Critical', 'Create a payout within the balance', 'POST /admin/payouts for 1000', 'HTTP 201; pending falls by 1000', async () => {
-    is(await adm('POST', '/payouts', { instructorId: F.earner.u.id, amount: 1000, method: 'bank_transfer' }), 201);
-    eq((await api('GET', '/instructor/earnings', { token: F.earner.u.token })).json.pendingAmount, 1500, 'pendingAmount');
+tc('ADM-017', A, 'Critical', 'Create a payout within the balance', 'POST /admin/payouts for 1000', 'HTTP 201; 900 is paid, 100 is commission, and 1350 is still owed', async () => {
+    const r = await adm('POST', '/payouts', { instructorId: F.earner.u.id, amount: 1000, method: 'bank_transfer' });
+    is(r, 201); eq(r.json.amount, 900, 'paid'); eq(r.json.commissionAmount, 100, 'commission');
+    eq((await api('GET', '/instructor/earnings', { token: F.earner.u.token })).json.pendingAmount, 1350, 'pendingAmount');
 });
 tc('ADM-018', A, 'Critical', 'Payout cannot exceed the balance', 'POST a payout for 999999', 'HTTP 400', async () => {
     is(await adm('POST', '/payouts', { instructorId: F.earner.u.id, amount: 999999, method: 'bank_transfer' }), 400);

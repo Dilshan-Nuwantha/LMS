@@ -302,7 +302,7 @@ const bugs = [
     uiBug("LMS-076", "Low", "Bug", "The same API calls are sent several times", "Integration", "client/src/main.jsx:15; client/src/components/layout/Navbar.jsx:43; client/src/pages/marketplace/Marketplace.jsx", "Open /marketplace logged in and watch the network tab", "In development every call runs twice because of React StrictMode, and each has a CORS OPTIONS call. The doubling is development only, but /marketplace/categories is also fetched separately by the navbar and the marketplace, so it runs 4 times.", "Fetch categories once and share them. Do not remove StrictMode. The doubling and OPTIONS calls do not happen on a same-origin production build."),
     uiBug("LMS-077", "Medium", "Bug", "Marketplace search cannot find courses by instructor", "Course Management", "server/controllers/marketplaceController.js:164-169", "Search the marketplace for an instructor name", "The search box says \"Search by title, topic, or instructor\", but only title, description, category and tags are searched. Searching a real instructor name returned 0 courses.", "Find users whose name matches, then add their ids to the $or filter as { user: { $in: ids } }."),
     uiBug("LMS-078", "Low", "Bug", "Footer still uses the old Twitter logo", "User Interface", "client/src/components/layout/Footer.jsx:2, :39", "Read the social icons in the footer", "The footer shows the Twitter bird.", "Use FaXTwitter from react-icons/fa6."),
-    uiBug("LMS-079", "Low", "Bug", "Facebook, Instagram and X buttons do nothing", "User Interface", "client/src/components/layout/Footer.jsx:27, :33, :39", "Click the social icons in the footer", "The dead buttons are gone, and each one comes back when its link is set. Waiting for the real links.", "Hidden until real links are set in VITE_FACEBOOK_URL, VITE_INSTAGRAM_URL and VITE_X_URL."),
+    uiBug("LMS-079", "Low", "Bug", "Facebook, Instagram and X buttons do nothing", "User Interface", "client/src/components/layout/Footer.jsx:27, :33, :39", "Click the social icons in the footer", "The icons show but cannot be clicked until each link is set. Waiting for the real links.", "Set VITE_FACEBOOK_URL, VITE_INSTAGRAM_URL and VITE_X_URL."),
     uiBug("LMS-080", "Medium", "Bug", "Footer shows placeholder contact details", "User Interface", "client/src/components/layout/Footer.jsx:91, :94", "Read the Contact column in the footer", "The placeholders are hidden, and clickable links show once the details are set. Waiting for the real phone and email.", "Set VITE_SUPPORT_PHONE and VITE_SUPPORT_EMAIL."),
     uiBug("LMS-081", "Low", "Enhancement", "Footer Tenz Learn logo should open the company portfolio", "User Interface", "client/src/components/layout/Footer.jsx:12-19", "Click the Tenz Learn logo in the footer", "The logo goes to the portfolio once its URL is set. Waiting for the URL.", "Set VITE_PORTFOLIO_URL."),
     uiBug("LMS-082", "Medium", "Bug", "Company, Community and Teaching footer links go nowhere useful", "User Interface", "client/src/components/layout/Footer.jsx:54-82", "Click the links under Company, Community and Teaching", "About us, Contact us, News, Library, Career, Documentation, Faq, Forum, Sitemap and How to guide all open /marketplace.", "Create the pages that are needed and remove the rest."),
@@ -338,7 +338,16 @@ const bugs = [
     { ...bug('LMS-111', 'Medium', 'Security', 'A student account can be added as a course instructor', 'server/controllers/courseTeacherController.js:14',
         'The add route finds the user by email and never checks the role, so a student account can be given course permissions such as manage_content.',
         'Reject the request unless the account role is instructor, with a clear message. Then check existing CourseTeacher records for student accounts.',
-        ['SEC-072']), reported: '2026-11-07' }
+        ['SEC-072']), reported: '2026-11-07' },
+    { ...uiBug("LMS-112", "Medium", "Enhancement", "Instructor claims need a 10% commission and admin approval", "Payments", "server/services/earningsService.js; server/controllers/instructorController.js; server/controllers/adminController.js; client/src/components/instructor/EarningsPanel.jsx; client/src/components/admin/PayoutClaims.jsx", "Claim earnings as an instructor, then review it as an admin", "Instructors could not claim, no commission was taken, and neither side could see what was paid and what was still owed.", "Instructors claim from the Instructor Center and 10% goes to the admin. The admin marks the claim as paid with a reference. Both sides see earned, commission, paid and still to pay."), reported: '2026-11-08' },
+    { ...uiBug("LMS-113", "Low", "Bug", "Instructor Center shows an Indian rupee icon", "User Interface", "client/src/pages/instructor/InstructorDashboard.jsx:303", "Read the Total Earnings card in the Instructor Center", "The card used the Indian rupee symbol.", "Show Rs. instead."), reported: '2026-11-08' },
+    { ...uiBug("LMS-114", "Low", "Bug", "Footer looks empty and social icons are missing", "User Interface", "client/src/components/layout/Footer.jsx", "Read the footer", "After the dead links were removed the footer looked empty, and the social icons were hidden.", "Rebuild the footer with working Explore, Teaching and Legal columns, and always show the social icons."), reported: '2026-11-08' },
+    { ...uiBug("LMS-115", "Low", "Bug", "Instructor Center has two icons that do the same thing", "User Interface", "client/src/pages/instructor/InstructorDashboard.jsx:536", "Look at the actions on a course in the Instructor Center", "The eye and edit icons both opened the same page.", "Remove the eye icon and keep edit."), reported: '2026-11-08' },
+    { ...uiBug("LMS-116", "Medium", "Enhancement", "Instructors who collect slip payments must pay 10% commission to the admin", "Payments", "server/services/earningsService.js; server/models/CommissionPayment.js; server/controllers/instructorController.js; server/controllers/adminController.js; client/src/components/instructor/EarningsPanel.jsx; client/src/components/admin/CommissionReview.jsx", "Sell a course by slip, pay the commission with proof, then verify it as an admin", "Students pay instructors directly, but nothing tracked the 10% owed to the admin or what was already paid.", "Each slip sale adds 10% owed. The instructor sends a payment with proof, the admin verifies it, and both sides see due, paid and still to pay. Students see the instructor bank details on the slip form."), reported: '2026-11-08' },
+    { ...uiBug("LMS-117", "High", "Security", "Anyone can become an instructor without approval", "Authorization", "server/controllers/instructorController.js:13; server/controllers/authController.js; client/src/pages/instructor/BecomeInstructor.jsx; client/src/components/admin/InstructorRequests.jsx", "As a student, click Start Teaching Today", "The role changed straight away, and instructor sign-up also skipped any check.", "Requests and instructor sign-ups stay as students until an admin approves them. The user is told the result."), reported: '2026-11-08' },
+    { ...uiBug("LMS-118", "Medium", "Bug", "Courses cannot be filtered by tag", "Course Management", "server/controllers/marketplaceController.js; client/src/pages/marketplace/Marketplace.jsx; client/src/components/ui/CourseCard.jsx", "Add tags to a course and try to filter the marketplace by them", "There was no tag filter, tags were not returned, and search ignored the other filters.", "Add a tag filter, show clickable tags on course cards, and keep filters during a search."), reported: '2026-11-08' },
+    { ...uiBug("LMS-119", "Low", "Bug", "Login fields turn dark after entering details", "User Interface", "client/src/index.css", "Fill the login form with a saved login in Chrome", "The browser paints filled fields with its own colour. This could not be reproduced in the test browser.", "Keep the field colour for browser-filled inputs. Please confirm on your browser."), reported: '2026-11-08' },
+    { ...uiBug("LMS-120", "Low", "Bug", "Instructors see the Become an Instructor option", "User Interface", "client/src/pages/marketplace/Marketplace.jsx; client/src/components/layout/Footer.jsx", "Log in as an instructor and open the marketplace", "The banner and footer link were shown to people who are already instructors.", "Show them only to guests and students."), reported: '2026-11-08' }
 ];
 
 // Closed: the fix passed its retest. run.js --report checks that those tests now pass.
@@ -351,12 +360,13 @@ const CLOSED = new Set([
     'LMS-046', 'LMS-047', 'LMS-048', 'LMS-049', 'LMS-050', 'LMS-051', 'LMS-052', 'LMS-053', 'LMS-054',
     'LMS-055', 'LMS-056', 'LMS-057', 'LMS-058', 'LMS-059', 'LMS-060', 'LMS-062', 'LMS-065', 'LMS-066',
     'LMS-067', 'LMS-068', 'LMS-069', 'LMS-070', 'LMS-073',
+    'LMS-112', 'LMS-113', 'LMS-114', 'LMS-115', 'LMS-116', 'LMS-117', 'LMS-118', 'LMS-120',
     'LMS-074', 'LMS-075', 'LMS-076', 'LMS-077', 'LMS-078', 'LMS-082', 'LMS-084', 'LMS-085', 'LMS-086', 'LMS-087', 'LMS-088', 'LMS-089', 'LMS-090', 'LMS-091', 'LMS-092', 'LMS-093', 'LMS-094', 'LMS-095', 'LMS-096', 'LMS-097', 'LMS-098', 'LMS-099', 'LMS-100', 'LMS-101', 'LMS-102', 'LMS-103', 'LMS-105', 'LMS-106', 'LMS-107', 'LMS-108', 'LMS-109', 'LMS-110', 'LMS-111', 'LMS-061', 'LMS-071', 'LMS-072'
 ]);
-const FIXED = new Set();
+const FIXED = new Set(['LMS-119']);
 
 // The cases that prove each fix for the team's manual findings
-const proof = {"LMS-074": ["AUTH-044"], "LMS-075": ["UI-020"], "LMS-076": ["UI-028"], "LMS-077": ["MKT-012"], "LMS-078": ["UI-020"], "LMS-082": ["UI-020"], "LMS-084": ["ERR-010"], "LMS-085": ["UI-031"], "LMS-086": ["UI-024"], "LMS-087": ["UI-022"], "LMS-088": ["UI-023"], "LMS-089": ["NTF-012", "UI-032"], "LMS-090": ["PAY-040", "PAY-041", "UI-026"], "LMS-091": ["RES-020", "UI-027"], "LMS-092": ["UI-024"], "LMS-093": ["UI-025"], "LMS-094": ["UI-019"], "LMS-095": ["SEC-073", "SEC-074", "SEC-075"], "LMS-096": ["RES-020", "UI-027"], "LMS-097": ["MKT-013", "MKT-014", "UI-028"], "LMS-098": ["UI-029"], "LMS-099": ["UI-022"], "LMS-100": ["UI-030"], "LMS-101": ["UI-030"], "LMS-102": ["UI-022"], "LMS-103": ["TCH-010"], "LMS-105": ["UI-031"], "LMS-106": ["UI-031"], "LMS-107": ["UI-028"], "LMS-108": ["UI-029"], "LMS-109": ["PRG-013", "UI-022"], "LMS-110": ["UI-023"], "LMS-111": ["SEC-072"]};
+const proof = {"LMS-116": ["INS-030", "INS-031", "INS-032", "INS-033", "INS-034", "INS-035", "UI-036"], "LMS-117": ["AUTH-045", "AUTH-046", "AUTH-047", "AUTH-048", "UI-037"], "LMS-118": ["MKT-016", "MKT-017", "UI-038"], "LMS-120": ["UI-039"], "LMS-112": ["INS-020", "INS-021", "INS-022", "INS-023", "INS-024", "INS-026", "UI-033"], "LMS-113": ["UI-035"], "LMS-114": ["UI-034"], "LMS-115": ["UI-035"], "LMS-074": ["AUTH-044"], "LMS-075": ["UI-020"], "LMS-076": ["UI-028"], "LMS-077": ["MKT-012"], "LMS-078": ["UI-020"], "LMS-082": ["UI-020"], "LMS-084": ["ERR-010"], "LMS-085": ["UI-031"], "LMS-086": ["UI-024"], "LMS-087": ["UI-022"], "LMS-088": ["UI-023"], "LMS-089": ["NTF-012", "UI-032"], "LMS-090": ["PAY-040", "PAY-041", "UI-026"], "LMS-091": ["RES-020", "UI-027"], "LMS-092": ["UI-024"], "LMS-093": ["UI-025"], "LMS-094": ["UI-019"], "LMS-095": ["SEC-073", "SEC-074", "SEC-075"], "LMS-096": ["RES-020", "UI-027"], "LMS-097": ["MKT-013", "MKT-014", "UI-028"], "LMS-098": ["UI-029"], "LMS-099": ["UI-022"], "LMS-100": ["UI-030"], "LMS-101": ["UI-030"], "LMS-102": ["UI-022"], "LMS-103": ["TCH-010"], "LMS-105": ["UI-031"], "LMS-106": ["UI-031"], "LMS-107": ["UI-028"], "LMS-108": ["UI-029"], "LMS-109": ["PRG-013", "UI-022"], "LMS-110": ["UI-023"], "LMS-111": ["SEC-072"]};
 bugs.forEach(b => {
     if (proof[b.id]) {
         b.tests = proof[b.id];
@@ -372,7 +382,7 @@ bugs.forEach(b => { b.status = CLOSED.has(b.id) ? 'Closed' : FIXED.has(b.id) ? '
 
 const manualResults = {
     'BLD-001': ['PASS', 'Build succeeded'],
-    'BLD-002': ['PASS', '0 errors, 64 warnings'],
+    'BLD-002': ['PASS', '0 errors, 68 warnings'],
     'BLD-003': ['PASS', '0 vulnerabilities'],
     'BLD-004': ['PASS', '0 vulnerabilities'],
     'BLD-005': ['PASS', 'No .env with secrets and no live keys in history. client/.env.production is tracked but holds public values only'],
@@ -410,7 +420,14 @@ const manualResults = {
     'UI-029': ['PASS', 'The calendar icon shows in dark mode, and the coupon form has no minimum date when editing'],
     'UI-030': ['PASS', 'Edit opens the course, and instructor and admin pages show Rs.'],
     'UI-031': ['PASS', 'The ring is green at 100%, sections show status and importance, each filter works alone, and Critical no longer appears'],
-    'UI-032': ['PASS', 'A non-enrolled user sees Enroll to join the discussion instead of the comment box']
+    'UI-032': ['PASS', 'A non-enrolled user sees Enroll to join the discussion instead of the comment box'],
+    'UI-033': ['PASS', 'A claim of Rs. 500 showed Rs. 50 commission. After the admin marked it paid, both sides showed Rs. 450 paid and Rs. 450 still to pay'],
+    'UI-034': ['PASS', 'The footer has Explore, Teaching and Legal columns, shows all four social icons, and fits at 375px'],
+    'UI-035': ['PASS', 'Each course has only edit and delete, and Total Earnings shows Rs.'],
+    'UI-036': ['PASS', 'After a Rs. 1,000 slip sale, Rs. 60 of Rs. 100 was paid with proof. After admin approval, both sides showed Rs. 60 paid and Rs. 40 still owed'],
+    'UI-037': ['PASS', 'Request to Teach showed Waiting for Admin Approval with no instructor access, and the admin saw and approved it'],
+    'UI-038': ['PASS', 'Clicking #JavaScript on a card listed only the course with that tag'],
+    'UI-039': ['PASS', 'Instructors no longer see the banner or footer link. Students still see them']
 };
 
 // Browser and build checks repeated after the critical fixes
@@ -418,7 +435,7 @@ const retested = [
     'BLD-001', 'BLD-002', 'BLD-003', 'BLD-004', 'BLD-005', 'BLD-006', 'BLD-007',
     'UI-001', 'UI-002', 'UI-003', 'UI-004', 'UI-005', 'UI-006', 'UI-007', 'UI-008', 'UI-009', 'UI-010', 'UI-011', 'UI-012', 'UI-013', 'UI-014', 'UI-015',
     'UI-016', 'UI-017', 'UI-018', 'INT-001',
-    'UI-019', 'UI-020', 'UI-021', 'UI-022', 'UI-023', 'UI-024', 'UI-025', 'UI-026', 'UI-027', 'UI-028', 'UI-029', 'UI-030', 'UI-031', 'UI-032'
+    'UI-019', 'UI-020', 'UI-021', 'UI-022', 'UI-023', 'UI-024', 'UI-025', 'UI-026', 'UI-027', 'UI-028', 'UI-029', 'UI-030', 'UI-031', 'UI-032', 'UI-033', 'UI-034', 'UI-035', 'UI-036', 'UI-037', 'UI-038', 'UI-039'
 ];
 
 module.exports = { bugs: activeBugs, manualResults, retested };

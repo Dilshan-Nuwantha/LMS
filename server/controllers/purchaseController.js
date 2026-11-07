@@ -5,6 +5,7 @@ const Purchase = require('../models/Purchase');
 const Progress = require('../models/Progress');
 const Coupon = require('../models/Coupon');
 const Upload = require('../models/Upload');
+const BankDetail = require('../models/BankDetail');
 const { notifyUser } = require('./notificationController');
 const { sniffFileType } = require('../utils/fileType');
 const { generateInvoicePDF } = require('../services/invoiceService');
@@ -576,6 +577,21 @@ const downloadInvoicePDF = asyncHandler(async (req, res) => {
     generateInvoicePDF(purchase, res);
 });
 
+// @desc    Where to send a bank payment for a course
+// @route   GET /api/purchase/course/:courseId/bank-details
+// @access  Private
+const getCourseBankDetails = asyncHandler(async (req, res) => {
+    const course = await Course.findOne({ _id: req.params.courseId, isMarketplace: true, status: 'Published' }).select('user');
+
+    if (!course) {
+        res.status(404);
+        throw new Error('Course not found');
+    }
+
+    const bank = await BankDetail.findOne({ user: course.user }).select('accountHolderName bankName accountNumber -_id');
+    res.status(200).json(bank?.accountNumber ? bank : null);
+});
+
 // @desc    Pay for a course with a bank slip, for the instructor to approve
 // @route   POST /api/purchase/slip
 // @access  Private
@@ -790,6 +806,7 @@ const rejectSlip = asyncHandler(async (req, res) => {
 });
 
 module.exports = {
+    getCourseBankDetails,
     submitPaymentSlip,
     getPendingSlips,
     getSlipFile,

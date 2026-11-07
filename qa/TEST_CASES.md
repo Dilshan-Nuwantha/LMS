@@ -2,7 +2,7 @@
 
 **Branch under test:** fix/payment-gateway  
 **Requirements source:** SRS.md v1.0  
-**Total cases:** 462 (Critical 57, High 228, Medium 152, Low 25)
+**Total cases:** 489 (Critical 69, High 238, Medium 155, Low 27)
 
 ## How to run
 
@@ -16,14 +16,14 @@ Run `npm install` in `server/` first. The run starts its own local MongoDB and t
 
 | Module | Cases |
 |---|---|
-| Authentication | 44 |
+| Authentication | 48 |
 | Course management | 28 |
 | Lecture progress | 13 |
 | Co-instructors | 16 |
-| Marketplace | 15 |
+| Marketplace | 17 |
 | Payments | 40 |
 | Coupons | 25 |
-| Instructor tools | 8 |
+| Instructor tools | 22 |
 | Admin | 24 |
 | Quizzes | 29 |
 | AI features | 29 |
@@ -35,7 +35,7 @@ Run `npm install` in `server/` first. The run starts its own local MongoDB and t
 | Security | 75 |
 | Error handling | 8 |
 | Build and dependencies | 7 |
-| User interface | 33 |
+| User interface | 40 |
 
 ## Authentication
 
@@ -85,6 +85,10 @@ Run `npm install` in `server/` first. The run starts its own local MongoDB and t
 | AUTH-042 | High | A new account cannot duplicate an existing capitalised email | Register the lowercase form of a stored Legacy.x@QA.test account | HTTP 400 | PASS | - |
 | AUTH-043 | High | Google login finds an existing capitalised account | Sign in with Google using the lowercase form of a stored Legacy.x@QA.test account | The existing account is used and no second account is created | PASS | - |
 | AUTH-044 | High | A login lasts one hour | Register and read the token expiry | exp minus iat is 3600 seconds | PASS | LMS-074 |
+| AUTH-045 | Critical | Asking to teach needs admin approval | Ask as a student, try an instructor route, then approve as an admin | HTTP 403 before approval and access after | PASS | LMS-117 |
+| AUTH-046 | High | A rejected request can be sent again | Reject with a reason, read it, then ask again | Role stays student, the reason shows, and the new request is accepted | PASS | LMS-117 |
+| AUTH-047 | Critical | Instructor sign-up does not skip approval | Register at /auth/instructor/register, then try the instructor login and routes | The account is a student with a pending request, and login explains why | PASS | LMS-117 |
+| AUTH-048 | Critical | Only admins approve instructors | Approve as a student and as an instructor | HTTP 403 each time | PASS | LMS-117 |
 
 ## Course management
 
@@ -177,6 +181,8 @@ Run `npm install` in `server/` first. The run starts its own local MongoDB and t
 | MKT-013 | High | Every category is listed | GET /marketplace/categories | Saved categories and those used by published courses are returned | PASS | LMS-097 |
 | MKT-014 | High | Admins manage categories | Add, repeat and delete a category as an admin | Added with HTTP 201, repeat refused, deleted with HTTP 200 | PASS | LMS-097 |
 | MKT-015 | High | Only admins change categories | POST /categories as a student, an instructor and a guest | HTTP 403, 403 and 401 | PASS | - |
+| MKT-016 | High | Courses can be filtered by tag | Tag a course, then filter by the tag in another letter case | Only that course is returned, with its tags | PASS | LMS-118 |
+| MKT-017 | Medium | Search keeps the other filters | Search with a tag set | Only courses matching both are returned | PASS | LMS-118 |
 
 ## Payments
 
@@ -257,7 +263,7 @@ Run `npm install` in `server/` first. The run starts its own local MongoDB and t
 
 | ID | Priority | Test case | Steps | Expected result | Result | Bug |
 |---|---|---|---|---|---|---|
-| INS-001 | High | Student becomes an instructor | POST /instructor/become | Role is instructor | PASS | - |
+| INS-001 | High | A student can ask to become an instructor | POST /instructor/become | The request waits for an admin and the role stays student | PASS | - |
 | INS-002 | High | Instructor dashboard and earnings totals | GET /instructor/dashboard and /earnings | Revenue equals completed sales | PASS | - |
 | INS-003 | High | LKR and USD earnings stay separate | Sell in USD too, then read earnings | USD total is separate and not added to LKR | PASS | - |
 | INS-004 | High | Course sales are private | GET /instructor/course/:id/sales as another instructor | HTTP 403 | PASS | - |
@@ -265,6 +271,20 @@ Run `npm install` in `server/` first. The run starts its own local MongoDB and t
 | INS-006 | Medium | Bank details need a holder name | POST without accountHolderName | HTTP 400 | PASS | - |
 | INS-007 | High | Instructor routes reject students | GET /instructor/dashboard as a student | Denied | PASS | - |
 | INS-008 | Medium | Instructor profile update | PUT /instructor/profile | HTTP 200 | PASS | - |
+| INS-020 | Critical | A claim keeps 10 percent for the admin | Claim 1000 of earnings | Commission 100, instructor gets 900, and nothing is paid until approval | PASS | LMS-112 |
+| INS-021 | Critical | Approving a claim records paid and remaining amounts | Claim 400 of 1000, approve it with a reference, then read earnings as instructor and admin | Paid 360, commission 40, still to pay 540, and both sides agree | PASS | LMS-112 |
+| INS-022 | High | A rejected claim can be claimed again | Reject a claim with a reason, then claim again | The amount is free again and the reason is kept | PASS | LMS-112 |
+| INS-023 | High | Claims cannot exceed the balance | Claim too much, zero, a negative amount, and a second claim while one is open | HTTP 400 each time | PASS | LMS-112 |
+| INS-024 | High | Two claims sent together cannot both pass | Send two claims for the whole balance at the same time | Only one is created | PASS | LMS-112 |
+| INS-025 | High | A claim needs payment details | Claim with no bank details saved | HTTP 400 | PASS | - |
+| INS-026 | Critical | Only admins review claims | Approve and reject a claim as the instructor and a student | HTTP 403 each time | PASS | LMS-112 |
+| INS-027 | High | Old payouts keep their full amount | Add a payout from before commission, then read earnings | It counts as paid with no commission | PASS | - |
+| INS-030 | Critical | A slip sale creates 10 percent commission owed | Sell a Rs. 1000 course by slip, then read earnings | Collected 1000, due 100, owed 100, and nothing to claim because the instructor has the money | PASS | LMS-116 |
+| INS-031 | Critical | An approved commission payment reduces what is owed | Pay 60 of 100 with proof, approve it, then read both screens | Paid 60 and 40 still owed, on both sides | PASS | LMS-116 |
+| INS-032 | High | A rejected commission payment is owed again | Reject a payment with a reason | The whole amount is owed and the reason is kept | PASS | LMS-116 |
+| INS-033 | High | Bad commission payments are refused | Pay too much, zero, no proof, HTML as proof, and twice while one is open | HTTP 400 each time | PASS | LMS-116 |
+| INS-034 | Critical | Only admins verify commission | Approve, reject and read proof as the instructor and a student | HTTP 403 each time | PASS | LMS-116 |
+| INS-035 | High | Students see the instructor account for slips | Read the bank details of a course as a student and a guest | Holder, bank and account for the student, HTTP 401 for a guest | PASS | LMS-116 |
 
 ## Admin
 
@@ -286,7 +306,7 @@ Run `npm install` in `server/` first. The run starts its own local MongoDB and t
 | ADM-014 | Critical | Role change cannot create an admin | POST role admin | HTTP 400 | PASS | - |
 | ADM-015 | High | Block and unblock a course | POST courses/:id/block and unblock | Marketplace hides, then shows it | PASS | - |
 | ADM-016 | High | Instructor list and detail | GET /admin/instructors and /instructors/:id | HTTP 200 with earnings and bank details | PASS | - |
-| ADM-017 | Critical | Create a payout within the balance | POST /admin/payouts for 1000 | HTTP 201; pending falls by 1000 | PASS | - |
+| ADM-017 | Critical | Create a payout within the balance | POST /admin/payouts for 1000 | HTTP 201; 900 is paid, 100 is commission, and 1350 is still owed | PASS | - |
 | ADM-018 | Critical | Payout cannot exceed the balance | POST a payout for 999999 | HTTP 400 | PASS | - |
 | ADM-019 | High | Payout amount must be positive | POST a payout for -500 | HTTP 400 | PASS | LMS-014 |
 | ADM-020 | Medium | Payout history | GET /admin/payouts | HTTP 200 with records | PASS | - |
@@ -540,7 +560,7 @@ Run `npm install` in `server/` first. The run starts its own local MongoDB and t
 
 | ID | Priority | Test case | Steps | Expected result | Result | Bug |
 |---|---|---|---|---|---|---|
-| ERR-010 | High | Start Teaching works with no request body | POST /instructor/become with an empty request | HTTP 200 and the role becomes instructor | PASS | LMS-084 |
+| ERR-010 | High | Start Teaching works with no request body | POST /instructor/become with an empty request | HTTP 200 and the request is saved | PASS | LMS-084 |
 | ERR-001 | High | Health check | GET /health | HTTP 200 | PASS | - |
 | ERR-002 | Medium | Invalid id is a client error | GET /courses/not-an-id | HTTP 400 or 404 | PASS | LMS-036 |
 | ERR-003 | Medium | Malformed JSON is a client error | POST invalid JSON to /auth/login | HTTP 400 | PASS | LMS-035 |
@@ -598,3 +618,10 @@ Run `npm install` in `server/` first. The run starts its own local MongoDB and t
 | UI-030 | High | Instructor Center links and prices | Click Edit on a course and read the prices | The course opens, and prices show Rs. | PASS | LMS-100, LMS-101 |
 | UI-031 | Medium | Course sections and filters | Use the status and importance filters on a course | Each filter works alone, sections show both labels, and Critical is not used | PASS | LMS-085, LMS-105, LMS-106 |
 | UI-032 | Medium | Discussion when not enrolled | Open a preview lecture discussion without enrolling | A message explains why, instead of the comment box | PASS | LMS-089 |
+| UI-033 | Critical | Earnings claim and approval | Claim earnings as an instructor, mark it paid as an admin, then read both screens | The 10% commission, paid and still to pay amounts match on both sides | PASS | LMS-112 |
+| UI-034 | Medium | Footer layout | Read the footer on desktop and at 375px | Filled columns of working links, all social icons, and no overflow | PASS | LMS-114 |
+| UI-035 | Low | Instructor Center actions and currency | Read the course actions and the Total Earnings card | One edit icon, and Rs. instead of a rupee icon | PASS | LMS-113, LMS-115 |
+| UI-036 | Critical | Commission payment and verification | After a slip sale, send a commission payment with proof, approve it as an admin, then read both screens | Due, paid and still to pay match on both sides | PASS | LMS-116 |
+| UI-037 | Critical | Instructor request approval | Ask to teach as a student, then approve as an admin | No instructor access until an admin approves | PASS | LMS-117 |
+| UI-038 | Medium | Tag filter | Click a tag on a course card | Only courses with that tag show | PASS | LMS-118 |
+| UI-039 | Low | Become an Instructor is for students | Open the marketplace as an instructor and as a student | Hidden for instructors, shown to students | PASS | LMS-120 |

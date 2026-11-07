@@ -13,6 +13,7 @@ const CourseCard = ({ course, enrolled = false }) => {
         currency,
         category,
         level,
+        tags,
         rating,
         enrollmentCount,
         user: instructor,
@@ -101,6 +102,17 @@ const CourseCard = ({ course, enrolled = false }) => {
                     <p className="text-slate-500 dark:text-slate-400 text-xs line-clamp-2 mb-4 leading-relaxed">
                         {description}
                     </p>
+                )}
+
+                {/* Tags sit above the card's link so each one can be clicked */}
+                {tags?.length > 0 && (
+                    <div className="relative z-10 flex flex-wrap gap-1.5 mb-3">
+                        {tags.slice(0, 3).map(tag => (
+                            <Link key={tag} to={`/marketplace?tag=${encodeURIComponent(tag)}`} className="text-[11px] font-semibold px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:text-primary">
+                                #{tag}
+                            </Link>
+                        ))}
+                    </div>
                 )}
 
                 {/* Duration Metadata */}

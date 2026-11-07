@@ -1,6 +1,7 @@
 const asyncHandler = require('express-async-handler');
 const Notification = require('../models/Notification');
 const Progress = require('../models/Progress');
+const User = require('../models/User');
 const { getPaging } = require('../utils/query');
 
 // Helper: Create notifications for all enrolled students of a course
@@ -40,6 +41,12 @@ const notifyUser = async (userId, { courseId, title, message, type, link, priori
     } catch (err) {
         console.error('Failed to create notification:', err.message);
     }
+};
+
+// Tells every admin about something waiting for them
+const notifyAdmins = async (details) => {
+    const admins = await User.find({ role: 'admin' }).select('_id').lean();
+    await Promise.all(admins.map(admin => notifyUser(admin._id, details)));
 };
 
 // @desc    Get notifications for current user
@@ -183,6 +190,7 @@ const updateNotificationSettings = asyncHandler(async (req, res) => {
 });
 
 module.exports = {
+    notifyAdmins,
     notifyCourseStudents,
     notifyUser,
     getNotifications,

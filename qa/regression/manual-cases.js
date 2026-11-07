@@ -46,3 +46,10 @@ manual('UI-029', U, 'Medium', 'Coupon date can be changed', 'Edit a coupon in da
 manual('UI-030', U, 'High', 'Instructor Center links and prices', 'Click Edit on a course and read the prices', 'The course opens, and prices show Rs.');
 manual('UI-031', U, 'Medium', 'Course sections and filters', 'Use the status and importance filters on a course', 'Each filter works alone, sections show both labels, and Critical is not used');
 manual('UI-032', U, 'Medium', 'Discussion when not enrolled', 'Open a preview lecture discussion without enrolling', 'A message explains why, instead of the comment box');
+manual('UI-033', U, 'Critical', 'Earnings claim and approval', 'Claim earnings as an instructor, mark it paid as an admin, then read both screens', 'The 10% commission, paid and still to pay amounts match on both sides');
+manual('UI-034', U, 'Medium', 'Footer layout', 'Read the footer on desktop and at 375px', 'Filled columns of working links, all social icons, and no overflow');
+manual('UI-035', U, 'Low', 'Instructor Center actions and currency', 'Read the course actions and the Total Earnings card', 'One edit icon, and Rs. instead of a rupee icon');
+manual('UI-036', U, 'Critical', 'Commission payment and verification', 'After a slip sale, send a commission payment with proof, approve it as an admin, then read both screens', 'Due, paid and still to pay match on both sides');
+manual('UI-037', U, 'Critical', 'Instructor request approval', 'Ask to teach as a student, then approve as an admin', 'No instructor access until an admin approves');
+manual('UI-038', U, 'Medium', 'Tag filter', 'Click a tag on a course card', 'Only courses with that tag show');
+manual('UI-039', U, 'Low', 'Become an Instructor is for students', 'Open the marketplace as an instructor and as a student', 'Hidden for instructors, shown to students');

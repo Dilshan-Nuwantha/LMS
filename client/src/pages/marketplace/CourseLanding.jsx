@@ -10,7 +10,6 @@ import StarRating from '../../components/ui/StarRating';
 import PriceDisplay from '../../components/ui/PriceDisplay';
 import InstructorProfileCard from '../../components/review/InstructorProfileCard';
 import ReviewCard from '../../components/review/ReviewCard';
-import { site } from '../../config/site';
 import { showSuccess, showError } from '../../utils/toast';
 
 const CourseLanding = () => {
@@ -31,6 +30,7 @@ const CourseLanding = () => {
     const [showSlipForm, setShowSlipForm] = useState(false);
     const [slipFile, setSlipFile] = useState(null);
     const [sendingSlip, setSendingSlip] = useState(false);
+    const [payDetails, setPayDetails] = useState(null);
     const [showPreviewVideo, setShowPreviewVideo] = useState(false);
 
     // Review form state
@@ -145,6 +145,21 @@ const CourseLanding = () => {
         } catch (error) {
             showError(error, 'Invalid coupon');
             setCouponApplied(null);
+        }
+    };
+
+    const toggleSlipForm = async () => {
+        if (!user) {
+            navigate('/login', { state: { from: `/marketplace/course/${id}` } });
+            return;
+        }
+
+        setShowSlipForm(!showSlipForm);
+        try {
+            const res = await api.get(`/purchase/course/${id}/bank-details`);
+            setPayDetails(res.data);
+        } catch (error) {
+            showError(error, 'Failed to load the payment details');
         }
     };
 
@@ -410,14 +425,23 @@ const CourseLanding = () => {
                                                     )}
                                                     <button
                                                         type="button"
-                                                        onClick={() => setShowSlipForm(!showSlipForm)}
+                                                        onClick={toggleSlipForm}
                                                         className="w-full py-2.5 rounded-lg border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-200 font-semibold"
                                                     >
                                                         Pay by Bank Slip
                                                     </button>
                                                     {showSlipForm && (
                                                         <div className="mt-3 space-y-2 text-slate-600 dark:text-slate-300">
-                                                            {site.bankDetails && <p className="whitespace-pre-line">{site.bankDetails}</p>}
+                                                            {payDetails ? (
+                                                                <p className="p-3 rounded-lg bg-slate-50 dark:bg-slate-900/50">
+                                                                    Pay the instructor:<br />
+                                                                    {payDetails.accountHolderName}<br />
+                                                                    {payDetails.bankName}<br />
+                                                                    {payDetails.accountNumber}
+                                                                </p>
+                                                            ) : (
+                                                                <p>This instructor has not added bank details yet.</p>
+                                                            )}
                                                             <p>Upload an image or PDF of your slip, up to 2 MB.</p>
                                                             <input
                                                                 type="file"

@@ -6,11 +6,9 @@ import {
     FaBook,
     FaChartLine,
     FaEdit,
-    FaEye,
     FaTrash,
     FaCog,
-    FaUser,
-    FaRupeeSign
+    FaUser
 } from 'react-icons/fa';
 
 import api from '../../api/axios';
@@ -18,6 +16,7 @@ import AuthContext from '../../context/AuthContext';
 import { showError, showSuccess } from '../../utils/toast';
 import { formatMoney } from '../../utils/currency';
 import PaymentSlips from '../../components/instructor/PaymentSlips';
+import EarningsPanel from '../../components/instructor/EarningsPanel';
 
 
 // --------------------------------------------------
@@ -300,7 +299,7 @@ const InstructorDashboard = () => {
                     <div className="bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-200/80 dark:border-slate-800 shadow-TenZe flex items-center gap-4">
 
                         <div className="w-12 h-12 rounded-xl bg-success-light text-success flex items-center justify-center text-xl font-bold">
-                            <FaRupeeSign />
+                            <span className="text-sm font-black">Rs.</span>
                         </div>
 
                         <div>
@@ -352,6 +351,8 @@ const InstructorDashboard = () => {
                 {/* ==================================================
                     OVERVIEW
                 ================================================== */}
+                <EarningsPanel />
+
                 <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-TenZe overflow-hidden">
 
 
@@ -532,14 +533,6 @@ const InstructorDashboard = () => {
                                                     </Link >
 
 
-                                                    {/* Manage / View */}
-                                                    < Link
-                                                        to={`/admin/course/${course._id}`}
-                                                        className="p-2 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:text-primary transition-colors"
-                                                        title="Manage"
-                                                    >
-                                                        <FaEye className="text-xs" />
-                                                    </Link >
 
                                                     {!course.isAssigned && (
                                                         <button

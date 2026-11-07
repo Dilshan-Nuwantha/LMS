@@ -10,15 +10,17 @@ const BecomeInstructor = () => {
     const { user, setUser } = useContext(AuthContext);
     const [loading, setLoading] = useState(false);
 
+    const request = user?.instructorRequest;
+    const isPending = request?.status === 'pending';
+
     const handleBecomeInstructor = async () => {
         setLoading(true);
         try {
             const res = await api.post('/instructor/become', {});
-            setUser(res.data.user || { ...user, role: 'instructor' });
-            showSuccess('You are now an instructor!');
-            navigate('/instructor/dashboard');
+            setUser(res.data.user);
+            showSuccess('Request sent. An admin will review it.');
         } catch (error) {
-            showError(error, 'Failed to become instructor');
+            showError(error, 'Failed to send your request');
         } finally {
             setLoading(false);
         }
@@ -44,12 +46,18 @@ const BecomeInstructor = () => {
                         Share your knowledge with the world. Create courses, set your own prices, and start earning.
                     </p>
 
+                    {request?.status === 'rejected' && (
+                        <p className="mb-4 p-3 rounded-lg bg-red-50 dark:bg-red-900/20 text-sm text-red-700 dark:text-red-300">
+                            Your last request was rejected{request.note ? `: ${request.note}` : ''}. You can ask again.
+                        </p>
+                    )}
+
                     <button
                         onClick={handleBecomeInstructor}
-                        disabled={loading}
+                        disabled={loading || isPending}
                         className="w-full py-3 bg-indigo-500 hover:bg-indigo-600 text-white font-semibold rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                        {loading ? 'Processing...' : 'Start Teaching Today'}
+                        {isPending ? 'Waiting for Admin Approval' : loading ? 'Processing...' : 'Request to Teach'}
                     </button>
 
                     <button

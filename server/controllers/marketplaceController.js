@@ -5,6 +5,9 @@ const Review = require('../models/Review');
 const { getPaging, escapeRegex } = require('../utils/query');
 const { getCategoryNames } = require('./categoryController');
 
+// Tags are matched whole, in any letter case
+const tagMatcher = (tag) => new RegExp(`^${escapeRegex(String(tag).trim())}$`, 'i');
+
 // @desc    Get all marketplace courses
 // @route   GET /api/marketplace
 // @access  Public
@@ -13,6 +16,7 @@ const getMarketplaceCourses = asyncHandler(async (req, res) => {
         category,
         level,
         language,
+        tag,
         minPrice,
         maxPrice,
         minRating,
@@ -30,6 +34,7 @@ const getMarketplaceCourses = asyncHandler(async (req, res) => {
     if (category) filter.category = category;
     if (level) filter.level = level;
     if (language) filter.language = language;
+    if (tag) filter.tags = tagMatcher(tag);
     if (minPrice || maxPrice) {
         filter.price = {};
         if (minPrice) filter.price.$gte = Number(minPrice);
@@ -61,7 +66,7 @@ const getMarketplaceCourses = asyncHandler(async (req, res) => {
 
     const courses = await Course.find(filter)
         .populate('user', 'name profileImage')
-        .select('title description thumbnail price originalPrice currency category level language rating enrollmentCount user createdAt tags')
+        .select('title description thumbnail price originalPrice currency category level language tags rating enrollmentCount user createdAt tags')
         .sort(sort)
         .skip(skip)
         .limit(Number(limit));
@@ -173,9 +178,16 @@ const searchMarketplace = asyncHandler(async (req, res) => {
         ]
     };
 
+    // A search keeps the filters that are set beside it
+    const { category, level, language, tag } = req.query;
+    if (category) filter.category = category;
+    if (level) filter.level = level;
+    if (language) filter.language = language;
+    if (tag) filter.tags = tagMatcher(tag);
+
     const courses = await Course.find(filter)
         .populate('user', 'name profileImage')
-        .select('title description thumbnail price originalPrice currency category level language rating enrollmentCount user createdAt tags')
+        .select('title description thumbnail price originalPrice currency category level language tags rating enrollmentCount user createdAt tags')
         .sort({ 'rating.average': -1, enrollmentCount: -1 })
         .skip(skip)
         .limit(Number(limit));

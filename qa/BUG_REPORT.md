@@ -1,9 +1,9 @@
 # Tenz Learn - Regression Bug Report
 
-**Branch:** Beralidu at commit 65fca1f, plus the uncommitted fixes for LMS-074 to LMS-111  
+**Branch:** Beralidu at commit 7fa147d, plus the uncommitted fixes for LMS-112 to LMS-120  
 **Run date:** 2026-11-07  
-**Result:** 462 test cases, 462 passed, 0 failed  
-**Open findings:** 4 (0 Critical, 0 High, 2 Medium, 2 Low). **Fixed:** 104
+**Result:** 489 test cases, 489 passed, 0 failed  
+**Open findings:** 4 (0 Critical, 0 High, 2 Medium, 2 Low). **Fixed:** 113
 
 **Status:** every automated and manual regression case passes, except TC-NOTIF-001, which was not run. The 4 open items are built but need details from the team: social links, contact details, the portfolio URL and approved legal wording.
 
@@ -26,14 +26,14 @@
 
 | Module | Cases | Passed | Failed |
 |---|---|---|---|
-| Authentication | 44 | 44 | 0 |
+| Authentication | 48 | 48 | 0 |
 | Course management | 28 | 28 | 0 |
 | Lecture progress | 13 | 13 | 0 |
 | Co-instructors | 16 | 16 | 0 |
-| Marketplace | 15 | 15 | 0 |
+| Marketplace | 17 | 17 | 0 |
 | Payments | 40 | 40 | 0 |
 | Coupons | 25 | 25 | 0 |
-| Instructor tools | 8 | 8 | 0 |
+| Instructor tools | 22 | 22 | 0 |
 | Admin | 24 | 24 | 0 |
 | Quizzes | 29 | 29 | 0 |
 | AI features | 29 | 29 | 0 |
@@ -45,11 +45,11 @@
 | Security | 75 | 75 | 0 |
 | Error handling | 8 | 8 | 0 |
 | Build and dependencies | 7 | 7 | 0 |
-| User interface | 33 | 33 | 0 |
+| User interface | 40 | 40 | 0 |
 
 ## How this was tested
 
-- The API suite ran 422 cases against the real server code at commit 65fca1f on Beralidu plus the fixes for LMS-074 to LMS-111, using a temporary local MongoDB. The hosted lms-dev database was not used.
+- The API suite ran 442 cases against the real server code at commit 7fa147d on Beralidu plus the fixes for LMS-112 to LMS-120, using a temporary local MongoDB. The hosted lms-dev database was not used.
 - Stripe, email, Google sign-in and the AI providers were local stand-ins, so **no real payment, email or AI request was made**. Stripe webhook signatures were verified for real. Outbound calls blocked: 0.
 - Production-only behaviour (rate limits, stack traces, cron secret) ran against a second instance with NODE_ENV=production.
 - UI checks were repeated on this code. LMS-003 was confirmed in real Chrome with a temporary profile.
@@ -95,9 +95,9 @@ Terms and Privacy pages now exist with draft wording, and the links open them. W
 **Where:** client/src/components/layout/Footer.jsx:27, :33, :39  
 **Failed tests:** None, found in manual UI testing on 2026-11-07
 
-The dead buttons are gone, and each one comes back when its link is set. Waiting for the real links.
+The icons show but cannot be clicked until each link is set. Waiting for the real links.
 
-**Fix:** Hidden until real links are set in VITE_FACEBOOK_URL, VITE_INSTAGRAM_URL and VITE_X_URL.
+**Fix:** Set VITE_FACEBOOK_URL, VITE_INSTAGRAM_URL and VITE_X_URL.
 
 ### LMS-081: Footer Tenz Learn logo should open the company portfolio
 
@@ -1153,6 +1153,96 @@ The add route finds the user by email and never checks the role, so a student ac
 
 **Fix:** Reject the request unless the account role is instructor, with a clear message. Then check existing CourseTeacher records for student accounts.
 
+### LMS-112: Instructor claims need a 10% commission and admin approval
+
+**Type:** Enhancement  
+**Status:** Closed  
+**Tests now passing:** INS-020, INS-021, INS-022, INS-023, INS-024, INS-026, UI-033
+
+Instructors could not claim, no commission was taken, and neither side could see what was paid and what was still owed.
+
+**Fix:** Instructors claim from the Instructor Center and 10% goes to the admin. The admin marks the claim as paid with a reference. Both sides see earned, commission, paid and still to pay.
+
+### LMS-113: Instructor Center shows an Indian rupee icon
+
+**Type:** Bug  
+**Status:** Closed  
+**Tests now passing:** UI-035
+
+The card used the Indian rupee symbol.
+
+**Fix:** Show Rs. instead.
+
+### LMS-114: Footer looks empty and social icons are missing
+
+**Type:** Bug  
+**Status:** Closed  
+**Tests now passing:** UI-034
+
+After the dead links were removed the footer looked empty, and the social icons were hidden.
+
+**Fix:** Rebuild the footer with working Explore, Teaching and Legal columns, and always show the social icons.
+
+### LMS-115: Instructor Center has two icons that do the same thing
+
+**Type:** Bug  
+**Status:** Closed  
+**Tests now passing:** UI-035
+
+The eye and edit icons both opened the same page.
+
+**Fix:** Remove the eye icon and keep edit.
+
+### LMS-116: Instructors who collect slip payments must pay 10% commission to the admin
+
+**Type:** Enhancement  
+**Status:** Closed  
+**Tests now passing:** INS-030, INS-031, INS-032, INS-033, INS-034, INS-035, UI-036
+
+Students pay instructors directly, but nothing tracked the 10% owed to the admin or what was already paid.
+
+**Fix:** Each slip sale adds 10% owed. The instructor sends a payment with proof, the admin verifies it, and both sides see due, paid and still to pay. Students see the instructor bank details on the slip form.
+
+### LMS-117: Anyone can become an instructor without approval
+
+**Type:** Security  
+**Status:** Closed  
+**Tests now passing:** AUTH-045, AUTH-046, AUTH-047, AUTH-048, UI-037
+
+The role changed straight away, and instructor sign-up also skipped any check.
+
+**Fix:** Requests and instructor sign-ups stay as students until an admin approves them. The user is told the result.
+
+### LMS-118: Courses cannot be filtered by tag
+
+**Type:** Bug  
+**Status:** Closed  
+**Tests now passing:** MKT-016, MKT-017, UI-038
+
+There was no tag filter, tags were not returned, and search ignored the other filters.
+
+**Fix:** Add a tag filter, show clickable tags on course cards, and keep filters during a search.
+
+### LMS-119: Login fields turn dark after entering details
+
+**Type:** Bug  
+**Status:** Fixed  
+**Tests now passing:** 
+
+The browser paints filled fields with its own colour. This could not be reproduced in the test browser.
+
+**Fix:** Keep the field colour for browser-filled inputs. Please confirm on your browser.
+
+### LMS-120: Instructors see the Become an Instructor option
+
+**Type:** Bug  
+**Status:** Closed  
+**Tests now passing:** UI-039
+
+The banner and footer link were shown to people who are already instructors.
+
+**Fix:** Show them only to guests and students.
+
 ### Database steps to run after deploying
 
 Run these from `server/`. Each script only reports until you add `--apply`, and none of them has been run on the hosted database.
@@ -1212,10 +1302,13 @@ These are not counted as bugs.
 - `server/.env` has no `EMAIL_USER` or `EMAIL_PASS`, so password reset emails cannot be sent with this configuration, and no `server/.env.example` exists.
 - `CRON_SECRET` is needed in production for the due date reminders; it is not in `server/.env`.
 - The SRS is out of date in places: FR-PAY-04 says invoices are public, but the code correctly protects them. It lists `canManageContent`-style permissions, while the code uses `manage_content`. Section 9.6 says no email service exists.
-- SRS 3.3 says instructors apply and are granted the role, but `/auth/instructor/register` and `/instructor/become` grant it instantly. Please confirm which is intended.
 - Instructor renamed everywhere (LMS-093): run the migration below straight after deploying, or added instructors lose course access until it runs. It also lists any student accounts already added to a course, which need removing by hand (LMS-111).
 - Sessions end after exactly 1 hour, even during a quiz (LMS-074). Renewing the session for active users would need a small addition.
-- Bank slips (LMS-090): students need the account details, set in VITE_BANK_DETAILS. Approved slips count as instructor earnings, so please confirm who receives this money.
+- Bank slips (LMS-090): students pay the instructor, so each instructor must fill in Payment Settings. Instructors pay their commission to the account in VITE_BANK_DETAILS (LMS-116).
+- Card payments reach the company Stripe account, not the instructor, so those sales use the claim flow instead (LMS-112). That section only shows when an instructor has card sales.
+- Slip sales made before this change also count towards the 10% owed. Payouts already made keep their full amount.
+- Instructor requests go to admins, because only an admin can grant a role (LMS-117). Existing instructors keep their role.
+- LMS-119 is marked Fixed, not Closed, because browser autofill could not be reproduced in the test browser.
 - Uploaded images and slips are stored in MongoDB with a 2 MB limit, because no file storage service is set up.
 - The student AI server routes still exist but nothing in the app uses them. AI Notes, the quiz generator and instructor AI settings were kept (LMS-086).
 - The team deleted BUG-106, which is why that number is skipped. Its request is covered: the marketplace filter now shows every category.

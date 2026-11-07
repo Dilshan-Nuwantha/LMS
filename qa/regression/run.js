@@ -74,7 +74,7 @@ const writeReports = () => {
     const pass = cases.filter(c => result[c.id][0] === 'PASS').length;
     const out = [
         '# Tenz Learn - Regression Bug Report', '',
-        `**Branch:** Beralidu at commit 65fca1f, plus the uncommitted fixes for LMS-074 to LMS-111  `,
+        `**Branch:** Beralidu at commit 7fa147d, plus the uncommitted fixes for LMS-112 to LMS-120  `,
         `**Run date:** ${api.ranAt.slice(0, 10)}  `,
         `**Result:** ${cases.length} test cases, ${pass} passed, ${cases.length - pass} failed  `,
         `**Open findings:** ${open.length} (${severities.map(s => `${n(b => b.severity === s)} ${s}`).join(', ')}). **Fixed:** ${fixed.length}`, '',
@@ -95,7 +95,7 @@ const writeReports = () => {
             return `| ${m} | ${list.length} | ${p} | ${list.length - p} |`;
         }), '',
         '## How this was tested', '',
-        `- The API suite ran ${api.results.length} cases against the real server code at commit 65fca1f on Beralidu plus the fixes for LMS-074 to LMS-111, using a temporary local MongoDB. The hosted lms-dev database was not used.`,
+        `- The API suite ran ${api.results.length} cases against the real server code at commit 7fa147d on Beralidu plus the fixes for LMS-112 to LMS-120, using a temporary local MongoDB. The hosted lms-dev database was not used.`,
         '- Stripe, email, Google sign-in and the AI providers were local stand-ins, so **no real payment, email or AI request was made**. Stripe webhook signatures were verified for real. Outbound calls blocked: ' + api.blockedOutbound.length + '.',
         '- Production-only behaviour (rate limits, stack traces, cron secret) ran against a second instance with NODE_ENV=production.',
         '- UI checks were repeated on this code. LMS-003 was confirmed in real Chrome with a temporary profile.', '',
@@ -172,10 +172,13 @@ const writeReports = () => {
         '- `server/.env` has no `EMAIL_USER` or `EMAIL_PASS`, so password reset emails cannot be sent with this configuration, and no `server/.env.example` exists.',
         '- `CRON_SECRET` is needed in production for the due date reminders; it is not in `server/.env`.',
         '- The SRS is out of date in places: FR-PAY-04 says invoices are public, but the code correctly protects them. It lists `canManageContent`-style permissions, while the code uses `manage_content`. Section 9.6 says no email service exists.',
-        '- SRS 3.3 says instructors apply and are granted the role, but `/auth/instructor/register` and `/instructor/become` grant it instantly. Please confirm which is intended.',
         '- Instructor renamed everywhere (LMS-093): run the migration below straight after deploying, or added instructors lose course access until it runs. It also lists any student accounts already added to a course, which need removing by hand (LMS-111).',
         '- Sessions end after exactly 1 hour, even during a quiz (LMS-074). Renewing the session for active users would need a small addition.',
-        '- Bank slips (LMS-090): students need the account details, set in VITE_BANK_DETAILS. Approved slips count as instructor earnings, so please confirm who receives this money.',
+        '- Bank slips (LMS-090): students pay the instructor, so each instructor must fill in Payment Settings. Instructors pay their commission to the account in VITE_BANK_DETAILS (LMS-116).',
+        '- Card payments reach the company Stripe account, not the instructor, so those sales use the claim flow instead (LMS-112). That section only shows when an instructor has card sales.',
+        '- Slip sales made before this change also count towards the 10% owed. Payouts already made keep their full amount.',
+        '- Instructor requests go to admins, because only an admin can grant a role (LMS-117). Existing instructors keep their role.',
+        '- LMS-119 is marked Fixed, not Closed, because browser autofill could not be reproduced in the test browser.',
         '- Uploaded images and slips are stored in MongoDB with a 2 MB limit, because no file storage service is set up.',
         '- The student AI server routes still exist but nothing in the app uses them. AI Notes, the quiz generator and instructor AI settings were kept (LMS-086).',
         '- The team deleted BUG-106, which is why that number is skipped. Its request is covered: the marketplace filter now shows every category.',
