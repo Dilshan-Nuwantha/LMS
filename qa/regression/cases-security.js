@@ -912,7 +912,7 @@ tc('MKT-016', 'Marketplace', 'High', 'Courses can be filtered by tag', 'Tag a co
     is(await api('PUT', `/courses/${c.id}`, { token: F.instr.token, body: { tags: [tag, 'Other'] } }), 200);
     const list = (await api('GET', `/marketplace?tag=${tag.toUpperCase()}`)).json.courses;
     eq(list.length, 1, 'courses'); eq(list[0]._id, c.id, 'course'); ok(list[0].tags.includes(tag), 'tags missing');
-    eq((await api('GET', `/marketplace?tag=${tag.slice(0, 4)}`)).json.courses.length, 0, 'part of a tag');
+    eq((await api('GET', `/marketplace?tag=${tag.slice(0, 6)}`)).json.courses.length, 1, 'part of a tag');
 });
 tc('MKT-017', 'Marketplace', 'Medium', 'Search keeps the other filters', 'Search with a tag set', 'Only courses matching both are returned', async () => {
     const tag = `Mix${uid()}`;
@@ -921,6 +921,26 @@ tc('MKT-017', 'Marketplace', 'Medium', 'Search keeps the other filters', 'Search
     await api('PUT', `/courses/${c.id}`, { token: F.instr.token, body: { tags: [tag] } });
     const list = (await api('GET', `/marketplace/search?q=Filtered&tag=${tag}`)).json.courses;
     eq(list.length, 1, 'courses'); ok(list[0]._id !== other.id, 'wrong course');
+});
+
+tc('MKT-018', 'Marketplace', 'High', 'Search finds a tag typed with or without a hash', 'Search for a tag as text, with #, in another letter case, and by part of it', 'The course is found each time', async () => {
+    const tag = `Find${uid()}`;
+    const c = await mkCourse(F.instr);
+    await api('PUT', `/courses/${c.id}`, { token: F.instr.token, body: { tags: [tag] } });
+    for (const q of [tag, `#${tag}`, tag.toLowerCase(), tag.slice(0, 7)]) {
+        ok((await api('GET', `/marketplace/search?q=${encodeURIComponent(q)}`)).json.courses.some(x => x._id === c.id), `not found by ${q}`);
+    }
+    eq((await api('GET', `/marketplace?tag=${encodeURIComponent(`#${tag}`)}`)).json.courses.length, 1, 'tag filter with a hash');
+});
+tc('MKT-019', 'Marketplace', 'Medium', 'Search keeps price and sort', 'Search with a maximum price and price sort', 'Only cheaper courses, lowest first', async () => {
+    const word = `Sort${uid()}`;
+    for (const price of [300, 100, 900]) await mkCourse(F.instr, { price, title: word });
+    const list = (await api('GET', `/marketplace/search?q=${word}&maxPrice=500&sortBy=price-low`)).json.courses;
+    eq(list.map(c => c.price).join(), '100,300', 'prices');
+});
+tc('MKT-020', 'Marketplace', 'High', 'Tags can be set when creating a course', 'POST /instructor/course with tags, one with a hash and one repeated', 'Clean tags are saved', async () => {
+    const r = await api('POST', '/instructor/course', { token: F.instr.token, body: { title: 'Tagged', description: 'D', price: 10, tags: [' #Web ', 'Web', '', 'Design'] } });
+    is(r, 201); eq(r.json.tags.join(), 'Web,Design', 'tags');
 });
 
 const E = 'Error handling';

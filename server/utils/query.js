@@ -10,4 +10,13 @@ const getPaging = (query, defaultLimit = 20) => {
 // Search text is matched literally, so characters such as ( or .* have no special meaning
 const escapeRegex = (text) => String(text).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
-module.exports = { getPaging, escapeRegex };
+// Cards show tags as #tag, so people often type the # too
+const stripHash = (value) => String(value ?? '').trim().replace(/^#+/, '').trim();
+
+const cleanTags = (tags) => (Array.isArray(tags)
+    ? [...new Set(tags.filter(tag => typeof tag === 'string').map(stripHash).filter(Boolean))]
+    : []);
+
+module.exports = {
+    stripHash,
+    cleanTags, getPaging, escapeRegex };

@@ -347,7 +347,9 @@ const bugs = [
     { ...uiBug("LMS-117", "High", "Security", "Anyone can become an instructor without approval", "Authorization", "server/controllers/instructorController.js:13; server/controllers/authController.js; client/src/pages/instructor/BecomeInstructor.jsx; client/src/components/admin/InstructorRequests.jsx", "As a student, click Start Teaching Today", "The role changed straight away, and instructor sign-up also skipped any check.", "Requests and instructor sign-ups stay as students until an admin approves them. The user is told the result."), reported: '2026-11-08' },
     { ...uiBug("LMS-118", "Medium", "Bug", "Courses cannot be filtered by tag", "Course Management", "server/controllers/marketplaceController.js; client/src/pages/marketplace/Marketplace.jsx; client/src/components/ui/CourseCard.jsx", "Add tags to a course and try to filter the marketplace by them", "There was no tag filter, tags were not returned, and search ignored the other filters.", "Add a tag filter, show clickable tags on course cards, and keep filters during a search."), reported: '2026-11-08' },
     { ...uiBug("LMS-119", "Low", "Bug", "Login fields turn dark after entering details", "User Interface", "client/src/index.css", "Fill the login form with a saved login in Chrome", "The browser paints filled fields with its own colour. This could not be reproduced in the test browser.", "Keep the field colour for browser-filled inputs. Please confirm on your browser."), reported: '2026-11-08' },
-    { ...uiBug("LMS-120", "Low", "Bug", "Instructors see the Become an Instructor option", "User Interface", "client/src/pages/marketplace/Marketplace.jsx; client/src/components/layout/Footer.jsx", "Log in as an instructor and open the marketplace", "The banner and footer link were shown to people who are already instructors.", "Show them only to guests and students."), reported: '2026-11-08' }
+    { ...uiBug("LMS-120", "Low", "Bug", "Instructors see the Become an Instructor option", "User Interface", "client/src/pages/marketplace/Marketplace.jsx; client/src/components/layout/Footer.jsx", "Log in as an instructor and open the marketplace", "The banner and footer link were shown to people who are already instructors.", "Show them only to guests and students."), reported: '2026-11-08' },
+    { ...uiBug("LMS-121", "Low", "Enhancement", "Marketplace has two separate filter panels", "User Interface", "client/src/pages/marketplace/Marketplace.jsx", "Look for the filters on the marketplace", "Search & Filter Courses and Advanced Filters were two panels with different options.", "Put search, category, sort, level, language, tag and price into the one Search & Filter Courses card."), reported: '2026-11-08' },
+    { ...uiBug("LMS-122", "Medium", "Bug", "Searching by tag finds nothing", "Course Management", "server/controllers/marketplaceController.js; server/utils/query.js; client/src/pages/course/CourseSettings.jsx; client/src/pages/instructor/CreateMarketplaceCourse.jsx", "Search the marketplace for #javascript, or part of a tag", "A tag typed with # found nothing, the tag box needed the whole word, a tag was lost if Enter was not pressed, and tags could not be set when creating a course.", "Ignore a leading #, match part of a tag, save a tag still in the box, and add Tags to the create form."), reported: '2026-11-08' }
 ];
 
 // Closed: the fix passed its retest. run.js --report checks that those tests now pass.
@@ -360,13 +362,13 @@ const CLOSED = new Set([
     'LMS-046', 'LMS-047', 'LMS-048', 'LMS-049', 'LMS-050', 'LMS-051', 'LMS-052', 'LMS-053', 'LMS-054',
     'LMS-055', 'LMS-056', 'LMS-057', 'LMS-058', 'LMS-059', 'LMS-060', 'LMS-062', 'LMS-065', 'LMS-066',
     'LMS-067', 'LMS-068', 'LMS-069', 'LMS-070', 'LMS-073',
-    'LMS-112', 'LMS-113', 'LMS-114', 'LMS-115', 'LMS-116', 'LMS-117', 'LMS-118', 'LMS-120',
+    'LMS-112', 'LMS-113', 'LMS-114', 'LMS-115', 'LMS-116', 'LMS-117', 'LMS-118', 'LMS-120', 'LMS-121', 'LMS-122',
     'LMS-074', 'LMS-075', 'LMS-076', 'LMS-077', 'LMS-078', 'LMS-082', 'LMS-084', 'LMS-085', 'LMS-086', 'LMS-087', 'LMS-088', 'LMS-089', 'LMS-090', 'LMS-091', 'LMS-092', 'LMS-093', 'LMS-094', 'LMS-095', 'LMS-096', 'LMS-097', 'LMS-098', 'LMS-099', 'LMS-100', 'LMS-101', 'LMS-102', 'LMS-103', 'LMS-105', 'LMS-106', 'LMS-107', 'LMS-108', 'LMS-109', 'LMS-110', 'LMS-111', 'LMS-061', 'LMS-071', 'LMS-072'
 ]);
 const FIXED = new Set(['LMS-119']);
 
 // The cases that prove each fix for the team's manual findings
-const proof = {"LMS-116": ["INS-030", "INS-031", "INS-032", "INS-033", "INS-034", "INS-035", "UI-036"], "LMS-117": ["AUTH-045", "AUTH-046", "AUTH-047", "AUTH-048", "UI-037"], "LMS-118": ["MKT-016", "MKT-017", "UI-038"], "LMS-120": ["UI-039"], "LMS-112": ["INS-020", "INS-021", "INS-022", "INS-023", "INS-024", "INS-026", "UI-033"], "LMS-113": ["UI-035"], "LMS-114": ["UI-034"], "LMS-115": ["UI-035"], "LMS-074": ["AUTH-044"], "LMS-075": ["UI-020"], "LMS-076": ["UI-028"], "LMS-077": ["MKT-012"], "LMS-078": ["UI-020"], "LMS-082": ["UI-020"], "LMS-084": ["ERR-010"], "LMS-085": ["UI-031"], "LMS-086": ["UI-024"], "LMS-087": ["UI-022"], "LMS-088": ["UI-023"], "LMS-089": ["NTF-012", "UI-032"], "LMS-090": ["PAY-040", "PAY-041", "UI-026"], "LMS-091": ["RES-020", "UI-027"], "LMS-092": ["UI-024"], "LMS-093": ["UI-025"], "LMS-094": ["UI-019"], "LMS-095": ["SEC-073", "SEC-074", "SEC-075"], "LMS-096": ["RES-020", "UI-027"], "LMS-097": ["MKT-013", "MKT-014", "UI-028"], "LMS-098": ["UI-029"], "LMS-099": ["UI-022"], "LMS-100": ["UI-030"], "LMS-101": ["UI-030"], "LMS-102": ["UI-022"], "LMS-103": ["TCH-010"], "LMS-105": ["UI-031"], "LMS-106": ["UI-031"], "LMS-107": ["UI-028"], "LMS-108": ["UI-029"], "LMS-109": ["PRG-013", "UI-022"], "LMS-110": ["UI-023"], "LMS-111": ["SEC-072"]};
+const proof = {"LMS-121": ["UI-040"], "LMS-122": ["MKT-018", "MKT-019", "MKT-020", "UI-041"], "LMS-116": ["INS-030", "INS-031", "INS-032", "INS-033", "INS-034", "INS-035", "UI-036"], "LMS-117": ["AUTH-045", "AUTH-046", "AUTH-047", "AUTH-048", "UI-037"], "LMS-118": ["MKT-016", "MKT-017", "UI-038"], "LMS-120": ["UI-039"], "LMS-112": ["INS-020", "INS-021", "INS-022", "INS-023", "INS-024", "INS-026", "UI-033"], "LMS-113": ["UI-035"], "LMS-114": ["UI-034"], "LMS-115": ["UI-035"], "LMS-074": ["AUTH-044"], "LMS-075": ["UI-020"], "LMS-076": ["UI-028"], "LMS-077": ["MKT-012"], "LMS-078": ["UI-020"], "LMS-082": ["UI-020"], "LMS-084": ["ERR-010"], "LMS-085": ["UI-031"], "LMS-086": ["UI-024"], "LMS-087": ["UI-022"], "LMS-088": ["UI-023"], "LMS-089": ["NTF-012", "UI-032"], "LMS-090": ["PAY-040", "PAY-041", "UI-026"], "LMS-091": ["RES-020", "UI-027"], "LMS-092": ["UI-024"], "LMS-093": ["UI-025"], "LMS-094": ["UI-019"], "LMS-095": ["SEC-073", "SEC-074", "SEC-075"], "LMS-096": ["RES-020", "UI-027"], "LMS-097": ["MKT-013", "MKT-014", "UI-028"], "LMS-098": ["UI-029"], "LMS-099": ["UI-022"], "LMS-100": ["UI-030"], "LMS-101": ["UI-030"], "LMS-102": ["UI-022"], "LMS-103": ["TCH-010"], "LMS-105": ["UI-031"], "LMS-106": ["UI-031"], "LMS-107": ["UI-028"], "LMS-108": ["UI-029"], "LMS-109": ["PRG-013", "UI-022"], "LMS-110": ["UI-023"], "LMS-111": ["SEC-072"]};
 bugs.forEach(b => {
     if (proof[b.id]) {
         b.tests = proof[b.id];
@@ -402,7 +404,7 @@ const manualResults = {
     'UI-012': ['PASS', '/admin/register now shows the 404 page'],
     'UI-013': ['PASS', 'Tab title says Tenz Learn and no page text says Skill Path'],
     'UI-014': ['PASS', 'Course listed with category and level; search filters it; the link opens the course'],
-    'UI-015': ['PASS', 'Advanced Filters shows Language; choosing Sinhala listed only the Sinhala course'],
+    'UI-015': ['PASS', 'Choosing Sinhala listed only the Sinhala course'],
     'UI-016': ['PASS', 'Each saved lecture made one broadcast with its link; the custom one kept urgent priority'],
     'UI-017': ['PASS', 'The marketplace filter listed every saved category'],
     'UI-018': ['PASS', 'Overview, Instructors, Payouts, Users, Login As and the activity log all load with no console errors'],
@@ -427,7 +429,9 @@ const manualResults = {
     'UI-036': ['PASS', 'After a Rs. 1,000 slip sale, Rs. 60 of Rs. 100 was paid with proof. After admin approval, both sides showed Rs. 60 paid and Rs. 40 still owed'],
     'UI-037': ['PASS', 'Request to Teach showed Waiting for Admin Approval with no instructor access, and the admin saw and approved it'],
     'UI-038': ['PASS', 'Clicking #JavaScript on a card listed only the course with that tag'],
-    'UI-039': ['PASS', 'Instructors no longer see the banner or footer link. Students still see them']
+    'UI-039': ['PASS', 'Instructors no longer see the banner or footer link. Students still see them'],
+    'UI-040': ['PASS', 'One Search & Filter Courses card holds every filter, Advanced Filters is gone, and it fits at 375px'],
+    'UI-041': ['PASS', 'Searching #javascript and filtering by the part tag reac each listed only the tagged course']
 };
 
 // Browser and build checks repeated after the critical fixes
@@ -435,7 +439,7 @@ const retested = [
     'BLD-001', 'BLD-002', 'BLD-003', 'BLD-004', 'BLD-005', 'BLD-006', 'BLD-007',
     'UI-001', 'UI-002', 'UI-003', 'UI-004', 'UI-005', 'UI-006', 'UI-007', 'UI-008', 'UI-009', 'UI-010', 'UI-011', 'UI-012', 'UI-013', 'UI-014', 'UI-015',
     'UI-016', 'UI-017', 'UI-018', 'INT-001',
-    'UI-019', 'UI-020', 'UI-021', 'UI-022', 'UI-023', 'UI-024', 'UI-025', 'UI-026', 'UI-027', 'UI-028', 'UI-029', 'UI-030', 'UI-031', 'UI-032', 'UI-033', 'UI-034', 'UI-035', 'UI-036', 'UI-037', 'UI-038', 'UI-039'
+    'UI-019', 'UI-020', 'UI-021', 'UI-022', 'UI-023', 'UI-024', 'UI-025', 'UI-026', 'UI-027', 'UI-028', 'UI-029', 'UI-030', 'UI-031', 'UI-032', 'UI-033', 'UI-034', 'UI-035', 'UI-036', 'UI-037', 'UI-038', 'UI-039', 'UI-040', 'UI-041'
 ];
 
 module.exports = { bugs: activeBugs, manualResults, retested };

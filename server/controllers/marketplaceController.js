@@ -2,67 +2,44 @@ const asyncHandler = require('express-async-handler');
 const Course = require('../models/Course');
 const User = require('../models/User');
 const Review = require('../models/Review');
-const { getPaging, escapeRegex } = require('../utils/query');
+const { getPaging, escapeRegex, stripHash } = require('../utils/query');
 const { getCategoryNames } = require('./categoryController');
 
-// Tags are matched whole, in any letter case
-const tagMatcher = (tag) => new RegExp(`^${escapeRegex(String(tag).trim())}$`, 'i');
-
-// @desc    Get all marketplace courses
-// @route   GET /api/marketplace
-// @access  Public
-const getMarketplaceCourses = asyncHandler(async (req, res) => {
-    const {
-        category,
-        level,
-        language,
-        tag,
-        minPrice,
-        maxPrice,
-        minRating,
-        sortBy = 'newest'
-    } = req.query;
-    const { page, limit, skip } = getPaging(req.query, 12);
-
-    // Build filter query
-    const filter = {
-        isMarketplace: true,
-        status: 'Published',
-        isAdminBlocked: { $ne: true }
-    };
-
+// The filters both the course list and search use
+const applyFilters = (filter, { category, level, language, tag, minPrice, maxPrice, minRating }) => {
     if (category) filter.category = category;
     if (level) filter.level = level;
     if (language) filter.language = language;
-    if (tag) filter.tags = tagMatcher(tag);
+    if (stripHash(tag)) filter.tags = new RegExp(escapeRegex(stripHash(tag)), 'i');
     if (minPrice || maxPrice) {
         filter.price = {};
         if (minPrice) filter.price.$gte = Number(minPrice);
         if (maxPrice) filter.price.$lte = Number(maxPrice);
     }
     if (minRating) filter['rating.average'] = { $gte: Number(minRating) };
+    return filter;
+};
 
-    // Sort options
-    let sort = {};
-    switch (sortBy) {
-        case 'newest':
-            sort = { createdAt: -1 };
-            break;
-        case 'popular':
-            sort = { enrollmentCount: -1 };
-            break;
-        case 'rating':
-            sort = { 'rating.average': -1 };
-            break;
-        case 'price-low':
-            sort = { price: 1 };
-            break;
-        case 'price-high':
-            sort = { price: -1 };
-            break;
-        default:
-            sort = { createdAt: -1 };
-    }
+const SORTS = {
+    newest: { createdAt: -1 },
+    popular: { enrollmentCount: -1 },
+    rating: { 'rating.average': -1 },
+    'price-low': { price: 1 },
+    'price-high': { price: -1 }
+};
+
+// @desc    Get all marketplace courses
+// @route   GET /api/marketplace
+// @access  Public
+const getMarketplaceCourses = asyncHandler(async (req, res) => {
+    const { page, limit, skip } = getPaging(req.query, 12);
+
+    const filter = applyFilters({
+        isMarketplace: true,
+        status: 'Published',
+        isAdminBlocked: { $ne: true }
+    }, req.query);
+    const sort = SORTS[req.query.sortBy] || SORTS.newest;
 
     const courses = await Course.find(filter)
         .populate('user', 'name profileImage')
@@ -153,15 +130,15 @@ const getMarketplaceCourse = asyncHandler(async (req, res) => {
 // @route   GET /api/marketplace/search
 // @access  Public
 const searchMarketplace = asyncHandler(async (req, res) => {
-    const q = String(req.query.q ?? '');
+    const q = stripHash(req.query.q);
     const { page, limit, skip } = getPaging(req.query, 12);
 
-    if (!q || q.trim().length === 0) {
+    if (!q) {
         res.status(400);
         throw new Error('Search query is required');
     }
 
-    const searchRegex = new RegExp(escapeRegex(q.trim()), 'i');
+    const searchRegex = new RegExp(escapeRegex(q), 'i');
 
     const instructors = await User.find({ name: searchRegex, role: { $in: ['instructor', 'admin'] } }).select('_id').limit(50).lean();
 
@@ -179,16 +156,12 @@ const searchMarketplace = asyncHandler(async (req, res) => {
     };
 
     // A search keeps the filters that are set beside it
-    const { category, level, language, tag } = req.query;
-    if (category) filter.category = category;
-    if (level) filter.level = level;
-    if (language) filter.language = language;
-    if (tag) filter.tags = tagMatcher(tag);
+    applyFilters(filter, req.query);
 
     const courses = await Course.find(filter)
         .populate('user', 'name profileImage')
         .select('title description thumbnail price originalPrice currency category level language tags rating enrollmentCount user createdAt tags')
-        .sort({ 'rating.average': -1, enrollmentCount: -1 })
+        .sort(SORTS[req.query.sortBy] || { 'rating.average': -1, enrollmentCount: -1 })
         .skip(skip)
         .limit(Number(limit));
 

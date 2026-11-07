@@ -1,9 +1,9 @@
 # Tenz Learn - Regression Bug Report
 
-**Branch:** Beralidu at commit 7fa147d, plus the uncommitted fixes for LMS-112 to LMS-120  
+**Branch:** Beralidu at commit 4ecdfc9, plus the uncommitted fixes for LMS-121 and LMS-122  
 **Run date:** 2026-11-07  
-**Result:** 489 test cases, 489 passed, 0 failed  
-**Open findings:** 4 (0 Critical, 0 High, 2 Medium, 2 Low). **Fixed:** 113
+**Result:** 494 test cases, 494 passed, 0 failed  
+**Open findings:** 4 (0 Critical, 0 High, 2 Medium, 2 Low). **Fixed:** 115
 
 **Status:** every automated and manual regression case passes, except TC-NOTIF-001, which was not run. The 4 open items are built but need details from the team: social links, contact details, the portfolio URL and approved legal wording.
 
@@ -30,7 +30,7 @@
 | Course management | 28 | 28 | 0 |
 | Lecture progress | 13 | 13 | 0 |
 | Co-instructors | 16 | 16 | 0 |
-| Marketplace | 17 | 17 | 0 |
+| Marketplace | 20 | 20 | 0 |
 | Payments | 40 | 40 | 0 |
 | Coupons | 25 | 25 | 0 |
 | Instructor tools | 22 | 22 | 0 |
@@ -45,11 +45,11 @@
 | Security | 75 | 75 | 0 |
 | Error handling | 8 | 8 | 0 |
 | Build and dependencies | 7 | 7 | 0 |
-| User interface | 40 | 40 | 0 |
+| User interface | 42 | 42 | 0 |
 
 ## How this was tested
 
-- The API suite ran 442 cases against the real server code at commit 7fa147d on Beralidu plus the fixes for LMS-112 to LMS-120, using a temporary local MongoDB. The hosted lms-dev database was not used.
+- The API suite ran 445 cases against the real server code at commit 4ecdfc9 on Beralidu plus the fixes for LMS-121 and LMS-122, using a temporary local MongoDB. The hosted lms-dev database was not used.
 - Stripe, email, Google sign-in and the AI providers were local stand-ins, so **no real payment, email or AI request was made**. Stripe webhook signatures were verified for real. Outbound calls blocked: 0.
 - Production-only behaviour (rate limits, stack traces, cron secret) ran against a second instance with NODE_ENV=production.
 - UI checks were repeated on this code. LMS-003 was confirmed in real Chrome with a temporary profile.
@@ -1242,6 +1242,26 @@ The browser paints filled fields with its own colour. This could not be reproduc
 The banner and footer link were shown to people who are already instructors.
 
 **Fix:** Show them only to guests and students.
+
+### LMS-121: Marketplace has two separate filter panels
+
+**Type:** Enhancement  
+**Status:** Closed  
+**Tests now passing:** UI-040
+
+Search & Filter Courses and Advanced Filters were two panels with different options.
+
+**Fix:** Put search, category, sort, level, language, tag and price into the one Search & Filter Courses card.
+
+### LMS-122: Searching by tag finds nothing
+
+**Type:** Bug  
+**Status:** Closed  
+**Tests now passing:** MKT-018, MKT-019, MKT-020, UI-041
+
+A tag typed with # found nothing, the tag box needed the whole word, a tag was lost if Enter was not pressed, and tags could not be set when creating a course.
+
+**Fix:** Ignore a leading #, match part of a tag, save a tag still in the box, and add Tags to the create form.
 
 ### Database steps to run after deploying
 

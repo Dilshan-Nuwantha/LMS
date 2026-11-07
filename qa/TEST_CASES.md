@@ -2,7 +2,7 @@
 
 **Branch under test:** fix/payment-gateway  
 **Requirements source:** SRS.md v1.0  
-**Total cases:** 489 (Critical 69, High 238, Medium 155, Low 27)
+**Total cases:** 494 (Critical 69, High 241, Medium 157, Low 27)
 
 ## How to run
 
@@ -20,7 +20,7 @@ Run `npm install` in `server/` first. The run starts its own local MongoDB and t
 | Course management | 28 |
 | Lecture progress | 13 |
 | Co-instructors | 16 |
-| Marketplace | 17 |
+| Marketplace | 20 |
 | Payments | 40 |
 | Coupons | 25 |
 | Instructor tools | 22 |
@@ -35,7 +35,7 @@ Run `npm install` in `server/` first. The run starts its own local MongoDB and t
 | Security | 75 |
 | Error handling | 8 |
 | Build and dependencies | 7 |
-| User interface | 40 |
+| User interface | 42 |
 
 ## Authentication
 
@@ -183,6 +183,9 @@ Run `npm install` in `server/` first. The run starts its own local MongoDB and t
 | MKT-015 | High | Only admins change categories | POST /categories as a student, an instructor and a guest | HTTP 403, 403 and 401 | PASS | - |
 | MKT-016 | High | Courses can be filtered by tag | Tag a course, then filter by the tag in another letter case | Only that course is returned, with its tags | PASS | LMS-118 |
 | MKT-017 | Medium | Search keeps the other filters | Search with a tag set | Only courses matching both are returned | PASS | LMS-118 |
+| MKT-018 | High | Search finds a tag typed with or without a hash | Search for a tag as text, with #, in another letter case, and by part of it | The course is found each time | PASS | LMS-122 |
+| MKT-019 | Medium | Search keeps price and sort | Search with a maximum price and price sort | Only cheaper courses, lowest first | PASS | LMS-122 |
+| MKT-020 | High | Tags can be set when creating a course | POST /instructor/course with tags, one with a hash and one repeated | Clean tags are saved | PASS | LMS-122 |
 
 ## Payments
 
@@ -599,7 +602,7 @@ Run `npm install` in `server/` first. The run starts its own local MongoDB and t
 | UI-012 | Critical | Admin register page is not public | Open /admin/register as a guest | The page is not available | PASS | LMS-001 |
 | UI-013 | Medium | Page title uses the product name | Read the browser tab title | Title says Tenz Learn | PASS | LMS-057 |
 | UI-014 | Critical | My Learning lists enrolled courses | Log in as an enrolled student, open /my-learning, search, then click View Course Lectures | The course is listed with its category and level, search filters it, and the link opens the course | PASS | LMS-072 |
-| UI-015 | High | Marketplace language filter | Open Advanced Filters, choose Sinhala, apply | Only Sinhala courses are listed | PASS | - |
+| UI-015 | High | Marketplace language filter | Choose Sinhala in the filter card and apply | Only Sinhala courses are listed | PASS | - |
 | UI-016 | High | New lecture is announced once | As an instructor on a published course, save one lecture normally and one with a custom announcement | One broadcast each, with a direct link, and the chosen priority is kept | PASS | - |
 | UI-017 | High | Category list shows every category | Open the marketplace category filter | All saved categories show | PASS | - |
 | UI-018 | High | Admin pages load cleanly | As an admin, open every dashboard tab and the activity log | All render with no console errors | PASS | LMS-073 |
@@ -625,3 +628,5 @@ Run `npm install` in `server/` first. The run starts its own local MongoDB and t
 | UI-037 | Critical | Instructor request approval | Ask to teach as a student, then approve as an admin | No instructor access until an admin approves | PASS | LMS-117 |
 | UI-038 | Medium | Tag filter | Click a tag on a course card | Only courses with that tag show | PASS | LMS-118 |
 | UI-039 | Low | Become an Instructor is for students | Open the marketplace as an instructor and as a student | Hidden for instructors, shown to students | PASS | LMS-120 |
+| UI-040 | Medium | One marketplace filter panel | Open the marketplace on desktop and at 375px | All filters are in one card, with no second panel | PASS | LMS-121 |
+| UI-041 | High | Search by tag | Search for #tag, then filter by part of a tag | The tagged course is found both ways | PASS | LMS-122 |

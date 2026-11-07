@@ -1,7 +1,7 @@
 import { useState, useEffect, useContext } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import {
-    FaSearch, FaFilter, FaTimes, FaChevronDown, FaStore, FaBookOpen,
+    FaSearch, FaTimes, FaChevronDown, FaStore, FaBookOpen,
     FaChalkboardTeacher, FaCheckCircle, FaGraduationCap, FaStar, FaUsers, FaArrowRight
 } from 'react-icons/fa';
 import api from '../../api/axios';
@@ -17,7 +17,6 @@ const Marketplace = () => {
     const { user } = useContext(AuthContext);
     const [categories, setCategories] = useState([]);
     const [enrolledIds, setEnrolledIds] = useState(new Set());
-    const [showFilters, setShowFilters] = useState(false);
     const [pagination, setPagination] = useState({
         page: 1,
         pages: 1,
@@ -115,18 +114,6 @@ const Marketplace = () => {
         fetchCourses();
     }, [searchParams]);
 
-    const handleSearch = (e) => {
-        e.preventDefault();
-        const newParams = new URLSearchParams(searchParams);
-        if (searchQuery.trim()) {
-            newParams.set('q', searchQuery.trim());
-        } else {
-            newParams.delete('q');
-        }
-        newParams.set('page', '1');
-        setSearchParams(newParams);
-    };
-
     const applyFilters = () => {
         const newParams = new URLSearchParams();
         if (searchQuery.trim()) newParams.set('q', searchQuery.trim());
@@ -140,7 +127,6 @@ const Marketplace = () => {
         if (filters.sortBy) newParams.set('sortBy', filters.sortBy);
         newParams.set('page', '1');
         setSearchParams(newParams);
-        setShowFilters(false);
     };
 
     const clearFilters = () => {
@@ -207,57 +193,84 @@ const Marketplace = () => {
                                     Search & Filter Courses
                                 </h3>
 
-                                <form onSubmit={handleSearch} className="space-y-3">
+                                <form onSubmit={(e) => { e.preventDefault(); applyFilters(); }} className="space-y-3">
                                     <div className="relative">
                                         <input
                                             type="text"
-                                            placeholder="Search by title, topic, or instructor..."
+                                            placeholder="Search by title, topic, tag or instructor..."
                                             value={searchQuery}
                                             onChange={(e) => setSearchQuery(e.target.value)}
-                                            className="w-full bg-slate-100 dark:bg-slate-800 text-xs font-medium rounded-xl pl-4 pr-10 py-3 text-slate-900 dark:text-white border border-transparent focus:ring-2 focus:ring-primary"
+                                            className="bg-slate-100 dark:bg-slate-800 text-xs font-medium rounded-xl p-3 text-slate-900 dark:text-white border border-transparent focus:outline-none w-full pr-9"
                                         />
-                                        <button type="submit" className="absolute right-3 top-3 text-slate-400 hover:text-primary">
+                                        <button type="submit" aria-label="Search" className="absolute right-3 top-3 text-slate-400 hover:text-primary">
                                             <FaSearch className="text-xs" />
                                         </button>
                                     </div>
 
                                     <div className="grid grid-cols-2 gap-3">
-                                        <select
-                                            value={filters.category}
-                                            onChange={(e) => setFilters({ ...filters, category: e.target.value })}
-                                            className="bg-slate-100 dark:bg-slate-800 text-xs font-medium rounded-xl p-3 text-slate-900 dark:text-white border border-transparent"
-                                        >
+                                        <select aria-label="Category" value={filters.category} onChange={(e) => setFilters({ ...filters, category: e.target.value })} className="bg-slate-100 dark:bg-slate-800 text-xs font-medium rounded-xl p-3 text-slate-900 dark:text-white border border-transparent focus:outline-none w-full">
                                             <option value="">All Categories</option>
                                             {categories.map((c) => (
                                                 <option key={c} value={c}>{c}</option>
                                             ))}
                                         </select>
 
-                                        <select
-                                            value={filters.sortBy}
-                                            onChange={(e) => setFilters({ ...filters, sortBy: e.target.value })}
-                                            className="bg-slate-100 dark:bg-slate-800 text-xs font-medium rounded-xl p-3 text-slate-900 dark:text-white border border-transparent"
-                                        >
+                                        <select aria-label="Sort by" value={filters.sortBy} onChange={(e) => setFilters({ ...filters, sortBy: e.target.value })} className="bg-slate-100 dark:bg-slate-800 text-xs font-medium rounded-xl p-3 text-slate-900 dark:text-white border border-transparent focus:outline-none w-full">
                                             {sortOptions.map((opt) => (
                                                 <option key={opt.value} value={opt.value}>{opt.label}</option>
                                             ))}
                                         </select>
+
+                                        <select aria-label="Level" value={filters.level} onChange={(e) => setFilters({ ...filters, level: e.target.value })} className="bg-slate-100 dark:bg-slate-800 text-xs font-medium rounded-xl p-3 text-slate-900 dark:text-white border border-transparent focus:outline-none w-full">
+                                            <option value="">All Levels</option>
+                                            {levels.map((lvl) => (
+                                                <option key={lvl} value={lvl}>{lvl}</option>
+                                            ))}
+                                        </select>
+
+                                        <select aria-label="Language" value={filters.language} onChange={(e) => setFilters({ ...filters, language: e.target.value })} className="bg-slate-100 dark:bg-slate-800 text-xs font-medium rounded-xl p-3 text-slate-900 dark:text-white border border-transparent focus:outline-none w-full">
+                                            <option value="">All Languages</option>
+                                            {languages.map((lang) => (
+                                                <option key={lang} value={lang}>{lang}</option>
+                                            ))}
+                                        </select>
+
+                                        <input
+                                            type="text"
+                                            aria-label="Tag"
+                                            placeholder="Tag"
+                                            value={filters.tag}
+                                            onChange={(e) => setFilters({ ...filters, tag: e.target.value })}
+                                            className="bg-slate-100 dark:bg-slate-800 text-xs font-medium rounded-xl p-3 text-slate-900 dark:text-white border border-transparent focus:outline-none w-full col-span-2"
+                                        />
+
+                                        <input
+                                            type="number"
+                                            min="0"
+                                            aria-label="Minimum price in Rs."
+                                            placeholder="Min Price (Rs.)"
+                                            value={filters.minPrice}
+                                            onChange={(e) => setFilters({ ...filters, minPrice: e.target.value })}
+                                            className="bg-slate-100 dark:bg-slate-800 text-xs font-medium rounded-xl p-3 text-slate-900 dark:text-white border border-transparent focus:outline-none w-full"
+                                        />
+
+                                        <input
+                                            type="number"
+                                            min="0"
+                                            aria-label="Maximum price in Rs."
+                                            placeholder="Max Price (Rs.)"
+                                            value={filters.maxPrice}
+                                            onChange={(e) => setFilters({ ...filters, maxPrice: e.target.value })}
+                                            className="bg-slate-100 dark:bg-slate-800 text-xs font-medium rounded-xl p-3 text-slate-900 dark:text-white border border-transparent focus:outline-none w-full"
+                                        />
                                     </div>
 
                                     <div className="flex gap-2 pt-1">
-                                        <button
-                                            type="button"
-                                            onClick={applyFilters}
-                                            className="flex-1 py-3 rounded-xl bg-primary text-white text-xs font-bold hover:bg-primary-hover transition-colors shadow-sm"
-                                        >
+                                        <button type="submit" className="flex-1 py-3 rounded-xl bg-primary text-white text-xs font-bold hover:bg-primary-hover transition-colors">
                                             Apply Filter
                                         </button>
                                         {(hasActiveFilters || searchQuery) && (
-                                            <button
-                                                type="button"
-                                                onClick={clearFilters}
-                                                className="px-4 py-3 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-xs font-bold hover:text-danger transition-colors"
-                                            >
+                                            <button type="button" onClick={clearFilters} className="px-4 py-3 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-xs font-bold">
                                                 Clear
                                             </button>
                                         )}
@@ -332,90 +345,8 @@ const Marketplace = () => {
                             </p>
                         </div>
 
-                        {/* Toggle extra filter options */}
-                        <button
-                            onClick={() => setShowFilters(!showFilters)}
-                            className="px-4 py-2.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-2 hover:border-primary transition-colors"
-                        >
-                            <FaFilter className="text-xs" />
-                            <span>{showFilters ? 'Hide Advanced Filters' : 'Advanced Filters'}</span>
-                        </button>
                     </div>
 
-                    {/* Collapsible Filter Bar */}
-                    {showFilters && (
-                        <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200/80 dark:border-slate-800 mb-8 shadow-sm grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 animate-fadeIn">
-                            <div>
-                                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Level</label>
-                                <select
-                                    value={filters.level}
-                                    onChange={(e) => setFilters({ ...filters, level: e.target.value })}
-                                    className="w-full bg-slate-100 dark:bg-slate-800 text-xs font-medium rounded-xl p-2.5 border border-transparent"
-                                >
-                                    <option value="">All Levels</option>
-                                    {levels.map((lvl) => (
-                                        <option key={lvl} value={lvl}>{lvl}</option>
-                                    ))}
-                                </select>
-                            </div>
-
-                            <div>
-                                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-2">Tag</label>
-                                <input
-                                    type="text"
-                                    value={filters.tag}
-                                    onChange={(e) => setFilters({ ...filters, tag: e.target.value })}
-                                    placeholder="e.g. javascript"
-                                    className="w-full bg-slate-100 dark:bg-slate-800 text-xs font-medium rounded-xl px-3 py-2.5 outline-none"
-                                />
-                            </div>
-
-                            <div>
-                                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-2">Language</label>
-                                <select
-                                    value={filters.language}
-                                    onChange={(e) => setFilters({ ...filters, language: e.target.value })}
-                                    className="w-full bg-slate-100 dark:bg-slate-800 text-xs font-medium rounded-xl px-3 py-2.5 outline-none"
-                                >
-                                    <option value="">All Languages</option>
-                                    {languages.map((lang) => (
-                                        <option key={lang} value={lang}>{lang}</option>
-                                    ))}
-                                </select>
-                            </div>
-
-                            <div>
-                                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Min Price (Rs.)</label>
-                                <input
-                                    type="number"
-                                    placeholder="0"
-                                    value={filters.minPrice}
-                                    onChange={(e) => setFilters({ ...filters, minPrice: e.target.value })}
-                                    className="w-full bg-slate-100 dark:bg-slate-800 text-xs font-medium rounded-xl p-2.5 border border-transparent"
-                                />
-                            </div>
-
-                            <div>
-                                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Max Price (Rs.)</label>
-                                <input
-                                    type="number"
-                                    placeholder="Any"
-                                    value={filters.maxPrice}
-                                    onChange={(e) => setFilters({ ...filters, maxPrice: e.target.value })}
-                                    className="w-full bg-slate-100 dark:bg-slate-800 text-xs font-medium rounded-xl p-2.5 border border-transparent"
-                                />
-                            </div>
-
-                            <div className="flex items-end">
-                                <button
-                                    onClick={applyFilters}
-                                    className="w-full py-2.5 rounded-xl bg-primary text-white text-xs font-bold hover:bg-primary-hover transition-colors"
-                                >
-                                    Filter Results
-                                </button>
-                            </div>
-                        </div>
-                    )}
 
                     {/* Course Loading or Grid */}
                     {loading ? (

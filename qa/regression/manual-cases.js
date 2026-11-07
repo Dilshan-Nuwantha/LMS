@@ -27,7 +27,7 @@ manual('UI-011', U, 'High', 'Lecture script link does not run', 'A lecture has a
 manual('UI-012', U, 'Critical', 'Admin register page is not public', 'Open /admin/register as a guest', 'The page is not available');
 manual('UI-013', U, 'Medium', 'Page title uses the product name', 'Read the browser tab title', 'Title says Tenz Learn');
 manual('UI-014', U, 'Critical', 'My Learning lists enrolled courses', 'Log in as an enrolled student, open /my-learning, search, then click View Course Lectures', 'The course is listed with its category and level, search filters it, and the link opens the course');
-manual('UI-015', U, 'High', 'Marketplace language filter', 'Open Advanced Filters, choose Sinhala, apply', 'Only Sinhala courses are listed');
+manual('UI-015', U, 'High', 'Marketplace language filter', 'Choose Sinhala in the filter card and apply', 'Only Sinhala courses are listed');
 manual('UI-016', U, 'High', 'New lecture is announced once', 'As an instructor on a published course, save one lecture normally and one with a custom announcement', 'One broadcast each, with a direct link, and the chosen priority is kept');
 manual('UI-017', U, 'High', 'Category list shows every category', 'Open the marketplace category filter', 'All saved categories show');
 manual('UI-018', U, 'High', 'Admin pages load cleanly', 'As an admin, open every dashboard tab and the activity log', 'All render with no console errors');
@@ -53,3 +53,5 @@ manual('UI-036', U, 'Critical', 'Commission payment and verification', 'After a 
 manual('UI-037', U, 'Critical', 'Instructor request approval', 'Ask to teach as a student, then approve as an admin', 'No instructor access until an admin approves');
 manual('UI-038', U, 'Medium', 'Tag filter', 'Click a tag on a course card', 'Only courses with that tag show');
 manual('UI-039', U, 'Low', 'Become an Instructor is for students', 'Open the marketplace as an instructor and as a student', 'Hidden for instructors, shown to students');
+manual('UI-040', U, 'Medium', 'One marketplace filter panel', 'Open the marketplace on desktop and at 375px', 'All filters are in one card, with no second panel');
+manual('UI-041', U, 'High', 'Search by tag', 'Search for #tag, then filter by part of a tag', 'The tagged course is found both ways');

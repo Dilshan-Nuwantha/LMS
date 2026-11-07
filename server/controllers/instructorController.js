@@ -9,6 +9,7 @@ const Payout = require('../models/Payout');
 const CommissionPayment = require('../models/CommissionPayment');
 const Upload = require('../models/Upload');
 const { sniffFileType } = require('../utils/fileType');
+const { cleanTags } = require('../utils/query');
 const { CURRENCIES, COMMISSION_PERCENT, getEarningsByCurrency, totalsFor, toSummary, splitClaim } = require('../services/earningsService');
 const { notifyAdmins } = require('./notificationController');
 
@@ -126,7 +127,8 @@ const createMarketplaceCourse = asyncHandler(async (req, res) => {
         level,
         requirements,
         whatYouWillLearn,
-        language
+        language,
+        tags
     } = req.body;
 
     if (!title || !description || price === undefined) {
@@ -147,6 +149,7 @@ const createMarketplaceCourse = asyncHandler(async (req, res) => {
         requirements: requirements || [],
         whatYouWillLearn: whatYouWillLearn || [],
         language: language || 'English',
+        tags: cleanTags(tags),
         isMarketplace: true,
         status: 'Draft',
         user: req.user.id,

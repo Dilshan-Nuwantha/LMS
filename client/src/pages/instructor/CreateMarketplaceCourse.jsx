@@ -19,6 +19,7 @@ const CreateMarketplaceCourse = () => {
         price: '',
         originalPrice: '',
         currency: 'LKR',
+        tags: '',
         thumbnail: '',
         previewVideo: '',
         requirements: [''],
@@ -106,6 +107,7 @@ const CreateMarketplaceCourse = () => {
                 originalPrice: formData.originalPrice ? Number(formData.originalPrice) : Number(formData.price),
                 requirements: formData.requirements.filter(r => r.trim()),
                 whatYouWillLearn: formData.whatYouWillLearn.filter(w => w.trim()),
+                tags: formData.tags.split(','),
                 status
             };
 
@@ -248,6 +250,21 @@ const CreateMarketplaceCourse = () => {
                                         className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg focus:outline-none focus:border-indigo-500"
                                     />
                                 </div>
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                                    Tags
+                                </label>
+                                <input
+                                    type="text"
+                                    name="tags"
+                                    value={formData.tags}
+                                    onChange={handleChange}
+                                    placeholder="e.g. javascript, react, web design"
+                                    className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg text-slate-900 dark:text-white"
+                                />
+                                <p className="text-xs text-slate-500 mt-1">Separate tags with commas. Students can search by them.</p>
                             </div>
                         </div>
                     )}

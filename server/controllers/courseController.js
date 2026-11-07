@@ -15,7 +15,7 @@ const Coupon = require('../models/Coupon');
 const Review = require('../models/Review');
 const Notification = require('../models/Notification');
 const { canManage, getInstructorPermissions, isCourseMember } = require('../middleware/ownershipMiddleware');
-const { escapeRegex } = require('../utils/query');
+const { escapeRegex, cleanTags } = require('../utils/query');
 const { isSafeUrl } = require('../utils/url');
 
 const BROADCAST_PRIORITIES = ['normal', 'important', 'urgent'];
@@ -113,7 +113,7 @@ const updateCourse = asyncHandler(async (req, res) => {
     if (req.body.category !== undefined) course.category = req.body.category;
     if (req.body.level !== undefined) course.level = req.body.level;
     if (req.body.thumbnail !== undefined) course.thumbnail = req.body.thumbnail;
-    if (req.body.tags !== undefined) course.tags = req.body.tags;
+    if (req.body.tags !== undefined) course.tags = cleanTags(req.body.tags);
     if (req.body.requirements !== undefined) course.requirements = req.body.requirements;
     if (req.body.whatYouWillLearn !== undefined) course.whatYouWillLearn = req.body.whatYouWillLearn;
     if (req.body.allowPeerProgress !== undefined) course.allowPeerProgress = req.body.allowPeerProgress;

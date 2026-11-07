@@ -113,7 +113,11 @@ const CourseSettings = ({ isEmbedded = false }) => {
         if (e) e.preventDefault();
         setSaving(true);
         try {
-            await api.put(`/courses/${id}`, { ...formData, notificationSettings: notifSettings });
+            // A tag still in the box counts, even if Enter wasn't pressed
+            const tags = [...new Set([...formData.tags, tagInput.trim()].filter(Boolean))];
+            await api.put(`/courses/${id}`, { ...formData, tags, notificationSettings: notifSettings });
+            setFormData(current => ({ ...current, tags }));
+            setTagInput('');
             showSuccess('Settings saved successfully');
         } catch {
             showError('Error saving settings');
