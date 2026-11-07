@@ -1,5 +1,5 @@
 import { useState, useEffect, useContext, useRef } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, Link } from 'react-router-dom';
 import api from '../../api/axios';
 import AuthContext from '../../context/AuthContext';
 import { FaPlayCircle, FaChevronDown, FaChevronUp, FaArrowLeft, FaClock, FaBars, FaTimes, FaStepBackward, FaStepForward, FaStickyNote, FaSave, FaLock, FaUserGraduate, FaCheckCircle, FaSearch, FaBookmark, FaRegBookmark, FaFolderOpen, FaDownload, FaFilePdf, FaImage, FaFileAlt, FaLink as FaLinkIcon, FaEye } from 'react-icons/fa';
@@ -7,6 +7,7 @@ import StatusSelector from '../../components/ui/StatusSelector';
 import LectureSidebarItem from '../../components/course/LectureSidebarItem';
 import Pagination from '../../components/ui/Pagination';
 import { showSuccess, showError, showWarning } from '../../utils/toast';
+import { openExternalLink } from '../../utils/safeLink';
 
 const getYouTubeEmbedUrl = (url) => {
     try {
@@ -36,6 +37,7 @@ const CourseView = () => {
     // Comments state
     const [comments, setComments] = useState([]);
     const [newComment, setNewComment] = useState('');
+    const [commentsLocked, setCommentsLocked] = useState(false);
     const [notes, setNotes] = useState('');
     const [isSavingNotes, setIsSavingNotes] = useState(false);
     const [currentPage, setCurrentPage] = useState(1);
@@ -95,44 +97,12 @@ const CourseView = () => {
 
     useEffect(() => {
         if (course) {
-            document.title = `Skill Path | ${course.title}`;
+            document.title = `Tenz Learn | ${course.title}`;
         }
         return () => {
-            document.title = 'Skill Path';
+            document.title = 'Tenz Learn';
         };
     }, [course]);
-
-    useEffect(() => {
-        const fetchCourse = async () => {
-            try {
-                const res = await api.get(`/courses/${id}`);
-                const courseData = res.data;
-                setCourse(courseData);
-
-                // All sections collapsed by default
-                if (courseData.sections && courseData.sections.length > 0) {
-                    setExpandedSections({});
-                    // Select first lecture if available
-                    if (courseData.sections && courseData.sections.length > 0 && courseData.sections[0].lectures.length > 0) {
-                        const firstLec = courseData.sections[0].lectures[0];
-                        setSelectedLecture(firstLec);
-                        fetchComments(firstLec._id);
-                    }
-                }
-                
-                // Fetch resource counts for this course
-                try {
-                    const countsRes = await api.get(`/resources/${id}/counts`);
-                    setResourceCounts(countsRes.data.counts || {});
-                } catch (err) {
-                    console.warn('Failed to fetch resource counts', err);
-                }
-            } catch (err) {
-                console.error(err);
-            }
-        };
-        fetchCourse();
-    }, [id]);
 
     useEffect(() => {
         const fetchProgress = async () => {
@@ -169,10 +139,44 @@ const CourseView = () => {
         try {
             const res = await api.get(`/courses/lectures/${lectureId}/comments`);
             setComments(res.data);
-        } catch (err) {
-            console.error("Failed to fetch comments");
+            setCommentsLocked(false);
+        } catch (error) {
+            setComments([]);
+            setCommentsLocked(error.response?.status === 403);
         }
     };
+
+    useEffect(() => {
+        const fetchCourse = async () => {
+            try {
+                const res = await api.get(`/courses/${id}`);
+                const courseData = res.data;
+                setCourse(courseData);
+
+                // All sections collapsed by default
+                if (courseData.sections && courseData.sections.length > 0) {
+                    setExpandedSections({});
+                    // Select first lecture if available
+                    if (courseData.sections && courseData.sections.length > 0 && courseData.sections[0].lectures.length > 0) {
+                        const firstLec = courseData.sections[0].lectures[0];
+                        setSelectedLecture(firstLec);
+                        fetchComments(firstLec._id);
+                    }
+                }
+                
+                // Fetch resource counts for this course
+                try {
+                    const countsRes = await api.get(`/resources/${id}/counts`);
+                    setResourceCounts(countsRes.data.counts || {});
+                } catch (err) {
+                    console.warn('Failed to fetch resource counts', err);
+                }
+            } catch (err) {
+                console.error(err);
+            }
+        };
+        fetchCourse();
+    }, [id]);
 
     // Show toast reminder once when a lecture is manually selected and its status hasn't been updated
     useEffect(() => {
@@ -226,7 +230,7 @@ const CourseView = () => {
     // Handle resource download
     const handleResourceDownload = async (resource) => {
         if (resource.fileType === 'link') {
-            window.open(resource.url, '_blank');
+            openExternalLink(resource.url);
             return;
         }
         try {
@@ -247,7 +251,7 @@ const CourseView = () => {
     // Handle inline view
     const handleResourceView = async (resource) => {
         if (resource.fileType === 'link') {
-            window.open(resource.url, '_blank');
+            openExternalLink(resource.url);
             return;
         }
         try {
@@ -349,7 +353,7 @@ const CourseView = () => {
                 }
             }));
             showSuccess('Notes saved!');
-        } catch (error) {
+        } catch {
             showError('Failed to save notes');
         } finally {
             setIsSavingNotes(false);
@@ -396,7 +400,7 @@ const CourseView = () => {
                 }
             }));
             showSuccess(markedForRevision ? 'Marked for revision!' : 'Removed from revision list');
-        } catch (err) {
+        } catch {
             showError('Failed to update revision mark');
         }
     };
@@ -414,7 +418,7 @@ const CourseView = () => {
             setNewComment('');
             fetchComments(selectedLecture._id);
             showSuccess('Comment posted!');
-        } catch (error) {
+        } catch {
             showError('Error posting comment');
         }
     };
@@ -1148,7 +1152,13 @@ const CourseView = () => {
                                 )}
 
                                 {/* Discussion Tab */}
-                                {activeTab === 'discussion' && (
+                                {activeTab === 'discussion' && commentsLocked && (
+                                    <div className="py-8 text-center">
+                                        <p className="text-sm text-slate-500 dark:text-slate-400 mb-3">Enroll in this course to join the discussion.</p>
+                                        <Link to={`/marketplace/course/${id}`} className="text-sm font-semibold text-primary hover:underline">View course</Link>
+                                    </div>
+                                )}
+                                {activeTab === 'discussion' && !commentsLocked && (
                                     <div className="space-y-4">
                                         {/* Comment Input */}
                                         <form onSubmit={handleAddComment} className="flex gap-3 items-start">

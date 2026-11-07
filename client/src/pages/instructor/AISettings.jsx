@@ -37,10 +37,6 @@ const AISettings = () => {
     const [model, setModel] = useState('gpt-4o');
     const [maskedKey, setMaskedKey] = useState('');
 
-    useEffect(() => {
-        fetchConfig();
-    }, []);
-
     const fetchConfig = async () => {
         try {
             const res = await api.get('/ai/config');
@@ -50,12 +46,16 @@ const AISettings = () => {
                 setMaskedKey(res.data.apiKeyMasked);
                 setHasExisting(true);
             }
-        } catch (err) {
+        } catch {
             // No config yet — that's fine
         } finally {
             setLoading(false);
         }
     };
+
+    useEffect(() => {
+        fetchConfig();
+    }, []);
 
     const handleProviderChange = (newProvider) => {
         setProvider(newProvider);
@@ -123,7 +123,7 @@ const AISettings = () => {
             setProvider('openai');
             setModel('gpt-4o');
             showSuccess('AI configuration removed');
-        } catch (err) {
+        } catch {
             showError('Failed to delete configuration');
         }
     };

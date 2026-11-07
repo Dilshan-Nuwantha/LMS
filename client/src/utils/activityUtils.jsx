@@ -11,7 +11,7 @@ export const ALL_ACTIONS = [
     'Broadcast Created', 'Broadcast Updated', 'Broadcast Deleted',
     'Quiz Created', 'Quiz Updated', 'Quiz Deleted', 'Quiz Started', 'Quiz Submitted',
     'Resource Uploaded', 'Resource Deleted',
-    'Teacher Added', 'Teacher Removed', 'Teacher Left', 'Teacher Updated',
+    'Instructor Added', 'Instructor Removed', 'Instructor Left', 'Instructor Updated',
     'User Warned', 'User Blocked', 'User Unblocked', 'Role Changed',
     'Course Blocked', 'Course Unblocked',
     'Student AI Enabled', 'Student AI Disabled', 'Student AI Blocked', 'Student AI Unblocked',
@@ -61,10 +61,10 @@ export const getActionIcon = (action) => {
     if (action === 'Login') return <FaSignInAlt className="text-cyan-500" />;
     if (action === 'Profile Updated') return <FaUser className="text-teal-500" />;
     if (action === 'Password Updated') return <FaPen className="text-violet-500" />;
-    if (action === 'Teacher Added') return <FaUserTie className="text-emerald-500" />;
-    if (action === 'Teacher Removed') return <FaUserTie className="text-red-500" />;
-    if (action === 'Teacher Left') return <FaUserTie className="text-slate-400" />;
-    if (action === 'Teacher Updated') return <FaUserTie className="text-violet-500" />;
+    if (action === 'Instructor Added') return <FaUserTie className="text-emerald-500" />;
+    if (action === 'Instructor Removed') return <FaUserTie className="text-red-500" />;
+    if (action === 'Instructor Left') return <FaUserTie className="text-slate-400" />;
+    if (action === 'Instructor Updated') return <FaUserTie className="text-violet-500" />;
     if (action === 'User Warned') return <FaExclamationTriangle className="text-amber-500" />;
     if (action === 'User Blocked') return <FaBan className="text-red-500" />;
     if (action === 'User Unblocked') return <FaUnlock className="text-green-500" />;

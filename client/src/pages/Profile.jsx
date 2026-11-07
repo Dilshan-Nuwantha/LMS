@@ -1,7 +1,8 @@
-import { useState, useContext, useEffect } from 'react';
+import { useState, useContext } from 'react';
 import AuthContext from '../context/AuthContext';
 import api from '../api/axios';
 import { showSuccess, showError } from '../utils/toast';
+import ImageUpload from '../components/ui/ImageUpload';
 import { FaLock, FaExclamationTriangle, FaEye, FaEyeSlash, FaGoogle, FaPencilAlt, FaUser, FaImages, FaShieldAlt } from 'react-icons/fa';
 
 // Avatar categories with DiceBear (no package needed — just image URLs)
@@ -76,7 +77,7 @@ const BIO_TEMPLATES = {
         "Coffee, code, and courses — that's my daily routine.",
         "Not the smartest in the room, but definitely the most curious.",
         "Learning something new every day and loving every minute of it.",
-        "Future expert in the making. Currently leveling up on Skill Path.",
+        "Future expert in the making. Currently leveling up on Tenz Learn.",
     ],
     instructor: [
         "Hi, I'm {name} — an instructor passionate about making complex topics feel simple.",
@@ -97,13 +98,13 @@ const BIO_TEMPLATES = {
     ],
     admin: [
         "Platform admin keeping things running smoothly behind the scenes.",
-        "Hi, I'm {name} — helping manage and grow the Skill Path community.",
+        "Hi, I'm {name} — helping manage and grow the Tenz Learn community.",
         "Building a better learning experience, one improvement at a time.",
         "{name} | Admin | Making sure everything works so you can focus on learning.",
         "Behind every great platform is someone making sure it doesn't break. That's me.",
         "I keep the gears turning so students and instructors can do their best work.",
         "Admin by role, builder by passion. Always improving the platform.",
-        "Making Skill Path the best place to learn — that's my mission.",
+        "Making Tenz Learn the best place to learn — that's my mission.",
         "{name} here. I manage the platform so you can focus on what matters: learning.",
         "If something works well on this platform, I probably had a hand in it.",
     ],
@@ -124,19 +125,17 @@ const roleBadge = {
 const inputClass = 'w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-xl text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all';
 
 const ProfileAvatar = ({ src, name, size = 80 }) => {
-    const [imgError, setImgError] = useState(false);
+    // Remembers which image failed, so a new avatar previews instantly
+    const [failedSrc, setFailedSrc] = useState(null);
 
-    // Reset error when src changes so new avatar previews instantly
-    useEffect(() => { setImgError(false); }, [src]);
-
-    if (src && !imgError) {
+    if (src && src !== failedSrc) {
         return (
             <img
                 src={src}
                 alt={name}
                 width={size}
                 height={size}
-                onError={() => setImgError(true)}
+                onError={() => setFailedSrc(src)}
                 className="rounded-full object-cover"
                 style={{ width: size, height: size }}
             />
@@ -162,7 +161,6 @@ const Profile = () => {
     const [profileLoading, setProfileLoading] = useState(false);
     const [activeTab, setActiveTab] = useState('about');
     const [bioRole, setBioRole] = useState(user?.role || 'student');
-    const [customUrl, setCustomUrl] = useState('');
 
     // Password state
     const [passwords, setPasswords] = useState({ currentPassword: '', newPassword: '', confirmPassword: '' });
@@ -174,7 +172,6 @@ const Profile = () => {
 
     const startEditing = () => {
         setProfileForm({ name: user?.name || '', bio: user?.bio || '', profileImage: user?.profileImage || '' });
-        setCustomUrl('');
         setEditingProfile(true);
     };
 
@@ -202,7 +199,8 @@ const Profile = () => {
         if (newPassword.length < 6) { setPwError('Must be at least 6 characters'); return; }
         setPwLoading(true);
         try {
-            await api.put('/auth/updatepassword', { currentPassword, newPassword });
+            const res = await api.put('/auth/updatepassword', { currentPassword, newPassword });
+            localStorage.setItem('token', res.data.token);
             setPasswords({ currentPassword: '', newPassword: '', confirmPassword: '' });
             showSuccess('Password updated');
         } catch (err) {
@@ -213,7 +211,7 @@ const Profile = () => {
     };
 
     const memberSince = user?.createdAt
-        ? new Date(user.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })
+        ? new Date(user.createdAt).toLocaleDateString('en-LK', { day: 'numeric', month: 'long', year: 'numeric' })
         : null;
 
     const previewImage = editingProfile ? profileForm.profileImage : user?.profileImage;
@@ -427,27 +425,15 @@ const Profile = () => {
                                     )}
                                 </div>
 
-                                {/* Custom image URL — only when editing */}
+                                {/* Picture upload, only when editing */}
                                 {editingProfile && (
                                     <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6">
-                                        <h3 className="text-sm font-semibold text-slate-900 dark:text-white mb-3">Profile Image from URL</h3>
-                                        <p className="text-xs text-slate-500 dark:text-slate-400 mb-3">Paste a direct link to use as your profile picture.</p>
-                                        <div className="flex gap-2">
-                                            <input
-                                                type="url"
-                                                value={customUrl}
-                                                onChange={e => setCustomUrl(e.target.value)}
-                                                placeholder="https://example.com/my-photo.jpg"
-                                                className={`${inputClass} flex-1`}
-                                            />
-                                            <button
-                                                onClick={() => { if (customUrl) { setProfileForm(f => ({ ...f, profileImage: customUrl })); setCustomUrl(''); } }}
-                                                disabled={!customUrl}
-                                                className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white text-sm font-semibold rounded-xl transition-colors"
-                                            >
-                                                Set
-                                            </button>
-                                        </div>
+                                        <h3 className="text-sm font-semibold text-slate-900 dark:text-white mb-3">Profile Picture</h3>
+                                        <ImageUpload
+                                            value={profileForm.profileImage}
+                                            onChange={(url) => setProfileForm(f => ({ ...f, profileImage: url }))}
+                                            label="Upload a picture"
+                                        />
                                     </div>
                                 )}
                             </div>
@@ -595,7 +581,7 @@ const Profile = () => {
                                             <span className="w-5 h-5 rounded-full bg-amber-200 dark:bg-amber-900/50 text-amber-700 dark:text-amber-400 text-[10px] font-bold flex items-center justify-center shrink-0 mt-0.5">{i + 1}</span>
                                             <div>
                                                 <p className="text-sm text-slate-700 dark:text-slate-300">{w.reason}</p>
-                                                <p className="text-xs text-slate-400 mt-0.5">{new Date(w.issuedAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</p>
+                                                <p className="text-xs text-slate-400 mt-0.5">{new Date(w.issuedAt).toLocaleDateString('en-LK', { day: 'numeric', month: 'short', year: 'numeric' })}</p>
                                             </div>
                                         </div>
                                     ))}

@@ -20,29 +20,7 @@ const QuizTake = () => {
     const [reviewMode, setReviewMode] = useState(false);
     const [previousAttempt, setPreviousAttempt] = useState(null);
 
-    useEffect(() => {
-        checkAndStartQuiz();
-    }, [quizId]);
-
     // Timer effect
-    useEffect(() => {
-        if (!quiz?.timeLimit || !attempt || result || reviewMode) return;
-
-        const endTime = new Date(attempt.startedAt).getTime() + (quiz.timeLimit * 60 * 1000);
-
-        const interval = setInterval(() => {
-            const remaining = Math.max(0, endTime - Date.now());
-            setTimeLeft(Math.ceil(remaining / 1000));
-
-            if (remaining <= 0) {
-                clearInterval(interval);
-                handleSubmit(true);
-            }
-        }, 1000);
-
-        return () => clearInterval(interval);
-    }, [quiz, attempt, result, reviewMode]);
-
     const checkAndStartQuiz = async () => {
         try {
             const isRetake = searchParams.get('retake') === 'true';
@@ -89,6 +67,10 @@ const QuizTake = () => {
         }
     };
 
+    useEffect(() => {
+        checkAndStartQuiz();
+    }, [quizId]);
+
     const handleAnswerChange = (questionIndex, answer) => {
         setAnswers(prev => ({ ...prev, [questionIndex]: answer }));
     };
@@ -124,6 +106,24 @@ const QuizTake = () => {
         }
     };
 
+    useEffect(() => {
+        if (!quiz?.timeLimit || !attempt || result || reviewMode) return;
+
+        const endTime = new Date(attempt.startedAt).getTime() + (quiz.timeLimit * 60 * 1000);
+
+        const interval = setInterval(() => {
+            const remaining = Math.max(0, endTime - Date.now());
+            setTimeLeft(Math.ceil(remaining / 1000));
+
+            if (remaining <= 0) {
+                clearInterval(interval);
+                handleSubmit(true);
+            }
+        }, 1000);
+
+        return () => clearInterval(interval);
+    }, [quiz, attempt, result, reviewMode]);
+
     const formatTime = (seconds) => {
         const mins = Math.floor(seconds / 60);
         const secs = seconds % 60;
@@ -139,7 +139,7 @@ const QuizTake = () => {
 
     const getCorrectAnswerDisplay = (question) => {
         if (question.questionType === 'mcq') return question.options[question.correctAnswer];
-        if (question.questionType === 'true-false') return question.correctAnswer ? 'True' : 'False';
+        if (question.questionType === 'true-false') return question.correctAnswer === true || question.correctAnswer === 0 ? 'True' : 'False';
         return question.correctAnswer;
     };
 
@@ -247,7 +247,7 @@ const QuizTake = () => {
                                                 </span>
                                             </div>
 
-                                            {!isCorrect && (
+                                            {!isCorrect && q.correctAnswer !== undefined && (
                                                 <div className="flex items-start gap-2 p-3 rounded-lg text-sm bg-green-50 dark:bg-green-900/20">
                                                     <span className="text-xs font-medium text-green-600 dark:text-green-400 mt-0.5">Correct answer:</span>
                                                     <span className="text-green-800 dark:text-green-300">{getCorrectAnswerDisplay(q)}</span>
@@ -350,7 +350,7 @@ const QuizTake = () => {
                                                     <p className={isCorrect ? 'text-green-700 dark:text-green-400' : 'text-red-700 dark:text-red-400'}>
                                                         <span className="font-medium">Your answer:</span> {getAnswerDisplay(q, userAnswer?.answer)}
                                                     </p>
-                                                    {!isCorrect && (
+                                                    {!isCorrect && q.correctAnswer !== undefined && (
                                                         <p className="text-green-700 dark:text-green-400">
                                                             <span className="font-medium">Correct:</span> {getCorrectAnswerDisplay(q)}
                                                         </p>

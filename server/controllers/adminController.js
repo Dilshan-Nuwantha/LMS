@@ -4,6 +4,11 @@ const Course = require('../models/Course');
 const Purchase = require('../models/Purchase');
 const Payout = require('../models/Payout');
 const BankDetail = require('../models/BankDetail');
+const CommissionPayment = require('../models/CommissionPayment');
+const Upload = require('../models/Upload');
+const { CURRENCIES, getEarningsByCurrency, totalsFor, toSummary, splitClaim } = require('../services/earningsService');
+const { notifyUser } = require('./notificationController');
+const { getPaging } = require('../utils/query');
 
 // @desc    Get admin dashboard stats
 // @route   GET /api/admin/dashboard
@@ -15,8 +20,7 @@ const getAdminDashboard = asyncHandler(async (req, res) => {
         totalStudents,
         totalCourses,
         publishedCourses,
-        revenueResult,
-        totalPayoutsResult,
+        earnings,
         recentPurchases,
         recentPayouts
     ] = await Promise.all([
@@ -25,14 +29,7 @@ const getAdminDashboard = asyncHandler(async (req, res) => {
         User.countDocuments({ role: 'student' }),
         Course.countDocuments({ isMarketplace: true }),
         Course.countDocuments({ isMarketplace: true, status: 'Published' }),
-        Purchase.aggregate([
-            { $match: { status: 'completed' } },
-            { $group: { _id: null, total: { $sum: '$amount' }, count: { $sum: 1 } } }
-        ]),
-        Payout.aggregate([
-            { $match: { status: 'completed' } },
-            { $group: { _id: null, total: { $sum: '$amount' } } }
-        ]),
+        getEarningsByCurrency(),
         Purchase.find({ status: 'completed' })
             .populate('user', 'name email')
             .populate('course', 'title')
@@ -46,8 +43,8 @@ const getAdminDashboard = asyncHandler(async (req, res) => {
             .limit(5)
     ]);
 
-    const revenue = revenueResult[0] || { total: 0, count: 0 };
-    const totalPaidOut = totalPayoutsResult[0]?.total || 0;
+    // Money fields are LKR; byCurrency has the LKR / USD split
+    const summary = toSummary(totalsFor(earnings));
 
     res.status(200).json({
         stats: {
@@ -56,10 +53,13 @@ const getAdminDashboard = asyncHandler(async (req, res) => {
             totalStudents,
             totalCourses,
             publishedCourses,
-            totalRevenue: revenue.total,
-            totalSales: revenue.count,
-            totalPaidOut,
-            pendingPayout: revenue.total - totalPaidOut
+            totalRevenue: summary.totalEarnings,
+            totalSales: summary.totalSales,
+            totalPaidOut: summary.totalPaidOut,
+            totalCommission: summary.totalCommission,
+            commissionOwed: summary.commissionOwed,
+            pendingPayout: summary.pendingAmount,
+            byCurrency: summary.byCurrency
         },
         recentPurchases,
         recentPayouts
@@ -76,16 +76,9 @@ const getInstructors = asyncHandler(async (req, res) => {
 
     const instructorIds = instructors.map(i => i._id);
 
-    // Run 4 bulk queries instead of 4 * N individual ones
-    const [earningsByInstructor, payoutsByInstructor, coursesByInstructor, bankDetails] = await Promise.all([
-        Purchase.aggregate([
-            { $match: { instructor: { $in: instructorIds }, status: 'completed' } },
-            { $group: { _id: '$instructor', total: { $sum: '$amount' }, sales: { $sum: 1 } } }
-        ]),
-        Payout.aggregate([
-            { $match: { instructor: { $in: instructorIds }, status: 'completed' } },
-            { $group: { _id: '$instructor', total: { $sum: '$amount' } } }
-        ]),
+    // Run bulk queries instead of N individual ones
+    const [earningsByInstructor, coursesByInstructor, bankDetails] = await Promise.all([
+        getEarningsByCurrency({ instructor: { $in: instructorIds } }, '$instructor'),
         Course.aggregate([
             { $match: { user: { $in: instructorIds }, isMarketplace: true } },
             { $group: { _id: '$user', count: { $sum: 1 } } }
@@ -94,23 +87,16 @@ const getInstructors = asyncHandler(async (req, res) => {
     ]);
 
     // Index results by instructor ID for O(1) lookup
-    const earningsMap = Object.fromEntries(earningsByInstructor.map(e => [e._id.toString(), e]));
-    const payoutsMap = Object.fromEntries(payoutsByInstructor.map(p => [p._id.toString(), p]));
     const coursesMap = Object.fromEntries(coursesByInstructor.map(c => [c._id.toString(), c.count]));
     const bankMap = Object.fromEntries(bankDetails.map(b => [b.user.toString(), b]));
 
     const instructorData = instructors.map(instructor => {
         const id = instructor._id.toString();
-        const earnings = earningsMap[id] || { total: 0, sales: 0 };
-        const paidOut = payoutsMap[id]?.total || 0;
         const bank = bankMap[id];
 
         return {
             ...instructor.toObject(),
-            totalEarnings: earnings.total,
-            totalSales: earnings.sales,
-            totalPaidOut: paidOut,
-            pendingAmount: earnings.total - paidOut,
+            ...toSummary(totalsFor(earningsByInstructor, id)),
             courseCount: coursesMap[id] || 0,
             hasBankDetails: !!bank,
             preferredMethod: bank?.preferredMethod || null
@@ -130,16 +116,9 @@ const getInstructorDetail = asyncHandler(async (req, res) => {
         throw new Error('Instructor not found');
     }
 
-    const [bankDetail, earningsResult, payoutResult, courses, payouts] = await Promise.all([
+    const [bankDetail, earnings, courses, payouts] = await Promise.all([
         BankDetail.findOne({ user: instructor._id }),
-        Purchase.aggregate([
-            { $match: { instructor: instructor._id, status: 'completed' } },
-            { $group: { _id: null, total: { $sum: '$amount' }, sales: { $sum: 1 } } }
-        ]),
-        Payout.aggregate([
-            { $match: { instructor: instructor._id, status: 'completed' } },
-            { $group: { _id: null, total: { $sum: '$amount' } } }
-        ]),
+        getEarningsByCurrency({ instructor: instructor._id }),
         Course.find({ user: instructor._id, isMarketplace: true }).select('title price enrollmentCount status'),
         Payout.find({ instructor: instructor._id })
             .populate('processedBy', 'name')
@@ -147,16 +126,10 @@ const getInstructorDetail = asyncHandler(async (req, res) => {
             .limit(20)
     ]);
 
-    const earnings = earningsResult[0] || { total: 0, sales: 0 };
-    const paidOut = payoutResult[0]?.total || 0;
-
     res.status(200).json({
         instructor: instructor.toObject(),
         bankDetail,
-        totalEarnings: earnings.total,
-        totalSales: earnings.sales,
-        totalPaidOut: paidOut,
-        pendingAmount: earnings.total - paidOut,
+        ...toSummary(totalsFor(earnings)),
         courses,
         payouts
     });
@@ -166,11 +139,21 @@ const getInstructorDetail = asyncHandler(async (req, res) => {
 // @route   POST /api/admin/payouts
 // @access  Private (Admin)
 const createPayout = asyncHandler(async (req, res) => {
-    const { instructorId, amount, method, transactionId, note } = req.body;
+    const { instructorId, amount, method, transactionId, note, currency = 'LKR' } = req.body;
 
     if (!instructorId || !amount || !method) {
         res.status(400);
         throw new Error('Please provide instructor, amount, and method');
+    }
+
+    if (!Number.isFinite(Number(amount)) || Number(amount) <= 0) {
+        res.status(400);
+        throw new Error('Payout amount must be a positive number');
+    }
+
+    if (!CURRENCIES.includes(currency)) {
+        res.status(400);
+        throw new Error(`Currency must be one of ${CURRENCIES.join(', ')}`);
     }
 
     const instructor = await User.findById(instructorId);
@@ -179,30 +162,23 @@ const createPayout = asyncHandler(async (req, res) => {
         throw new Error('Instructor not found');
     }
 
-    // Verify amount doesn't exceed pending
-    const [earningsResult, payoutResult] = await Promise.all([
-        Purchase.aggregate([
-            { $match: { instructor: instructor._id, status: 'completed' } },
-            { $group: { _id: null, total: { $sum: '$amount' } } }
-        ]),
-        Payout.aggregate([
-            { $match: { instructor: instructor._id, status: 'completed' } },
-            { $group: { _id: null, total: { $sum: '$amount' } } }
-        ])
-    ]);
+    // Verify amount doesn't exceed what can still be paid in that currency
+    const earnings = await getEarningsByCurrency({ instructor: instructor._id });
+    const { available } = totalsFor(earnings)[currency];
 
-    const totalEarnings = earningsResult[0]?.total || 0;
-    const totalPaid = payoutResult[0]?.total || 0;
-    const pending = totalEarnings - totalPaid;
-
-    if (amount > pending) {
+    if (amount > available) {
         res.status(400);
-        throw new Error(`Amount exceeds pending balance of ₹${pending}`);
+        throw new Error(`Amount exceeds the available balance of ${currency} ${available}`);
     }
+
+    const { grossAmount, commissionAmount, netAmount } = splitClaim(Number(amount));
 
     const payout = await Payout.create({
         instructor: instructorId,
-        amount,
+        amount: netAmount,
+        grossAmount,
+        commissionAmount,
+        currency,
         method,
         transactionId: transactionId || '',
         note: note || '',
@@ -217,13 +193,173 @@ const createPayout = asyncHandler(async (req, res) => {
     res.status(201).json(payout);
 });
 
+// @desc    Approve a claim once the money has been sent
+// @route   PUT /api/admin/payouts/:id/approve
+// @access  Private (Admin)
+const approvePayout = asyncHandler(async (req, res) => {
+    const { transactionId, note } = req.body;
+
+    if (typeof transactionId !== 'string' || !transactionId.trim()) {
+        res.status(400);
+        throw new Error('Please add the transaction reference');
+    }
+
+    const payout = await Payout.findOneAndUpdate(
+        { _id: req.params.id, status: 'pending' },
+        {
+            status: 'completed',
+            transactionId: transactionId.trim(),
+            ...(typeof note === 'string' && { note }),
+            processedBy: req.user.id,
+            processedAt: new Date()
+        },
+        { new: true }
+    );
+
+    if (!payout) {
+        res.status(404);
+        throw new Error('No claim is waiting with this id');
+    }
+
+    await notifyUser(payout.instructor, {
+        title: 'Claim paid',
+        message: `Your claim was paid. Reference: ${payout.transactionId}`,
+        type: 'payment',
+        link: '/instructor/dashboard'
+    });
+
+    res.status(200).json(payout);
+});
+
+// @desc    Reject a claim, which frees the amount to be claimed again
+// @route   PUT /api/admin/payouts/:id/reject
+// @access  Private (Admin)
+const rejectPayout = asyncHandler(async (req, res) => {
+    const note = typeof req.body.note === 'string' ? req.body.note.trim().slice(0, 300) : '';
+
+    const payout = await Payout.findOneAndUpdate(
+        { _id: req.params.id, status: 'pending' },
+        { status: 'failed', note, processedBy: req.user.id, processedAt: new Date() },
+        { new: true }
+    );
+
+    if (!payout) {
+        res.status(404);
+        throw new Error('No claim is waiting with this id');
+    }
+
+    await notifyUser(payout.instructor, {
+        title: 'Claim rejected',
+        message: note || 'Your claim was not accepted. You can send a new one.',
+        type: 'payment',
+        link: '/instructor/dashboard'
+    });
+
+    res.status(200).json(payout);
+});
+
+// @desc    List commission payments from instructors
+// @route   GET /api/admin/commission-payments
+// @access  Private (Admin)
+const getCommissionPayments = asyncHandler(async (req, res) => {
+    const filter = ['pending', 'approved', 'rejected'].includes(req.query.status) ? { status: req.query.status } : {};
+
+    res.status(200).json(await CommissionPayment.find(filter)
+        .populate('instructor', 'name email')
+        .sort({ createdAt: -1 })
+        .limit(100));
+});
+
+// @desc    See the proof of a commission payment
+// @route   GET /api/admin/commission-payments/:id/proof
+// @access  Private (Admin)
+const getCommissionProof = asyncHandler(async (req, res) => {
+    const payment = await CommissionPayment.findById(req.params.id);
+    const proof = payment && await Upload.findOne({ _id: payment.proof, kind: 'slip' });
+
+    if (!proof) {
+        res.status(404);
+        throw new Error('Proof not found');
+    }
+
+    res.set({ 'Content-Type': proof.mimeType, 'Content-Length': proof.size, 'Cache-Control': 'private, no-store' });
+    res.send(proof.data);
+});
+
+// @desc    Approve or reject a commission payment
+// @route   PUT /api/admin/commission-payments/:id/approve, /reject
+// @access  Private (Admin)
+const reviewCommission = (status) => asyncHandler(async (req, res) => {
+    const note = typeof req.body.note === 'string' ? req.body.note.trim().slice(0, 300) : '';
+
+    const payment = await CommissionPayment.findOneAndUpdate(
+        { _id: req.params.id, status: 'pending' },
+        { status, note, reviewedBy: req.user.id, reviewedAt: new Date() },
+        { new: true }
+    );
+
+    if (!payment) {
+        res.status(404);
+        throw new Error('No commission payment is waiting with this id');
+    }
+
+    await notifyUser(payment.instructor, {
+        title: status === 'approved' ? 'Commission payment approved' : 'Commission payment rejected',
+        message: note || `Your payment of ${payment.amount} ${payment.currency} was ${status}.`,
+        type: 'payment',
+        link: '/instructor/dashboard'
+    });
+
+    res.status(200).json(payment);
+});
+
+// @desc    List users waiting to become instructors
+// @route   GET /api/admin/instructor-requests
+// @access  Private (Admin)
+const getInstructorRequests = asyncHandler(async (req, res) => {
+    res.status(200).json(await User.find({ 'instructorRequest.status': 'pending' })
+        .select('name email bio instructorRequest')
+        .sort({ 'instructorRequest.requestedAt': 1 }));
+});
+
+// @desc    Approve or reject an instructor request
+// @route   PUT /api/admin/instructor-requests/:id/approve, /reject
+// @access  Private (Admin)
+const reviewInstructorRequest = (approved) => asyncHandler(async (req, res) => {
+    const note = typeof req.body.note === 'string' ? req.body.note.trim().slice(0, 300) : '';
+
+    const user = await User.findOneAndUpdate(
+        { _id: req.params.id, 'instructorRequest.status': 'pending' },
+        approved
+            ? { role: 'instructor', 'instructorRequest.status': 'approved', 'instructorRequest.note': '' }
+            : { 'instructorRequest.status': 'rejected', 'instructorRequest.note': note },
+        { new: true }
+    ).select('name email role instructorRequest');
+
+    if (!user) {
+        res.status(404);
+        throw new Error('No request is waiting for this user');
+    }
+
+    await notifyUser(user._id, {
+        title: approved ? 'You are now an instructor' : 'Instructor request rejected',
+        message: approved ? 'You can now create courses in the Instructor Center.' : note || 'Your request was not accepted. You can ask again.',
+        type: 'custom',
+        link: approved ? '/instructor/dashboard' : '/become-instructor'
+    });
+
+    res.status(200).json(user);
+});
+
 // @desc    Get all payouts
 // @route   GET /api/admin/payouts
 // @access  Private (Admin)
 const getPayouts = asyncHandler(async (req, res) => {
-    const { page = 1, limit = 20, instructorId } = req.query;
+    const { instructorId, status } = req.query;
+    const { page, limit } = getPaging(req.query, 20);
     const query = {};
     if (instructorId) query.instructor = instructorId;
+    if (['pending', 'completed', 'failed'].includes(status)) query.status = status;
 
     const [payouts, total] = await Promise.all([
         Payout.find(query)
@@ -284,8 +420,8 @@ const removeWarning = asyncHandler(async (req, res) => {
     const user = await User.findById(req.params.id);
     if (!user) { res.status(404); throw new Error('User not found'); }
 
-    const index = parseInt(req.params.index);
-    if (index < 0 || index >= user.warnings.length) { res.status(400); throw new Error('Invalid warning index'); }
+    const index = Number(req.params.index);
+    if (!Number.isInteger(index) || index < 0 || index >= user.warnings.length) { res.status(400); throw new Error('Invalid warning index'); }
 
     user.warnings.splice(index, 1);
 
@@ -323,6 +459,7 @@ const setMaxWarnings = asyncHandler(async (req, res) => {
 const blockUser = asyncHandler(async (req, res) => {
     const { reason, hideCourses } = req.body;
     if (!reason) { res.status(400); throw new Error('Block reason is required'); }
+    if (req.params.id === req.user.id) { res.status(400); throw new Error('You cannot block your own account'); }
 
     const user = await User.findById(req.params.id);
     if (!user) { res.status(404); throw new Error('User not found'); }
@@ -373,6 +510,7 @@ const changeUserRole = asyncHandler(async (req, res) => {
 
     const user = await User.findById(req.params.id);
     if (!user) { res.status(404); throw new Error('User not found'); }
+    if (user.role === 'admin') { res.status(403); throw new Error('Admin roles cannot be changed here'); }
 
     user.role = role;
     await user.save();
@@ -429,8 +567,13 @@ const impersonateUser = asyncHandler(async (req, res) => {
         throw new Error('User not found');
     }
 
+    if (user.role === 'admin') {
+        res.status(403);
+        throw new Error('Admin accounts cannot be impersonated');
+    }
+
     const jwt = require('jsonwebtoken');
-    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '30d' });
+    const token = jwt.sign({ id: user._id, v: user.tokenVersion || 0, imp: req.user.id }, process.env.JWT_SECRET, { expiresIn: '1h' });
 
     res.json({
         _id: user._id,
@@ -447,7 +590,16 @@ module.exports = {
     getAdminDashboard,
     getInstructors,
     getInstructorDetail,
+    getCommissionPayments,
+    getCommissionProof,
+    approveCommission: reviewCommission('approved'),
+    rejectCommission: reviewCommission('rejected'),
+    getInstructorRequests,
+    approveInstructorRequest: reviewInstructorRequest(true),
+    rejectInstructorRequest: reviewInstructorRequest(false),
     createPayout,
+    approvePayout,
+    rejectPayout,
     getPayouts,
     getAllUsers,
     warnUser,

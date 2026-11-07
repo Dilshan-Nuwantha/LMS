@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const Counter = require('./Counter');
 
 const purchaseSchema = new mongoose.Schema({
     user: {
@@ -22,16 +23,32 @@ const purchaseSchema = new mongoose.Schema({
     },
     currency: {
         type: String,
-        enum: ['INR', 'USD'],
-        default: 'INR'
+        enum: ['LKR', 'USD'],
+        default: 'LKR'
     },
     stripePaymentIntentId: {
         type: String,
         default: ''
     },
+    // A slip is a bank payment proof that the instructor approves by hand
+    paymentMethod: {
+        type: String,
+        enum: ['stripe', 'slip'],
+        default: 'stripe'
+    },
+    slip: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Upload',
+        default: null
+    },
+    rejectionReason: {
+        type: String,
+        default: ''
+    },
+    // Empty for free enrollments (price 0 or 100% coupon)
     stripeSessionId: {
         type: String,
-        required: true
+        default: ''
     },
     status: {
         type: String,
@@ -58,7 +75,7 @@ const purchaseSchema = new mongoose.Schema({
     },
     invoiceStatus: {
         type: String,
-        enum: ['created', 'paid'],
+        enum: ['created', 'paid', 'refunded'],
         default: null
     },
     originalPrice: {
@@ -73,21 +90,57 @@ const purchaseSchema = new mongoose.Schema({
 purchaseSchema.index({ user: 1, course: 1 }, { unique: true });
 
 // Generate next sequential invoice number
+
 purchaseSchema.statics.generateInvoiceNumber = async function () {
     const year = new Date().getFullYear();
     const prefix = `INV-${year}-`;
+    const counterId = `invoice-${year}`;
 
     const lastInvoice = await this.findOne({
         invoiceNumber: { $regex: `^${prefix}` }
     }).sort({ invoiceNumber: -1 });
 
-    let nextNum = 1;
+    let lastNum = 0;
+
     if (lastInvoice?.invoiceNumber) {
-        const lastNum = parseInt(lastInvoice.invoiceNumber.split('-').pop(), 10);
-        nextNum = lastNum + 1;
+        lastNum = parseInt(
+            lastInvoice.invoiceNumber.split('-').pop(),
+            10
+        );
+
+        if (!Number.isInteger(lastNum)) {
+            throw new Error('Invalid existing invoice number');
+        }
     }
 
-    return `${prefix}${String(nextNum).padStart(5, '0')}`;
+    try {
+        await Counter.updateOne(
+            { _id: counterId },
+            { $setOnInsert: { seq: lastNum } },
+            { upsert: true }
+        );
+    } catch (err) {
+        if (err?.code !== 11000) {
+            throw err;
+        }
+    }
+
+    await Counter.updateOne(
+        { _id: counterId },
+        { $max: { seq: lastNum } }
+    );
+
+    const counter = await Counter.findOneAndUpdate(
+        { _id: counterId },
+        { $inc: { seq: 1 } },
+        { new: true }
+    );
+
+    if (!counter) {
+        throw new Error('Failed to generate invoice number');
+    }
+
+    return `${prefix}${String(counter.seq).padStart(5, '0')}`;
 };
 
 module.exports = mongoose.model('Purchase', purchaseSchema);

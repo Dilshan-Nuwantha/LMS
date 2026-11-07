@@ -3,11 +3,31 @@ const Quiz = require('../models/Quiz');
 const QuizAttempt = require('../models/QuizAttempt');
 const Course = require('../models/Course');
 const Progress = require('../models/Progress');
-const { canManage, getTeacherPermissions } = require('../middleware/ownershipMiddleware');
+const { canManage, getInstructorPermissions, isCourseMember } = require('../middleware/ownershipMiddleware');
+
+// AI-generated true/false questions store the option index: 0 is True, 1 is False
+const trueFalseAnswer = (value) => (typeof value === 'number' ? value === 0 : value);
+
+const withoutAnswers = (quiz) => ({
+    ...quiz,
+    questions: quiz.questions.map(({ correctAnswer, ...question }) => question)
+});
+
+// A quiz with no attempt limit can always be retaken
+const canRetake = async (quiz, studentId) => {
+    if (quiz.attemptsAllowed <= 0) return true;
+
+    const used = await QuizAttempt.countDocuments({
+        quiz: quiz._id,
+        student: studentId,
+        status: { $in: ['completed', 'timed-out'] }
+    });
+    return used < quiz.attemptsAllowed;
+};
 
 // @desc    Create a new quiz
 // @route   POST /api/quizzes
-// @access  Private (Course owner or teacher with manage_content)
+// @access  Private (Course owner or instructor with manage_content)
 const createQuiz = asyncHandler(async (req, res) => {
     const { courseId, sectionId, title, description, questions, passingScore, timeLimit, attemptsAllowed, isRequired } = req.body;
 
@@ -25,9 +45,9 @@ const createQuiz = asyncHandler(async (req, res) => {
 
     const userId = req.user.id;
     const isOwner = canManage(req.user, course.user);
-    const teacherPerms = await getTeacherPermissions(userId, courseId);
+    const instructorPerms = await getInstructorPermissions(userId, courseId);
 
-    if (!isOwner && !teacherPerms?.manage_content && !teacherPerms?.full_access) {
+    if (!isOwner && !instructorPerms?.manage_content && !instructorPerms?.full_access) {
         res.status(403);
         throw new Error('Not authorized to create quizzes for this course');
     }
@@ -47,7 +67,7 @@ const createQuiz = asyncHandler(async (req, res) => {
         title,
         description: description || '',
         questions: questions || [],
-        passingScore: passingScore || 70,
+        passingScore: passingScore ?? 70,
         timeLimit: timeLimit || 0,
         attemptsAllowed: attemptsAllowed ?? -1,
         isRequired: isRequired || false,
@@ -82,12 +102,17 @@ const getCourseQuizzes = asyncHandler(async (req, res) => {
     }
 
     const isOwner = canManage(req.user, course.user);
-    const teacherPerms = await getTeacherPermissions(userId, courseId);
-    const isTeacher = !!teacherPerms;
+    const instructorPerms = await getInstructorPermissions(userId, courseId);
+    const isInstructor = !!instructorPerms;
 
-    // For owners/teachers, get all quizzes; for students, only active ones
+    if (!(await isCourseMember(req.user, course))) {
+        res.status(403);
+        throw new Error('You must be enrolled in this course to view its quizzes');
+    }
+
+    // For owners/instructors, get all quizzes; for students, only active ones
     const filter = { course: courseId };
-    if (!isOwner && !isTeacher) {
+    if (!isOwner && !isInstructor) {
         filter.isActive = true;
     }
 
@@ -131,11 +156,16 @@ const getQuiz = asyncHandler(async (req, res) => {
     const userId = req.user.id;
     const course = await Course.findById(quiz.course);
     const isOwner = canManage(req.user, course.user);
-    const teacherPerms = await getTeacherPermissions(userId, quiz.course);
+    const instructorPerms = await getInstructorPermissions(userId, quiz.course);
 
-    // For owners/teachers, return full quiz with answers
-    if (isOwner || teacherPerms?.manage_content || teacherPerms?.full_access) {
+    // For owners/instructors, return full quiz with answers
+    if (isOwner || instructorPerms?.manage_content || instructorPerms?.full_access) {
         return res.json(quiz);
+    }
+
+    if (!(await isCourseMember(req.user, course))) {
+        res.status(403);
+        throw new Error('You must be enrolled in this course to view this quiz');
     }
 
     // For students, hide correct answers
@@ -150,7 +180,7 @@ const getQuiz = asyncHandler(async (req, res) => {
 
 // @desc    Update quiz
 // @route   PUT /api/quizzes/:id
-// @access  Private (Course owner or teacher with manage_content)
+// @access  Private (Course owner or instructor with manage_content)
 const updateQuiz = asyncHandler(async (req, res) => {
     const quiz = await Quiz.findById(req.params.id);
     if (!quiz) {
@@ -161,9 +191,9 @@ const updateQuiz = asyncHandler(async (req, res) => {
     const userId = req.user.id;
     const course = await Course.findById(quiz.course);
     const isOwner = canManage(req.user, course.user);
-    const teacherPerms = await getTeacherPermissions(userId, quiz.course);
+    const instructorPerms = await getInstructorPermissions(userId, quiz.course);
 
-    if (!isOwner && !teacherPerms?.manage_content && !teacherPerms?.full_access) {
+    if (!isOwner && !instructorPerms?.manage_content && !instructorPerms?.full_access) {
         res.status(403);
         throw new Error('Not authorized to update this quiz');
     }
@@ -186,7 +216,7 @@ const updateQuiz = asyncHandler(async (req, res) => {
 
 // @desc    Delete quiz
 // @route   DELETE /api/quizzes/:id
-// @access  Private (Course owner or teacher with manage_content)
+// @access  Private (Course owner or instructor with manage_content)
 const deleteQuiz = asyncHandler(async (req, res) => {
     const quiz = await Quiz.findById(req.params.id);
     if (!quiz) {
@@ -197,9 +227,9 @@ const deleteQuiz = asyncHandler(async (req, res) => {
     const userId = req.user.id;
     const course = await Course.findById(quiz.course);
     const isOwner = canManage(req.user, course.user);
-    const teacherPerms = await getTeacherPermissions(userId, quiz.course);
+    const instructorPerms = await getInstructorPermissions(userId, quiz.course);
 
-    if (!isOwner && !teacherPerms?.manage_content && !teacherPerms?.full_access) {
+    if (!isOwner && !instructorPerms?.manage_content && !instructorPerms?.full_access) {
         res.status(403);
         throw new Error('Not authorized to delete this quiz');
     }
@@ -227,6 +257,12 @@ const startQuizAttempt = asyncHandler(async (req, res) => {
     }
 
     const userId = req.user.id;
+
+    const course = await Course.findById(quiz.course).select('isAdminBlocked');
+    if (course?.isAdminBlocked) {
+        res.status(403);
+        throw new Error('This course is currently unavailable');
+    }
 
     // Check if user is enrolled in the course
     const progress = await Progress.findOne({ course: quiz.course, student: userId });
@@ -291,6 +327,11 @@ const startQuizAttempt = asyncHandler(async (req, res) => {
 const submitQuizAttempt = asyncHandler(async (req, res) => {
     const { attemptId, answers } = req.body;
 
+    if (!Array.isArray(answers)) {
+        res.status(400);
+        throw new Error('Answers must be a list');
+    }
+
     const attempt = await QuizAttempt.findById(attemptId);
     if (!attempt) {
         res.status(404);
@@ -330,20 +371,23 @@ const submitQuizAttempt = asyncHandler(async (req, res) => {
     // Grade the quiz
     let score = 0;
     const gradedAnswers = [];
+    const gradedIndexes = new Set();
 
     answers.forEach(ans => {
-        const question = quiz.questions[ans.questionIndex];
-        if (!question) return;
+        const question = quiz.questions[ans?.questionIndex];
+        // Each question counts once, so repeating a correct answer can't raise the score
+        if (!question || gradedIndexes.has(ans.questionIndex)) return;
+        gradedIndexes.add(ans.questionIndex);
 
         let isCorrect = false;
 
         if (question.questionType === 'mcq') {
             isCorrect = ans.answer === question.correctAnswer;
         } else if (question.questionType === 'true-false') {
-            isCorrect = ans.answer === question.correctAnswer;
+            isCorrect = ans.answer === trueFalseAnswer(question.correctAnswer);
         } else if (question.questionType === 'short-answer') {
             // Case-insensitive comparison for short answers
-            isCorrect = ans.answer?.toLowerCase().trim() === question.correctAnswer?.toLowerCase().trim();
+            isCorrect = String(ans.answer ?? '').toLowerCase().trim() === String(question.correctAnswer ?? '').toLowerCase().trim();
         }
 
         const pointsEarned = isCorrect ? question.points : 0;
@@ -372,10 +416,12 @@ const submitQuizAttempt = asyncHandler(async (req, res) => {
 
     await attempt.save();
 
-    // Return result with correct answers for review
+    // Correct answers are for review only, so they stay hidden while a retake is possible
+    const hideAnswers = await canRetake(quiz, req.user.id);
+
     res.json({
         attempt,
-        quiz: quiz.toObject(),
+        quiz: hideAnswers ? withoutAnswers(quiz.toObject()) : quiz.toObject(),
         result: {
             score,
             totalPoints,
@@ -401,15 +447,24 @@ const getAttemptResult = asyncHandler(async (req, res) => {
     const userId = req.user.id;
     const course = await Course.findById(attempt.course);
     const isOwner = canManage(req.user, course.user);
-    const teacherPerms = await getTeacherPermissions(userId, attempt.course);
+    const instructorPerms = await getInstructorPermissions(userId, attempt.course);
 
-    // Only allow the student who took it, or course owner/teacher
-    if (attempt.student.toString() !== userId && !isOwner && !teacherPerms) {
+    // Only allow the student who took it, or course owner/instructor
+    if (attempt.student.toString() !== userId && !isOwner && !instructorPerms) {
         res.status(403);
         throw new Error('Not authorized to view this attempt');
     }
 
-    res.json(attempt);
+    const result = attempt.toObject();
+
+    // The student must not see the answers during an attempt, or while a retake is possible
+    if (!isOwner && !instructorPerms && result.quiz) {
+        if (attempt.status === 'in-progress' || await canRetake(attempt.quiz, attempt.student)) {
+            result.quiz = withoutAnswers(result.quiz);
+        }
+    }
+
+    res.json(result);
 });
 
 // @desc    Get student's attempts for a quiz
@@ -424,9 +479,9 @@ const getMyAttempts = asyncHandler(async (req, res) => {
     res.json(attempts);
 });
 
-// @desc    Get quiz analytics (for teachers)
+// @desc    Get quiz analytics (for instructors)
 // @route   GET /api/quizzes/:id/analytics
-// @access  Private (Course owner or teacher)
+// @access  Private (Course owner or instructor)
 const getQuizAnalytics = asyncHandler(async (req, res) => {
     const quiz = await Quiz.findById(req.params.id);
     if (!quiz) {
@@ -437,9 +492,9 @@ const getQuizAnalytics = asyncHandler(async (req, res) => {
     const userId = req.user.id;
     const course = await Course.findById(quiz.course);
     const isOwner = canManage(req.user, course.user);
-    const teacherPerms = await getTeacherPermissions(userId, quiz.course);
+    const instructorPerms = await getInstructorPermissions(userId, quiz.course);
 
-    if (!isOwner && !teacherPerms) {
+    if (!isOwner && !instructorPerms) {
         res.status(403);
         throw new Error('Not authorized to view analytics');
     }

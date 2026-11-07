@@ -1,0 +1,57 @@
+// Checks run outside the API suite: tooling and the real UI in a browser.
+const { tc } = require('./lib');
+
+const manual = (id, module, priority, title, steps, expected) => tc(id, module, priority, title, steps, expected, null);
+
+const B = 'Build and dependencies';
+manual('BLD-001', B, 'Critical', 'Client production build', 'Run npm run build in client/', 'Build succeeds');
+manual('BLD-002', B, 'Medium', 'Client lint', 'Run npm run lint in client/', 'No lint errors');
+manual('BLD-003', B, 'High', 'Server dependency audit', 'Run npm audit --omit=dev in server/', 'No high or critical advisories');
+manual('BLD-004', B, 'High', 'Client dependency audit', 'Run npm audit --omit=dev in client/', 'No high or critical advisories');
+manual('BLD-005', B, 'Critical', 'No secrets in git history', 'Search all branches for .env files and live keys', 'Nothing found');
+manual('BLD-006', B, 'Low', 'Every import has a declared dependency', 'Compare client imports with package.json', 'All imports resolve to declared packages');
+manual('BLD-007', B, 'High', 'Existing team test suites', 'Run the tests in server/tests with MONGO_URI and MONGO_TEST_URI set to a local database', 'All tests pass');
+
+const U = 'User interface';
+manual('UI-001', U, 'Critical', 'Home and marketplace load for a guest', 'Open / and /marketplace', 'Pages render with no console errors');
+manual('UI-002', U, 'Critical', 'Log in through the form', 'Sign in as a student', 'Lands on the student dashboard');
+manual('UI-003', U, 'High', 'Wrong password shows an error', 'Sign in with a wrong password', 'An error toast appears (NFR-USE-04)');
+manual('UI-004', U, 'High', 'Unknown route shows the 404 page', 'Open /this-does-not-exist', 'The Not Found page renders (NFR-USE-05)');
+manual('UI-005', U, 'High', 'Guest is redirected from a protected page', 'Open /my-learning logged out', 'Redirected to /login');
+manual('UI-006', U, 'High', 'Student is kept out of the admin dashboard', 'Open /admin/dashboard as a student', 'Redirected away');
+manual('UI-007', U, 'Medium', 'Theme toggle', 'Switch between light and dark', 'Theme changes and survives a reload (NFR-USE-01)');
+manual('UI-008', U, 'Medium', 'Mobile layout at 375px', 'Open home and marketplace at 375px', 'No horizontal page scroll (NFR-USE-02)');
+manual('UI-009', U, 'High', 'Course landing page', 'Open a marketplace course', 'Title, price and curriculum render');
+manual('UI-010', U, 'Critical', 'Stored script link does not run', 'A javascript: resource link is clicked by a student in the course', 'The script does not run and the login token cannot be read');
+manual('UI-011', U, 'High', 'Lecture script link does not run', 'A lecture has a javascript: resource URL; open it as a student', 'The link is inert');
+manual('UI-012', U, 'Critical', 'Admin register page is not public', 'Open /admin/register as a guest', 'The page is not available');
+manual('UI-013', U, 'Medium', 'Page title uses the product name', 'Read the browser tab title', 'Title says Tenz Learn');
+manual('UI-014', U, 'Critical', 'My Learning lists enrolled courses', 'Log in as an enrolled student, open /my-learning, search, then click View Course Lectures', 'The course is listed with its category and level, search filters it, and the link opens the course');
+manual('UI-015', U, 'High', 'Marketplace language filter', 'Choose Sinhala in the filter card and apply', 'Only Sinhala courses are listed');
+manual('UI-016', U, 'High', 'New lecture is announced once', 'As an instructor on a published course, save one lecture normally and one with a custom announcement', 'One broadcast each, with a direct link, and the chosen priority is kept');
+manual('UI-017', U, 'High', 'Category list shows every category', 'Open the marketplace category filter', 'All saved categories show');
+manual('UI-018', U, 'High', 'Admin pages load cleanly', 'As an admin, open every dashboard tab and the activity log', 'All render with no console errors');
+manual('INT-001', U, 'Critical', 'Full user journey', 'Register, log in, browse, enroll, open a lecture, complete it, then take a quiz', 'The whole journey works with no console or API errors');
+manual('UI-019', U, 'High', 'Menu on narrow screens', 'Open the site at 375px and open the menu', 'All links for the role show, with no horizontal scroll');
+manual('UI-020', U, 'Medium', 'Footer has no dead links', 'Read the footer and click its links', 'Current year, X logo, and every link goes to a real place');
+manual('UI-021', U, 'High', 'Legal pages load', 'Open /terms and /privacy', 'Both pages show');
+manual('UI-022', U, 'High', 'My Learning shows only enrolled courses', 'Open My Learning as a student and an instructor', 'Enrolled courses with progress and status, and no create or created courses');
+manual('UI-023', U, 'Medium', 'Enrolled courses are marked', 'Open the marketplace as an enrolled student and click a card', 'Enrolled badge and Go to Course, and the whole card is clickable');
+manual('UI-024', U, 'Medium', 'AI chat is removed', 'Look for the AI button, tabs and links, then open /ai-chat', 'None remain, and /ai-chat shows 404');
+manual('UI-025', U, 'Medium', 'Instructor is the only name for the role', 'Read the login, register and course pages, then open /teacher/login', 'No Teacher wording, and the old link redirects');
+manual('UI-026', U, 'High', 'Bank slip payment', 'Send a slip as a student, then approve it as the instructor', 'The slip waits for approval, then the student gets access');
+manual('UI-027', U, 'Medium', 'Image uploads', 'Upload a profile picture and a course thumbnail', 'Both show, with no URL field');
+manual('UI-028', U, 'Medium', 'Categories come from the backend', 'Add a category as an admin and open the course form', 'The new category is offered, and the navbar has no Category menu');
+manual('UI-029', U, 'Medium', 'Coupon date can be changed', 'Edit a coupon in dark mode', 'The calendar icon shows and the date can be changed');
+manual('UI-030', U, 'High', 'Instructor Center links and prices', 'Click Edit on a course and read the prices', 'The course opens, and prices show Rs.');
+manual('UI-031', U, 'Medium', 'Course sections and filters', 'Use the status and importance filters on a course', 'Each filter works alone, sections show both labels, and Critical is not used');
+manual('UI-032', U, 'Medium', 'Discussion when not enrolled', 'Open a preview lecture discussion without enrolling', 'A message explains why, instead of the comment box');
+manual('UI-033', U, 'Critical', 'Earnings claim and approval', 'Claim earnings as an instructor, mark it paid as an admin, then read both screens', 'The 10% commission, paid and still to pay amounts match on both sides');
+manual('UI-034', U, 'Medium', 'Footer layout', 'Read the footer on desktop and at 375px', 'Filled columns of working links, all social icons, and no overflow');
+manual('UI-035', U, 'Low', 'Instructor Center actions and currency', 'Read the course actions and the Total Earnings card', 'One edit icon, and Rs. instead of a rupee icon');
+manual('UI-036', U, 'Critical', 'Commission payment and verification', 'After a slip sale, send a commission payment with proof, approve it as an admin, then read both screens', 'Due, paid and still to pay match on both sides');
+manual('UI-037', U, 'Critical', 'Instructor request approval', 'Ask to teach as a student, then approve as an admin', 'No instructor access until an admin approves');
+manual('UI-038', U, 'Medium', 'Tag filter', 'Click a tag on a course card', 'Only courses with that tag show');
+manual('UI-039', U, 'Low', 'Become an Instructor is for students', 'Open the marketplace as an instructor and as a student', 'Hidden for instructors, shown to students');
+manual('UI-040', U, 'Medium', 'One marketplace filter panel', 'Open the marketplace on desktop and at 375px', 'All filters are in one card, with no second panel');
+manual('UI-041', U, 'High', 'Search by tag', 'Search for #tag, then filter by part of a tag', 'The tagged course is found both ways');

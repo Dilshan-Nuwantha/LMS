@@ -139,13 +139,18 @@ async function generateQuiz(apiKey, provider, model, options) {
     }
 
     // Validate and normalize each question
-    return questions.map(q => ({
-        questionText: q.questionText || q.question || '',
-        questionType: ['mcq', 'true-false', 'short-answer'].includes(q.questionType) ? q.questionType : 'mcq',
-        options: Array.isArray(q.options) ? q.options : [],
-        correctAnswer: q.correctAnswer ?? 0,
-        points: q.points || 1
-    }));
+    return questions.map(q => {
+        const correctAnswer = q.correctAnswer ?? 0;
+
+        return {
+            questionText: q.questionText || q.question || '',
+            questionType: ['mcq', 'true-false', 'short-answer'].includes(q.questionType) ? q.questionType : 'mcq',
+            options: Array.isArray(q.options) ? q.options : [],
+            // The quiz page submits true/false, while the AI returns the option index
+            correctAnswer: q.questionType === 'true-false' && typeof correctAnswer === 'number' ? correctAnswer === 0 : correctAnswer,
+            points: q.points || 1
+        };
+    });
 }
 
 // ─── Notes Generation ───────────────────────────────────────────────

@@ -1,27 +1,40 @@
-import { useState, useEffect, useContext } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Fragment, useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import {
-    FaUsers, FaChalkboardTeacher, FaGraduationCap, FaBook,
-    FaRupeeSign, FaChartLine, FaMoneyCheckAlt, FaHistory,
+    FaUsers, FaChalkboardTeacher, FaBookOpen, FaBook,
+    FaChartLine, FaMoneyCheckAlt, FaHistory,
     FaArrowRight, FaExclamationCircle, FaCheckCircle, FaSearch,
     FaBan, FaUnlock, FaExclamationTriangle, FaTimes, FaEdit,
     FaChevronDown, FaChevronUp, FaShieldAlt, FaChevronLeft, FaChevronRight,
-    FaUserSecret, FaSignInAlt
+    FaTags, FaUserSecret, FaSignInAlt
 } from 'react-icons/fa';
-import AuthContext from '../../context/AuthContext';
 import api from '../../api/axios';
+import CategoriesTab from '../../components/admin/CategoriesTab';
+import { formatMoney } from '../../utils/currency';
+import PayoutClaims from '../../components/admin/PayoutClaims';
+import CommissionReview from '../../components/admin/CommissionReview';
+import InstructorRequests from '../../components/admin/InstructorRequests';
 import { showSuccess, showError } from '../../utils/toast';
+
+const LkrIcon = ({ className }) => (
+    <span className={`font-bold text-[14px] leading-none tracking-tight select-none ${className || ''}`}>Rs</span>
+);
 
 /* ─────────────────────────────────────────────────────────────────────────────
    Shared helpers
 ───────────────────────────────────────────────────────────────────────────── */
-const formatCurrency = (amount) => `₹${(amount || 0).toLocaleString('en-IN')}`;
+const formatCurrency = formatMoney;
+
+// LKR and USD can't be added together, so totals show LKR with the USD part underneath when there is any
+const UsdLine = ({ amount, className = '' }) => (amount > 0
+    ? <span className={`block text-xs font-medium text-slate-500 dark:text-slate-400 ${className}`}>+ {formatCurrency(amount, 'USD')}</span>
+    : null);
 
 const Avatar = ({ name, color = 'indigo', size = 9, blocked = false }) => {
     const palette = {
         indigo: 'bg-indigo-100 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400',
-        slate:  'bg-slate-100  dark:bg-slate-700       text-slate-600  dark:text-slate-300',
-        red:    'bg-red-100    dark:bg-red-900/40      text-red-600    dark:text-red-400',
+        slate: 'bg-slate-100  dark:bg-slate-700       text-slate-600  dark:text-slate-300',
+        red:  'bg-red-100    dark:bg-red-900/40      text-red-600    dark:text-red-400',
     };
     return (
         <div className={`w-${size} h-${size} rounded-full flex items-center justify-center text-sm font-semibold shrink-0 ${blocked ? palette.red : palette[color]}`}>
@@ -32,14 +45,14 @@ const Avatar = ({ name, color = 'indigo', size = 9, blocked = false }) => {
 
 const Badge = ({ variant, children }) => {
     const variants = {
-        active:      'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 ring-1 ring-emerald-200 dark:ring-emerald-800',
-        blocked:     'bg-red-50     dark:bg-red-900/20     text-red-700     dark:text-red-400     ring-1 ring-red-200     dark:ring-red-800',
-        warned:      'bg-amber-50   dark:bg-amber-900/20   text-amber-700   dark:text-amber-400   ring-1 ring-amber-200   dark:ring-amber-800',
-        student:     'bg-sky-50     dark:bg-sky-900/20     text-sky-700     dark:text-sky-400     ring-1 ring-sky-200     dark:ring-sky-800',
-        instructor:  'bg-violet-50  dark:bg-violet-900/20  text-violet-700  dark:text-violet-400  ring-1 ring-violet-200  dark:ring-violet-800',
-        completed:   'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 ring-1 ring-emerald-200 dark:ring-emerald-800',
-        pending:     'bg-amber-50   dark:bg-amber-900/20   text-amber-700   dark:text-amber-400   ring-1 ring-amber-200   dark:ring-amber-800',
-        failed:      'bg-red-50     dark:bg-red-900/20     text-red-700     dark:text-red-400     ring-1 ring-red-200     dark:ring-red-800',
+        active: 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 ring-1 ring-emerald-200 dark:ring-emerald-800',
+        blocked: 'bg-red-50     dark:bg-red-900/20     text-red-700     dark:text-red-400     ring-1 ring-red-200     dark:ring-red-800',
+        warned: 'bg-amber-50   dark:bg-amber-900/20   text-amber-700   dark:text-amber-400   ring-1 ring-amber-200   dark:ring-amber-800',
+        student: 'bg-sky-50     dark:bg-sky-900/20     text-sky-700     dark:text-sky-400     ring-1 ring-sky-200     dark:ring-sky-800',
+        instructor: 'bg-violet-50  dark:bg-violet-900/20  text-violet-700  dark:text-violet-400  ring-1 ring-violet-200  dark:ring-violet-800',
+        completed: 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 ring-1 ring-emerald-200 dark:ring-emerald-800',
+        pending: 'bg-amber-50   dark:bg-amber-900/20   text-amber-700   dark:text-amber-400   ring-1 ring-amber-200   dark:ring-amber-800',
+        failed: 'bg-red-50     dark:bg-red-900/20     text-red-700     dark:text-red-400     ring-1 ring-red-200     dark:ring-red-800',
     };
     return (
         <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium ${variants[variant] || variants.active}`}>
@@ -73,11 +86,10 @@ const Pagination = ({ page, totalPages, onPageChange }) => {
                             : <button
                                 key={p}
                                 onClick={() => onPageChange(p)}
-                                className={`w-7 h-7 text-xs rounded-lg font-medium transition-colors ${
-                                    p === page
+                                className={`w-7 h-7 text-xs rounded-lg font-medium transition-colors ${p === page
                                         ? 'bg-indigo-500 text-white'
                                         : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700'
-                                }`}
+                                    }`}
                             >{p}</button>
                     )
                 }
@@ -98,9 +110,9 @@ const Pagination = ({ page, totalPages, onPageChange }) => {
 ───────────────────────────────────────────────────────────────────────────── */
 const StatCard = ({ icon: Icon, label, value, sub, color }) => {
     const colors = {
-        blue:   { wrap: 'bg-blue-500',   ring: 'ring-blue-100 dark:ring-blue-900/30',   text: 'text-blue-600 dark:text-blue-400' },
+        blue: { wrap: 'bg-blue-500', ring: 'ring-blue-100 dark:ring-blue-900/30', text: 'text-blue-600 dark:text-blue-400' },
         purple: { wrap: 'bg-violet-500', ring: 'ring-violet-100 dark:ring-violet-900/30', text: 'text-violet-600 dark:text-violet-400' },
-        green:  { wrap: 'bg-emerald-500', ring: 'ring-emerald-100 dark:ring-emerald-900/30', text: 'text-emerald-600 dark:text-emerald-400' },
+        green: { wrap: 'bg-emerald-500', ring: 'ring-emerald-100 dark:ring-emerald-900/30', text: 'text-emerald-600 dark:text-emerald-400' },
         orange: { wrap: 'bg-orange-500', ring: 'ring-orange-100 dark:ring-orange-900/30', text: 'text-orange-600 dark:text-orange-400' },
     };
     const c = colors[color];
@@ -127,8 +139,6 @@ const PayoutsTab = () => {
     const [page, setPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
 
-    useEffect(() => { fetchPayouts(); }, [page]);
-
     const fetchPayouts = async () => {
         setLoading(true);
         try {
@@ -141,6 +151,8 @@ const PayoutsTab = () => {
             setLoading(false);
         }
     };
+
+    useEffect(() => { fetchPayouts(); }, [page]);
 
     if (loading) return <div className="text-center py-20 text-slate-500 dark:text-slate-400">Loading payouts…</div>;
 
@@ -160,7 +172,8 @@ const PayoutsTab = () => {
                     <thead>
                         <tr className="bg-slate-50 dark:bg-slate-900/60 border-b border-slate-200 dark:border-slate-700 text-xs uppercase tracking-wide">
                             <th className="text-left px-5 py-3 font-semibold text-slate-500 dark:text-slate-400">Instructor</th>
-                            <th className="text-left px-5 py-3 font-semibold text-slate-500 dark:text-slate-400">Amount</th>
+                            <th className="text-left px-5 py-3 font-semibold text-slate-500 dark:text-slate-400">Paid</th>
+                            <th className="text-left px-5 py-3 font-semibold text-slate-500 dark:text-slate-400">Commission</th>
                             <th className="text-left px-5 py-3 font-semibold text-slate-500 dark:text-slate-400">Method</th>
                             <th className="text-left px-5 py-3 font-semibold text-slate-500 dark:text-slate-400">Transaction ID</th>
                             <th className="text-left px-5 py-3 font-semibold text-slate-500 dark:text-slate-400">Status</th>
@@ -180,7 +193,8 @@ const PayoutsTab = () => {
                                         </div>
                                     </div>
                                 </td>
-                                <td className="px-5 py-3.5 font-semibold text-slate-900 dark:text-white">{formatCurrency(p.amount)}</td>
+                                <td className="px-5 py-3.5 font-semibold text-slate-900 dark:text-white">{formatCurrency(p.amount, p.currency)}</td>
+                                <td className="px-5 py-3.5 text-slate-600 dark:text-slate-300">{formatCurrency(p.commissionAmount, p.currency)}</td>
                                 <td className="px-5 py-3.5 text-slate-600 dark:text-slate-300 capitalize">{p.method?.replace('_', ' ')}</td>
                                 <td className="px-5 py-3.5 font-mono text-xs text-slate-500 dark:text-slate-400">{p.transactionId || '—'}</td>
                                 <td className="px-5 py-3.5">
@@ -190,7 +204,7 @@ const PayoutsTab = () => {
                                     </Badge>
                                 </td>
                                 <td className="px-5 py-3.5 text-slate-600 dark:text-slate-300">{p.processedBy?.name || '—'}</td>
-                                <td className="px-5 py-3.5 text-xs text-slate-500 dark:text-slate-400">{new Date(p.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}</td>
+                                <td className="px-5 py-3.5 text-xs text-slate-500 dark:text-slate-400">{new Date(p.createdAt).toLocaleDateString('en-LK', { day: '2-digit', month: 'short', year: 'numeric' })}</td>
                             </tr>
                         ))}
                     </tbody>
@@ -229,10 +243,7 @@ const UsersTab = () => {
     const [editMaxWarnings, setEditMaxWarnings] = useState({});
     const [maxWarningsInput, setMaxWarningsInput] = useState({});
 
-    useEffect(() => { fetchUsers(); }, []);
-
     // Reset to page 1 when search/filter changes
-    useEffect(() => { setPage(1); }, [search, filter]);
 
     const fetchUsers = async () => {
         setLoading(true);
@@ -245,6 +256,8 @@ const UsersTab = () => {
             setLoading(false);
         }
     };
+
+    useEffect(() => { fetchUsers(); }, []);
 
     const filteredUsers = users.filter(u => {
         const q = search.toLowerCase();
@@ -347,7 +360,7 @@ const UsersTab = () => {
                         type="text"
                         placeholder="Search name or email…"
                         value={search}
-                        onChange={e => setSearch(e.target.value)}
+                        onChange={e => { setSearch(e.target.value); setPage(1); }}
                         className="w-full pl-8 pr-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                     />
                 </div>
@@ -359,12 +372,11 @@ const UsersTab = () => {
                         return (
                             <button
                                 key={f.id}
-                                onClick={() => setFilter(f.id)}
-                                className={`px-3 py-1.5 text-xs font-medium rounded-lg border transition-all ${
-                                    isActive
+                                onClick={() => { setFilter(f.id); setPage(1); }}
+                                className={`px-3 py-1.5 text-xs font-medium rounded-lg border transition-all ${isActive
                                         ? `${accent} text-white shadow-sm`
                                         : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:border-slate-300 dark:hover:border-slate-600'
-                                }`}
+                                    }`}
                             >
                                 {f.label}
                                 <span className={`ml-1.5 px-1.5 py-0.5 rounded-full text-[10px] font-bold ${isActive ? 'bg-white/25' : 'bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400'}`}>
@@ -412,9 +424,8 @@ const UsersTab = () => {
                                         const warnPct = Math.min(100, (warnCount / maxWarn) * 100);
 
                                         return (
-                                            <>
+                                            <Fragment key={user._id}>
                                                 <tr
-                                                    key={user._id}
                                                     className={`hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors ${user.isBlocked ? 'bg-red-50/40 dark:bg-red-900/10' : ''}`}
                                                 >
                                                     {/* User info */}
@@ -438,11 +449,10 @@ const UsersTab = () => {
                                                         <select
                                                             value={user.role}
                                                             onChange={e => handleChangeRole(user._id, e.target.value)}
-                                                            className={`text-xs px-2.5 py-1.5 rounded-lg border font-medium focus:outline-none focus:ring-2 focus:ring-indigo-400 cursor-pointer ${
-                                                                user.role === 'instructor'
+                                                            className={`text-xs px-2.5 py-1.5 rounded-lg border font-medium focus:outline-none focus:ring-2 focus:ring-indigo-400 cursor-pointer ${user.role === 'instructor'
                                                                     ? 'bg-violet-50 dark:bg-violet-900/20 border-violet-200 dark:border-violet-800 text-violet-700 dark:text-violet-300'
                                                                     : 'bg-sky-50 dark:bg-sky-900/20 border-sky-200 dark:border-sky-800 text-sky-700 dark:text-sky-300'
-                                                            }`}
+                                                                }`}
                                                         >
                                                             <option value="student">Student</option>
                                                             <option value="instructor">Instructor</option>
@@ -454,13 +464,12 @@ const UsersTab = () => {
                                                         <div className="space-y-1.5">
                                                             <div className="flex items-center gap-2">
                                                                 {/* Count pill */}
-                                                                <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold ${
-                                                                    warnCount === 0
+                                                                <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold ${warnCount === 0
                                                                         ? 'bg-slate-100 dark:bg-slate-700 text-slate-400'
                                                                         : warnCount >= maxWarn
                                                                             ? 'bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400'
                                                                             : 'bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400'
-                                                                }`}>
+                                                                    }`}>
                                                                     {warnCount > 0 && <FaExclamationTriangle className="text-[8px]" />}
                                                                     {warnCount}/{maxWarn}
                                                                 </span>
@@ -567,7 +576,7 @@ const UsersTab = () => {
                                                                             </span>
                                                                             <div>
                                                                                 <p className="text-sm text-slate-700 dark:text-slate-300">{w.reason}</p>
-                                                                                <p className="text-[11px] text-slate-400 mt-0.5">{new Date(w.issuedAt).toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</p>
+                                                                                <p className="text-[11px] text-slate-400 mt-0.5">{new Date(w.issuedAt).toLocaleString('en-LK', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</p>
                                                                             </div>
                                                                         </div>
                                                                         <button
@@ -583,7 +592,7 @@ const UsersTab = () => {
                                                         </td>
                                                     </tr>
                                                 )}
-                                            </>
+                                            </Fragment>
                                         );
                                     })}
                                 </tbody>
@@ -663,9 +672,8 @@ const UsersTab = () => {
                                 <button
                                     onClick={handleWarn}
                                     disabled={warnLoading}
-                                    className={`flex-1 px-4 py-2.5 text-white rounded-xl text-sm font-semibold transition-colors disabled:opacity-50 ${
-                                        isLastWarning(warnModal.user) ? 'bg-red-500 hover:bg-red-600' : 'bg-amber-500 hover:bg-amber-600'
-                                    }`}
+                                    className={`flex-1 px-4 py-2.5 text-white rounded-xl text-sm font-semibold transition-colors disabled:opacity-50 ${isLastWarning(warnModal.user) ? 'bg-red-500 hover:bg-red-600' : 'bg-amber-500 hover:bg-amber-600'
+                                        }`}
                                 >
                                     {warnLoading ? 'Issuing…' : isLastWarning(warnModal.user) ? 'Warn & Block' : 'Issue Warning'}
                                 </button>
@@ -755,8 +763,6 @@ const ImpersonateTab = () => {
     const [email, setEmail] = useState('');
     const [loading, setLoading] = useState(false);
     const [foundUser, setFoundUser] = useState(null);
-    const { logout } = useContext(AuthContext);
-    const navigate = useNavigate();
 
     const handleSearch = async (e) => {
         e.preventDefault();
@@ -903,11 +909,10 @@ const AdminDashboard = () => {
     // Payout modal
     const [showPayoutModal, setShowPayoutModal] = useState(false);
     const [selectedInstructor, setSelectedInstructor] = useState(null);
-    const [payoutForm, setPayoutForm] = useState({ amount: '', method: 'bank_transfer', transactionId: '', note: '' });
+    const [payoutForm, setPayoutForm] = useState({ amount: '', currency: 'LKR', method: 'bank_transfer', transactionId: '', note: '' });
     const [payoutLoading, setPayoutLoading] = useState(false);
+    const [payoutsVersion, setPayoutsVersion] = useState(0);
 
-    useEffect(() => { fetchData(); }, []);
-    useEffect(() => { setInstructorPage(1); }, [instructorSearch]);
 
     const fetchData = async () => {
         try {
@@ -924,9 +929,20 @@ const AdminDashboard = () => {
         }
     };
 
+    useEffect(() => { fetchData(); }, []);
+
+    // What can still be paid to an instructor in one currency, before commission
+    const pendingIn = (instructor, currency) => instructor.byCurrency?.[currency]?.available || 0;
+
     const openPayoutModal = (instructor) => {
         setSelectedInstructor(instructor);
-        setPayoutForm({ amount: '', method: instructor.preferredMethod || 'bank_transfer', transactionId: '', note: '' });
+        setPayoutForm({
+            amount: '',
+            currency: pendingIn(instructor, 'LKR') > 0 ? 'LKR' : 'USD',
+            method: instructor.preferredMethod || 'bank_transfer',
+            transactionId: '',
+            note: ''
+        });
         setShowPayoutModal(true);
     };
 
@@ -938,6 +954,7 @@ const AdminDashboard = () => {
             await api.post('/admin/payouts', {
                 instructorId: selectedInstructor._id,
                 amount: Number(payoutForm.amount),
+                currency: payoutForm.currency,
                 method: payoutForm.method,
                 transactionId: payoutForm.transactionId,
                 note: payoutForm.note
@@ -972,6 +989,7 @@ const AdminDashboard = () => {
         { id: 'instructors', label: 'Instructors', icon: FaChalkboardTeacher },
         { id: 'payouts', label: 'Payouts', icon: FaMoneyCheckAlt },
         { id: 'users', label: 'Users', icon: FaShieldAlt },
+        { id: 'categories', label: 'Categories', icon: FaTags },
         { id: 'impersonate', label: 'Login As', icon: FaUserSecret },
     ];
 
@@ -999,11 +1017,10 @@ const AdminDashboard = () => {
                                 <button
                                     key={tab.id}
                                     onClick={() => setActiveTab(tab.id)}
-                                    className={`flex items-center gap-2 px-5 py-3 text-sm font-medium border-b-2 transition-all ${
-                                        activeTab === tab.id
+                                    className={`flex items-center gap-2 px-5 py-3 text-sm font-medium border-b-2 transition-all ${activeTab === tab.id
                                             ? 'border-indigo-500 text-indigo-600 dark:text-indigo-400'
                                             : 'border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
-                                    }`}
+                                        }`}
                                 >
                                     <Icon className="text-sm" />
                                     <span className="hidden sm:inline">{tab.label}</span>
@@ -1022,18 +1039,19 @@ const AdminDashboard = () => {
                     <div className="space-y-6">
                         {/* Stats */}
                         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                            <StatCard icon={FaUsers}           label="Total Users"  value={stats.totalUsers}   color="blue" />
+                            <StatCard icon={FaUsers} label="Total Users" value={stats.totalUsers} color="blue" />
                             <StatCard icon={FaChalkboardTeacher} label="Instructors" value={stats.totalInstructors} color="purple" />
-                            <StatCard icon={FaGraduationCap}   label="Students"     value={stats.totalStudents} color="green" />
-                            <StatCard icon={FaBook}            label="Courses"       value={`${stats.publishedCourses ?? 0}/${stats.totalCourses ?? 0}`} sub="published / total" color="orange" />
+                            <StatCard icon={FaBookOpen} label="Students" value={stats.totalStudents} color="green" />
+                            <StatCard icon={FaBook} label="Courses" value={`${stats.publishedCourses ?? 0}/${stats.totalCourses ?? 0}`} sub="published / total" color="orange" />
                         </div>
 
                         {/* Revenue */}
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
                             {[
-                                { icon: FaRupeeSign, label: 'Total Revenue', value: formatCurrency(stats.totalRevenue), sub: `${stats.totalSales ?? 0} sales`, bg: 'bg-emerald-500', light: 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-100 dark:border-emerald-900/30' },
-                                { icon: FaMoneyCheckAlt, label: 'Total Paid Out', value: formatCurrency(stats.totalPaidOut), sub: 'To instructors', bg: 'bg-indigo-500', light: 'bg-indigo-50 dark:bg-indigo-900/20 border-indigo-100 dark:border-indigo-900/30' },
-                                { icon: FaExclamationCircle, label: 'Pending Payout', value: formatCurrency(stats.pendingPayout), sub: 'Owed to instructors', bg: 'bg-amber-500', light: 'bg-amber-50 dark:bg-amber-900/20 border-amber-100 dark:border-amber-900/30' },
+                                { icon: LkrIcon, label: 'Total Revenue', value: formatCurrency(stats.totalRevenue), usd: stats.byCurrency?.USD?.earned, sub: `${stats.totalSales ?? 0} sales`, bg: 'bg-emerald-500', light: 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-100 dark:border-emerald-900/30' },
+                                { icon: FaMoneyCheckAlt, label: 'Commission Earned', value: formatCurrency(stats.totalCommission), usd: stats.byCurrency?.USD?.commission, sub: `Still owed ${formatCurrency(stats.commissionOwed)}`, bg: 'bg-purple-500', light: 'bg-purple-50 dark:bg-purple-500/10 border-purple-200 dark:border-purple-500/20' },
+                                { icon: FaMoneyCheckAlt, label: 'Total Paid Out', value: formatCurrency(stats.totalPaidOut), usd: stats.byCurrency?.USD?.paidOut, sub: 'To instructors', bg: 'bg-indigo-500', light: 'bg-indigo-50 dark:bg-indigo-900/20 border-indigo-100 dark:border-indigo-900/30' },
+                                { icon: FaExclamationCircle, label: 'Pending Payout', value: formatCurrency(stats.pendingPayout), usd: stats.byCurrency?.USD?.pending, sub: 'Still owed, after commission', bg: 'bg-amber-500', light: 'bg-amber-50 dark:bg-amber-900/20 border-amber-100 dark:border-amber-900/30' },
                             ].map(r => (
                                 <div key={r.label} className={`rounded-xl border p-5 flex items-center gap-4 ${r.light}`}>
                                     <div className={`w-11 h-11 rounded-xl ${r.bg} flex items-center justify-center shrink-0 shadow`}>
@@ -1042,6 +1060,7 @@ const AdminDashboard = () => {
                                     <div>
                                         <p className="text-xs text-slate-500 dark:text-slate-400">{r.label}</p>
                                         <p className="text-xl font-bold text-slate-900 dark:text-white">{r.value}</p>
+                                        <UsdLine amount={r.usd} className="text-sm" />
                                         <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{r.sub}</p>
                                     </div>
                                 </div>
@@ -1066,7 +1085,7 @@ const AdminDashboard = () => {
                                                 <p className="text-sm font-medium text-slate-900 dark:text-white truncate">{p.user?.name}</p>
                                                 <p className="text-xs text-slate-500 dark:text-slate-400 truncate">{p.course?.title}</p>
                                             </div>
-                                            <span className="text-sm font-semibold text-emerald-600 dark:text-emerald-400">+{formatCurrency(p.amount)}</span>
+                                            <span className="text-sm font-semibold text-emerald-600 dark:text-emerald-400">+{formatCurrency(p.amount, p.currency)}</span>
                                         </div>
                                     ))}
                                     {(!dashboard?.recentPurchases || dashboard.recentPurchases.length === 0) && (
@@ -1090,11 +1109,11 @@ const AdminDashboard = () => {
                                             <div className="flex-1 min-w-0">
                                                 <p className="text-sm font-medium text-slate-900 dark:text-white truncate">{p.instructor?.name}</p>
                                                 <p className="text-xs text-slate-500 dark:text-slate-400 capitalize">
-                                                    {p.method?.replace('_', ' ')} &middot; {new Date(p.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}
+                                                    {p.method?.replace('_', ' ')} &middot; {new Date(p.createdAt).toLocaleDateString('en-LK', { day: '2-digit', month: 'short' })}
                                                 </p>
                                             </div>
                                             <span className={`text-sm font-semibold ${p.status === 'completed' ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'}`}>
-                                                {formatCurrency(p.amount)}
+                                                {formatCurrency(p.amount, p.currency)}
                                             </span>
                                         </div>
                                     ))}
@@ -1108,6 +1127,7 @@ const AdminDashboard = () => {
                 )}
 
                 {/* ── INSTRUCTORS TAB ──────────────────────────────────────── */}
+                {activeTab === 'instructors' && <InstructorRequests onReviewed={fetchData} />}
                 {activeTab === 'instructors' && (
                     <div className="space-y-4">
                         <div className="relative max-w-sm">
@@ -1116,7 +1136,7 @@ const AdminDashboard = () => {
                                 type="text"
                                 placeholder="Search instructors…"
                                 value={instructorSearch}
-                                onChange={e => setInstructorSearch(e.target.value)}
+                                onChange={e => { setInstructorSearch(e.target.value); setInstructorPage(1); }}
                                 className="w-full pl-8 pr-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                             />
                         </div>
@@ -1135,8 +1155,9 @@ const AdminDashboard = () => {
                                             <th className="text-left px-5 py-3 font-semibold text-slate-500 dark:text-slate-400">Courses</th>
                                             <th className="text-left px-5 py-3 font-semibold text-slate-500 dark:text-slate-400">Sales</th>
                                             <th className="text-left px-5 py-3 font-semibold text-slate-500 dark:text-slate-400">Earned</th>
+                                            <th className="text-left px-5 py-3 font-semibold text-slate-500 dark:text-slate-400">Commission</th>
                                             <th className="text-left px-5 py-3 font-semibold text-slate-500 dark:text-slate-400">Paid</th>
-                                            <th className="text-left px-5 py-3 font-semibold text-slate-500 dark:text-slate-400">Pending</th>
+                                            <th className="text-left px-5 py-3 font-semibold text-slate-500 dark:text-slate-400">Still to Pay</th>
                                             <th className="text-left px-5 py-3 font-semibold text-slate-500 dark:text-slate-400">Bank</th>
                                             <th className="text-right px-5 py-3 font-semibold text-slate-500 dark:text-slate-400">Action</th>
                                         </tr>
@@ -1155,12 +1176,25 @@ const AdminDashboard = () => {
                                                 </td>
                                                 <td className="px-5 py-4 text-slate-700 dark:text-slate-300 font-medium">{inst.courseCount}</td>
                                                 <td className="px-5 py-4 text-slate-700 dark:text-slate-300">{inst.totalSales}</td>
-                                                <td className="px-5 py-4 font-semibold text-slate-900 dark:text-white">{formatCurrency(inst.totalEarnings)}</td>
-                                                <td className="px-5 py-4 text-emerald-600 dark:text-emerald-400 font-medium">{formatCurrency(inst.totalPaidOut)}</td>
+                                                <td className="px-5 py-4 font-semibold text-slate-900 dark:text-white">
+                                                    {formatCurrency(inst.totalEarnings)}
+                                                    <UsdLine amount={inst.byCurrency?.USD?.earned} />
+                                                </td>
+                                                <td className="px-5 py-4 text-slate-700 dark:text-slate-300">
+                                                    {formatCurrency(inst.totalCommission)}
+                                                    {inst.commissionOwed > 0 && (
+                                                        <span className="block text-[11px] text-amber-600 dark:text-amber-400">Owes {formatCurrency(inst.commissionOwed)}</span>
+                                                    )}
+                                                </td>
+                                                <td className="px-5 py-4 text-emerald-600 dark:text-emerald-400 font-medium">
+                                                    {formatCurrency(inst.totalPaidOut)}
+                                                    <UsdLine amount={inst.byCurrency?.USD?.paidOut} />
+                                                </td>
                                                 <td className="px-5 py-4">
                                                     <span className={`font-semibold ${inst.pendingAmount > 0 ? 'text-amber-600 dark:text-amber-400' : 'text-slate-400'}`}>
                                                         {formatCurrency(inst.pendingAmount)}
                                                     </span>
+                                                    <UsdLine amount={inst.byCurrency?.USD?.pending} />
                                                 </td>
                                                 <td className="px-5 py-4">
                                                     {inst.hasBankDetails
@@ -1169,7 +1203,7 @@ const AdminDashboard = () => {
                                                     }
                                                 </td>
                                                 <td className="px-5 py-4 text-right">
-                                                    {inst.pendingAmount > 0 && (
+                                                    {(pendingIn(inst, 'LKR') > 0 || pendingIn(inst, 'USD') > 0) && (
                                                         <button
                                                             onClick={() => openPayoutModal(inst)}
                                                             className="px-3.5 py-1.5 bg-indigo-500 hover:bg-indigo-600 text-white text-xs font-semibold rounded-lg transition-colors shadow-sm"
@@ -1197,12 +1231,19 @@ const AdminDashboard = () => {
                 )}
 
                 {/* ── PAYOUTS TAB ───────────────────────────────────────────── */}
-                {activeTab === 'payouts' && <PayoutsTab />}
+                {activeTab === 'payouts' && (
+                    <>
+                        <CommissionReview onReviewed={fetchData} />
+                        <PayoutClaims onReviewed={() => { setPayoutsVersion(v => v + 1); fetchData(); }} />
+                        <PayoutsTab key={payoutsVersion} />
+                    </>
+                )}
 
                 {/* ── USERS TAB ────────────────────────────────────────────── */}
                 {activeTab === 'users' && <UsersTab />}
 
                 {/* ── IMPERSONATE TAB ─────────────────────────────────────── */}
+                {activeTab === 'categories' && <CategoriesTab />}
                 {activeTab === 'impersonate' && <ImpersonateTab />}
 
             </div>{/* end tab content */}
@@ -1218,7 +1259,10 @@ const AdminDashboard = () => {
                             <div className="flex-1">
                                 <h3 className="font-semibold text-slate-900 dark:text-white">Record Payout</h3>
                                 <p className="text-xs text-slate-500 dark:text-slate-400">
-                                    {selectedInstructor.name} &middot; Pending: <span className="font-semibold text-amber-500">{formatCurrency(selectedInstructor.pendingAmount)}</span>
+                                    {selectedInstructor.name} &middot; Available: <span className="font-semibold text-amber-500">{formatCurrency(selectedInstructor.pendingAmount)}</span>
+                                    {pendingIn(selectedInstructor, 'USD') > 0 && (
+                                        <span className="font-semibold text-amber-500"> + {formatCurrency(pendingIn(selectedInstructor, 'USD'), 'USD')}</span>
+                                    )}
                                 </p>
                             </div>
                             <button onClick={() => setShowPayoutModal(false)} className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 hover:text-slate-600 transition-colors">
@@ -1227,12 +1271,24 @@ const AdminDashboard = () => {
                         </div>
                         <form onSubmit={handlePayout} className="p-5 space-y-4">
                             <div>
-                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Amount (₹)</label>
+                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Currency</label>
+                                <select
+                                    value={payoutForm.currency}
+                                    onChange={e => setPayoutForm({ ...payoutForm, currency: e.target.value })}
+                                    className="w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                >
+                                    <option value="LKR">Rs. (available {formatCurrency(pendingIn(selectedInstructor, 'LKR'))})</option>
+                                    <option value="USD">USD (available {formatCurrency(pendingIn(selectedInstructor, 'USD'), 'USD')})</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Amount before 10% commission ({payoutForm.currency})</label>
                                 <input
                                     type="number"
                                     value={payoutForm.amount}
                                     onChange={e => setPayoutForm({ ...payoutForm, amount: e.target.value })}
-                                    max={selectedInstructor.pendingAmount}
+                                    max={pendingIn(selectedInstructor, payoutForm.currency)}
+                                    step="0.01"
                                     className="w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
                                     placeholder="Enter amount"
                                     required

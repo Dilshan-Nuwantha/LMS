@@ -1,21 +1,25 @@
-import { createContext, useState, useEffect } from 'react';
+
+import { createContext, useState, useEffect, useCallback } from 'react';
 import api from '../api/axios';
 
 const AuthContext = createContext();
 
-// Cache expiry time from env (default 7 days) - should match JWT token expiry
-const CACHE_EXPIRY_DAYS = parseInt(import.meta.env.VITE_SESSION_EXPIRY_DAYS) || 7;
-const CACHE_EXPIRY_MS = CACHE_EXPIRY_DAYS * 24 * 60 * 60 * 1000;
+// Cache expiry time from env (default 1 hour, matching the token)
+const CACHE_EXPIRY_HOURS =
+    parseInt(import.meta.env.VITE_SESSION_EXPIRY_HOURS) || 1;
 
-// Helper to get cached user from localStorage (with expiry check)
+const CACHE_EXPIRY_MS =
+    CACHE_EXPIRY_HOURS * 60 * 60 * 1000;
+
+// Get cached user from localStorage
 const getCachedUser = () => {
     try {
         const cached = localStorage.getItem('userCache');
+
         if (!cached) return null;
 
         const { user, timestamp } = JSON.parse(cached);
 
-        // Check if cache has expired (7 days)
         if (Date.now() - timestamp > CACHE_EXPIRY_MS) {
             localStorage.removeItem('userCache');
             localStorage.removeItem('token');
@@ -28,96 +32,154 @@ const getCachedUser = () => {
     }
 };
 
-// Helper to cache user in localStorage (with timestamp)
+// Cache user in localStorage
 const cacheUser = (userData) => {
     if (userData) {
-        localStorage.setItem('userCache', JSON.stringify({
-            user: userData,
-            timestamp: Date.now()
-        }));
+        localStorage.setItem(
+            'userCache',
+            JSON.stringify({
+                user: userData,
+                timestamp: Date.now()
+            })
+        );
     } else {
         localStorage.removeItem('userCache');
     }
 };
 
 export const AuthProvider = ({ children }) => {
-    // Initialize user from cache immediately (no flash!)
     const [user, setUser] = useState(() => getCachedUser());
-    // If we have cached user, don't show loading state
     const [loading, setLoading] = useState(() => !getCachedUser());
 
+    // Logout function
+    const logout = useCallback(() => {
+        localStorage.removeItem('token');
+        cacheUser(null);
+        setUser(null);
+    }, []);
+
+    // Listen for expired JWT event from Axios interceptor
+    useEffect(() => {
+        const handleSessionExpired = () => {
+            logout();
+        };
+
+        window.addEventListener(
+            'auth:session-expired',
+            handleSessionExpired
+        );
+
+        return () => {
+            window.removeEventListener(
+                'auth:session-expired',
+                handleSessionExpired
+            );
+        };
+    }, [logout]);
+
+    // Check logged-in user
     useEffect(() => {
         const checkUserLoggedIn = async () => {
             const token = localStorage.getItem('token');
+
             if (token) {
                 try {
                     const res = await api.get('/auth/me');
+
                     setUser(res.data);
                     cacheUser(res.data);
+
                 } catch (error) {
-                    // Token invalid, clear everything
-                    localStorage.removeItem('token');
-                    cacheUser(null);
-                    setUser(null);
+                    // Clear authentication only for authentication failures
+                    if (error.response?.status === 401) {
+                        logout();
+                    }
+                    // Keep cached session if network/server error occurs
                 }
             } else {
-                // No token, clear cached user
                 cacheUser(null);
                 setUser(null);
             }
+
             setLoading(false);
         };
 
         checkUserLoggedIn();
-    }, []);
+    }, [logout]);
 
     const getRolePath = (role) => {
         if (role === 'admin') return 'admin';
-        if (role === 'instructor') return 'teacher';
+        if (role === 'instructor') return 'instructor';
         return 'student';
     };
 
     const login = async (email, password, role) => {
         const rolePath = getRolePath(role);
-        const res = await api.post(`/auth/${rolePath}/login`, { email, password });
+
+        const res = await api.post(
+            `/auth/${rolePath}/login`,
+            { email, password }
+        );
+
         localStorage.setItem('token', res.data.token);
         cacheUser(res.data);
         setUser(res.data);
+
         return res.data;
     };
 
     const register = async (name, email, password, role = 'student') => {
         const rolePath = getRolePath(role);
-        const res = await api.post(`/auth/${rolePath}/register`, { name, email, password });
+
+        const res = await api.post(
+            `/auth/${rolePath}/register`,
+            { name, email, password }
+        );
+
         localStorage.setItem('token', res.data.token);
         cacheUser(res.data);
         setUser(res.data);
+
         return res.data;
     };
 
-    const googleLogin = async (code) => {
-        const res = await api.post('/auth/google', { code });
+    const googleLogin = async (code, role) => {
+        const rolePath = getRolePath(role);
+
+        const res = await api.post(
+            `/auth/${rolePath}/google`,
+            { code }
+        );
+
         localStorage.setItem('token', res.data.token);
         cacheUser(res.data);
         setUser(res.data);
+
         return res.data;
     };
 
     const updateProfile = async (data) => {
         const res = await api.put('/auth/profile', data);
+
         cacheUser(res.data);
         setUser(res.data);
+
         return res.data;
     };
 
-    const logout = () => {
-        localStorage.removeItem('token');
-        cacheUser(null);
-        setUser(null);
-    };
-
     return (
-        <AuthContext.Provider value={{ user, loading, login, register, googleLogin, logout, updateProfile }}>
+        <AuthContext.Provider
+            value={{
+                user,
+                setUser,
+                loading,
+                login,
+                register,
+                googleLogin,
+                logout,
+                updateProfile
+            }}
+        >
             {children}
         </AuthContext.Provider>
     );

@@ -10,10 +10,6 @@ const QuizAnalytics = () => {
     const [analytics, setAnalytics] = useState(null);
     const [loading, setLoading] = useState(true);
 
-    useEffect(() => {
-        fetchAnalytics();
-    }, [quizId]);
-
     const fetchAnalytics = async () => {
         try {
             const res = await api.get(`/quizzes/${quizId}/analytics`);
@@ -24,6 +20,10 @@ const QuizAnalytics = () => {
             setLoading(false);
         }
     };
+
+    useEffect(() => {
+        fetchAnalytics();
+    }, [quizId]);
 
     const formatTime = (seconds) => {
         if (!seconds) return '0s';

@@ -1,6 +1,6 @@
 const PDFDocument = require('pdfkit');
 
-const CURRENCY_SYMBOLS = { INR: '₹', USD: '$' };
+const CURRENCY_SYMBOLS = { LKR: 'Rs', USD: '$' };
 
 /**
  * Generate a professional PDF invoice and pipe it to the response stream.
@@ -10,8 +10,11 @@ const CURRENCY_SYMBOLS = { INR: '₹', USD: '$' };
 const generateInvoicePDF = (purchase, res) => {
     const doc = new PDFDocument({ size: 'A4', margin: 50 });
 
-    const currency = CURRENCY_SYMBOLS[purchase.currency] || '₹';
-    const isPaid = purchase.invoiceStatus === 'paid';
+    const currency = CURRENCY_SYMBOLS[purchase.currency] || 'Rs';
+    const status = {
+        paid: { badge: 'PAID', line: 'Payment Received', color: '#16a34a' },
+        refunded: { badge: 'REFUNDED', line: 'Payment Refunded', color: '#dc2626' }
+    }[purchase.invoiceStatus] || { badge: 'CREATED', line: 'Payment Pending', color: '#f59e0b' };
 
     // Set response headers
     res.setHeader('Content-Type', 'application/pdf');
@@ -19,7 +22,7 @@ const generateInvoicePDF = (purchase, res) => {
     doc.pipe(res);
 
     // --- Header ---
-    doc.fontSize(24).font('Helvetica-Bold').text('Skill Path', 50, 50);
+    doc.fontSize(24).font('Helvetica-Bold').text('Tenz Learn', 50, 50);
     doc.fontSize(10).font('Helvetica').fillColor('#666666')
         .text('Course Marketplace', 50, 80);
 
@@ -28,8 +31,8 @@ const generateInvoicePDF = (purchase, res) => {
         .text('INVOICE', 400, 50, { align: 'right' });
 
     doc.fontSize(11).font('Helvetica-Bold')
-        .fillColor(isPaid ? '#16a34a' : '#f59e0b')
-        .text(isPaid ? 'PAID' : 'CREATED', 400, 85, { align: 'right' });
+        .fillColor(status.color)
+        .text(status.badge, 400, 85, { align: 'right' });
 
     // Divider
     doc.moveTo(50, 110).lineTo(545, 110).strokeColor('#e2e8f0').stroke();
@@ -120,8 +123,8 @@ const generateInvoicePDF = (purchase, res) => {
 
     currentY += lineHeight + 5;
 
-    doc.fontSize(10).font('Helvetica').fillColor(isPaid ? '#16a34a' : '#f59e0b')
-        .text(isPaid ? 'Payment Received' : 'Payment Pending', 300, currentY, { align: 'right', width: 235 });
+    doc.fontSize(10).font('Helvetica').fillColor(status.color)
+        .text(status.line, 300, currentY, { align: 'right', width: 235 });
 
     // --- Footer ---
     const footerY = 720;
@@ -135,7 +138,7 @@ const generateInvoicePDF = (purchase, res) => {
 };
 
 function formatDate(date) {
-    return new Date(date).toLocaleDateString('en-IN', {
+    return new Date(date).toLocaleDateString('en-LK', {
         year: 'numeric',
         month: 'long',
         day: 'numeric'

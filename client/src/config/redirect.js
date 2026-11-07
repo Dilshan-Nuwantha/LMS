@@ -22,7 +22,7 @@ export const REDIRECT_ENABLED = true;
 export const SOURCE_DOMAIN = 'study-portal-frontend.onrender.com';
 
 // The domain you want to redirect TO (without https://)
-export const TARGET_DOMAIN = 'study.tenze.com';
+export const TARGET_DOMAIN = 'study.TenZe.com';
 
 // ============================================
 // REDIRECT LOGIC - DO NOT EDIT BELOW

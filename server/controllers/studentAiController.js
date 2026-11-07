@@ -1,27 +1,31 @@
 const asyncHandler = require('express-async-handler');
-const TeacherAIConfig = require('../models/TeacherAIConfig');
+const InstructorAIConfig = require('../models/InstructorAIConfig');
 const Conversation = require('../models/Conversation');
 const Course = require('../models/Course');
 const { encrypt, decrypt } = require('../utils/encryption');
 const { testConnection, callChat } = require('../services/aiService');
+const { isCourseMember } = require('../middleware/ownershipMiddleware');
 
 function maskKey(key) {
     if (!key || key.length < 12) return '••••••••';
     return key.slice(0, 4) + '••••••••' + key.slice(-4);
 }
 
-async function getStudentAI(userId, courseId = null, useInstructorKey = false) {
+async function getStudentAI(user, courseId = null, useInstructorKey = false) {
+    const userId = user._id;
+
     // If student explicitly wants instructor key, skip own config
     if (!useInstructorKey) {
-        const studentConfig = await TeacherAIConfig.findOne({ teacher: userId, isActive: true });
+        const studentConfig = await InstructorAIConfig.findOne({ instructor: userId, isActive: true });
         if (studentConfig) {
             const apiKey = decrypt(studentConfig.apiKey);
             return { apiKey, provider: studentConfig.provider, model: studentConfig.model, source: 'student' };
         }
     }
 
-    // Use instructor's config if course has allowStudentAI enabled
-    if (courseId) {
+    // Only a conversation opened on the instructor key may use it. That flag is what shows the
+    // warning banner, keeps the chat visible to the instructor and stops it being deleted.
+    if (useInstructorKey && courseId) {
         const course = await Course.findById(courseId).select('user allowStudentAI aiBlockedStudents');
         if (course && course.allowStudentAI) {
             const isBlocked = course.aiBlockedStudents?.some(id => id.toString() === userId.toString());
@@ -30,7 +34,12 @@ async function getStudentAI(userId, courseId = null, useInstructorKey = false) {
                 err.statusCode = 403;
                 throw err;
             }
-            const instructorConfig = await TeacherAIConfig.findOne({ teacher: course.user, isActive: true });
+            if (!(await isCourseMember(user, course))) {
+                const err = new Error('You must be enrolled in this course to use the instructor\'s AI.');
+                err.statusCode = 403;
+                throw err;
+            }
+            const instructorConfig = await InstructorAIConfig.findOne({ instructor: course.user, isActive: true });
             if (instructorConfig) {
                 const apiKey = decrypt(instructorConfig.apiKey);
                 return { apiKey, provider: instructorConfig.provider, model: instructorConfig.model, source: 'instructor' };
@@ -49,7 +58,7 @@ const getCourseAIStatus = asyncHandler(async (req, res) => {
     const userId = req.user._id;
 
     const [studentConfig, course] = await Promise.all([
-        TeacherAIConfig.findOne({ teacher: userId, isActive: true }).select('_id'),
+        InstructorAIConfig.findOne({ instructor: userId, isActive: true }).select('_id'),
         Course.findById(courseId).select('user allowStudentAI aiBlockedStudents')
     ]);
 
@@ -59,7 +68,7 @@ const getCourseAIStatus = asyncHandler(async (req, res) => {
 
     let instructorHasKey = false;
     if (allowStudentAI && !isBlocked && course?.user) {
-        instructorHasKey = !!(await TeacherAIConfig.findOne({ teacher: course.user, isActive: true }).select('_id'));
+        instructorHasKey = !!(await InstructorAIConfig.findOne({ instructor: course.user, isActive: true }).select('_id'));
     }
 
     res.json({ hasOwnKey, allowStudentAI, isBlocked: !!isBlocked, instructorHasKey });
@@ -68,7 +77,7 @@ const getCourseAIStatus = asyncHandler(async (req, res) => {
 // ─── CONFIG CRUD ───────────────────────────────────────────────────
 
 const getConfig = asyncHandler(async (req, res) => {
-    const config = await TeacherAIConfig.findOne({ teacher: req.user._id });
+    const config = await InstructorAIConfig.findOne({ instructor: req.user._id });
     if (!config) return res.json(null);
 
     let maskedKey = '••••••••';
@@ -95,8 +104,8 @@ const saveConfig = asyncHandler(async (req, res) => {
         throw new Error('Invalid provider');
     }
     const encryptedKey = encrypt(apiKey);
-    const config = await TeacherAIConfig.findOneAndUpdate(
-        { teacher: req.user._id },
+    const config = await InstructorAIConfig.findOneAndUpdate(
+        { instructor: req.user._id },
         { provider, apiKey: encryptedKey, model, isActive: true },
         { upsert: true, new: true }
     );
@@ -111,7 +120,7 @@ const saveConfig = asyncHandler(async (req, res) => {
 });
 
 const deleteConfig = asyncHandler(async (req, res) => {
-    const config = await TeacherAIConfig.findOneAndDelete({ teacher: req.user._id });
+    const config = await InstructorAIConfig.findOneAndDelete({ instructor: req.user._id });
     if (!config) { res.status(404); throw new Error('No AI configuration found'); }
     res.json({ message: 'AI configuration deleted' });
 });
@@ -161,6 +170,7 @@ const createConversation = asyncHandler(async (req, res) => {
     if (courseId) {
         const course = await Course.findById(courseId);
         if (!course) { res.status(404); throw new Error('Course not found'); }
+        if (!(await isCourseMember(req.user, course))) { res.status(403); throw new Error('You must be enrolled in this course'); }
         data.course = courseId;
         data.title = title || `Chat about ${course.title}`;
         if (useInstructorKey) data.useInstructorKey = true;
@@ -176,7 +186,7 @@ const getConversations = asyncHandler(async (req, res) => {
     if (courseId) filter.course = courseId;
 
     const conversations = await Conversation.find(filter)
-        .select('title course updatedAt messages')
+        .select('title course updatedAt messages useInstructorKey')
         .sort({ updatedAt: -1 })
         .lean();
 
@@ -238,7 +248,7 @@ const sendMessage = asyncHandler(async (req, res) => {
         throw new Error('Message or file is required');
     }
 
-    const { apiKey, provider, model, source } = await getStudentAI(req.user._id, conversation.course?._id || null, conversation.useInstructorKey || false);
+    const { apiKey, provider, model, source } = await getStudentAI(req.user, conversation.course?._id || null, conversation.useInstructorKey || false);
 
     let userText = message || '';
     let imageData = null;

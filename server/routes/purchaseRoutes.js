@@ -1,6 +1,13 @@
 const express = require('express');
 const router = express.Router();
+const multer = require('multer');
 const {
+    getCourseBankDetails,
+    submitPaymentSlip,
+    getPendingSlips,
+    getSlipFile,
+    approveSlip,
+    rejectSlip,
     createCheckoutSession,
     handleStripeWebhook,
     getMyPurchases,
@@ -9,18 +16,28 @@ const {
     getInvoiceData,
     downloadInvoicePDF
 } = require('../controllers/purchaseController');
-const { protect } = require('../middleware/authMiddleware');
+const { protect, instructorOnly } = require('../middleware/authMiddleware');
+
+const slipUpload = multer({
+    storage: multer.memoryStorage(),
+    limits: { fileSize: 2 * 1024 * 1024 }
+});
 
 // Stripe webhook (must be before JSON body parser in main app)
 // Note: This route is mounted separately in index.js with raw body parser
 router.post('/webhook', handleStripeWebhook);
 
-// Public invoice routes (shareable via link)
-router.get('/invoice/:invoiceNumber', getInvoiceData);
-router.get('/invoice/:invoiceNumber/pdf', downloadInvoicePDF);
-
 // Protected routes
+// Invoices: only the student, the course instructor or an admin
+router.get('/invoice/:invoiceNumber', protect, getInvoiceData);
+router.get('/invoice/:invoiceNumber/pdf', protect, downloadInvoicePDF);
 router.post('/checkout', protect, createCheckoutSession);
+router.get('/course/:courseId/bank-details', protect, getCourseBankDetails);
+router.post('/slip', protect, slipUpload.single('slip'), submitPaymentSlip);
+router.get('/slips', protect, instructorOnly, getPendingSlips);
+router.get('/:id/slip', protect, getSlipFile);
+router.put('/:id/slip/approve', protect, instructorOnly, approveSlip);
+router.put('/:id/slip/reject', protect, instructorOnly, rejectSlip);
 router.get('/my-purchases', protect, getMyPurchases);
 router.get('/verify/:courseId', protect, verifyPurchase);
 router.get('/session/:sessionId', protect, getSessionStatus);

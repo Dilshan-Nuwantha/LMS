@@ -1,3 +1,4 @@
+
 import axios from 'axios';
 import { showError } from '../utils/toast';
 
@@ -8,36 +9,65 @@ const api = axios.create({
     },
 });
 
-// Add a request interceptor to inject the token
+// Request interceptor
 api.interceptors.request.use(
     (config) => {
         const token = localStorage.getItem('token');
+
         if (token) {
             config.headers.Authorization = `Bearer ${token}`;
         }
+
         return config;
     },
     (error) => Promise.reject(error)
 );
 
-// Add a response interceptor to handle common errors globally
+// Prevent multiple expiration redirects
+let isRedirecting = false;
+
+// Response interceptor
 api.interceptors.response.use(
     (response) => response,
+
     (error) => {
         const status = error.response?.status;
+        const errorCode = error.response?.data?.code;
 
         if (status === 429) {
             showError('Too many requests. Please slow down.');
             error.handled = true;
-        } else if (status === 401) {
-            const msg = error.response?.data?.message || '';
-            if (msg.includes('expired') || msg.includes('Not authorized')) {
+
+        } else if (status === 401 && errorCode === 'TokenExpired') {
+
+            if (
+                !isRedirecting &&
+                window.location.pathname !== '/login'
+            ) {
+                isRedirecting = true;
+
                 showError('Your session has expired. Please log in again.');
-                error.handled = true;
+
+                // Notify AuthContext to clear user and token
+                window.dispatchEvent(
+                    new Event('auth:session-expired')
+                );
+
+                // Redirect to login
+                window.location.replace('/login');
             }
+
+            error.handled = true;
+
+        } else if (status === 401) {
+            // Other authentication errors
+            // Do not automatically log out for every 401 response.
+            error.handled = false;
+
         } else if (status >= 500) {
             showError('Something went wrong on our end. Please try again.');
             error.handled = true;
+
         } else if (!error.response && error.message === 'Network Error') {
             showError('Unable to reach the server. Check your internet connection.');
             error.handled = true;

@@ -137,7 +137,7 @@ skill-path/
 │       │       ├── FloatingAIChatButton.jsx    # Floating AI chat button
 │       │       ├── Modal.jsx                   # Reusable modal
 │       │       ├── Pagination.jsx              # Reusable pagination
-│       │       ├── PriceDisplay.jsx            # Price formatting (INR/USD)
+│       │       ├── PriceDisplay.jsx            # Price formatting (LKR/USD)
 │       │       ├── StarRating.jsx              # Star rating input
 │       │       └── StatusSelector.jsx          # Lecture status dropdown
 │       │
@@ -530,7 +530,7 @@ skill-path/
 ### 1. Clone
 
 ```bash
-git clone https://github.com/tenze/study-portal.git
+git clone https://github.com/TenZe/study-portal.git
 cd study-portal
 ```
 

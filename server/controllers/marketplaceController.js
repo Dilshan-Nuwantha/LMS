@@ -2,65 +2,48 @@ const asyncHandler = require('express-async-handler');
 const Course = require('../models/Course');
 const User = require('../models/User');
 const Review = require('../models/Review');
+const { getPaging, escapeRegex, stripHash } = require('../utils/query');
+const { getCategoryNames } = require('./categoryController');
 
-// @desc    Get all marketplace courses
-// @route   GET /api/marketplace
-// @access  Public
-const getMarketplaceCourses = asyncHandler(async (req, res) => {
-    const {
-        category,
-        level,
-        minPrice,
-        maxPrice,
-        minRating,
-        sortBy = 'newest',
-        page = 1,
-        limit = 12
-    } = req.query;
-
-    // Build filter query
-    const filter = {
-        isMarketplace: true,
-        status: 'Published',
-        isAdminBlocked: { $ne: true }
-    };
-
+// The filters both the course list and search use
+const applyFilters = (filter, { category, level, language, tag, minPrice, maxPrice, minRating }) => {
     if (category) filter.category = category;
     if (level) filter.level = level;
+    if (language) filter.language = language;
+    if (stripHash(tag)) filter.tags = new RegExp(escapeRegex(stripHash(tag)), 'i');
     if (minPrice || maxPrice) {
         filter.price = {};
         if (minPrice) filter.price.$gte = Number(minPrice);
         if (maxPrice) filter.price.$lte = Number(maxPrice);
     }
     if (minRating) filter['rating.average'] = { $gte: Number(minRating) };
+    return filter;
+};
 
-    // Sort options
-    let sort = {};
-    switch (sortBy) {
-        case 'newest':
-            sort = { createdAt: -1 };
-            break;
-        case 'popular':
-            sort = { enrollmentCount: -1 };
-            break;
-        case 'rating':
-            sort = { 'rating.average': -1 };
-            break;
-        case 'price-low':
-            sort = { price: 1 };
-            break;
-        case 'price-high':
-            sort = { price: -1 };
-            break;
-        default:
-            sort = { createdAt: -1 };
-    }
+const SORTS = {
+    newest: { createdAt: -1 },
+    popular: { enrollmentCount: -1 },
+    rating: { 'rating.average': -1 },
+    'price-low': { price: 1 },
+    'price-high': { price: -1 }
+};
 
-    const skip = (Number(page) - 1) * Number(limit);
+// @desc    Get all marketplace courses
+// @route   GET /api/marketplace
+// @access  Public
+const getMarketplaceCourses = asyncHandler(async (req, res) => {
+    const { page, limit, skip } = getPaging(req.query, 12);
+
+    const filter = applyFilters({
+        isMarketplace: true,
+        status: 'Published',
+        isAdminBlocked: { $ne: true }
+    }, req.query);
+    const sort = SORTS[req.query.sortBy] || SORTS.newest;
 
     const courses = await Course.find(filter)
         .populate('user', 'name profileImage')
-        .select('title description thumbnail price originalPrice currency category level rating enrollmentCount user createdAt tags')
+        .select('title description thumbnail price originalPrice currency category level language tags rating enrollmentCount user createdAt tags')
         .sort(sort)
         .skip(skip)
         .limit(Number(limit));
@@ -85,6 +68,7 @@ const getMarketplaceCourse = asyncHandler(async (req, res) => {
     const course = await Course.findOne({
         _id: req.params.id,
         isMarketplace: true,
+        status: 'Published',
         isAdminBlocked: { $ne: true }
     })
         .populate('user', 'name bio profileImage')
@@ -111,15 +95,19 @@ const getMarketplaceCourse = asyncHandler(async (req, res) => {
         totalLectures += section.lectures.length;
     });
 
-    // Prepare response - hide non-public lecture details
-    const courseData = course.toObject();
+    // Prepare response - this page is public, so internal settings are left out
+    const {
+        aiBlockedStudents, notificationSettings, adminBlockReason, isAdminBlocked, allowStudentBroadcasts,
+        allowPeerProgress, allowStudentUploads, allowStudentAI, lectureStatuses, completedStatus,
+        ...courseData
+    } = course.toObject();
 
     // Filter out hidden sections
     courseData.sections = courseData.sections
         .filter(section => section.isPublic)
         .map(section => ({
             ...section,
-            lectures: section.lectures.map(lecture => ({
+            lectures: section.lectures.filter(lecture => lecture.isPublic || lecture.isPreview).map(lecture => ({
                 _id: lecture._id,
                 title: lecture.title,
                 number: lecture.number,
@@ -142,14 +130,17 @@ const getMarketplaceCourse = asyncHandler(async (req, res) => {
 // @route   GET /api/marketplace/search
 // @access  Public
 const searchMarketplace = asyncHandler(async (req, res) => {
-    const { q, page = 1, limit = 12 } = req.query;
+    const q = stripHash(req.query.q);
+    const { page, limit, skip } = getPaging(req.query, 12);
 
-    if (!q || q.trim().length === 0) {
+    if (!q) {
         res.status(400);
         throw new Error('Search query is required');
     }
 
-    const searchRegex = new RegExp(q.trim(), 'i');
+    const searchRegex = new RegExp(escapeRegex(q), 'i');
+
+    const instructors = await User.find({ name: searchRegex, role: { $in: ['instructor', 'admin'] } }).select('_id').limit(50).lean();
 
     const filter = {
         isMarketplace: true,
@@ -159,16 +150,18 @@ const searchMarketplace = asyncHandler(async (req, res) => {
             { title: searchRegex },
             { description: searchRegex },
             { category: searchRegex },
-            { tags: searchRegex }
+            { tags: searchRegex },
+            { user: { $in: instructors.map(i => i._id) } }
         ]
     };
 
-    const skip = (Number(page) - 1) * Number(limit);
+    // A search keeps the filters that are set beside it
+    applyFilters(filter, req.query);
 
     const courses = await Course.find(filter)
         .populate('user', 'name profileImage')
-        .select('title description thumbnail price originalPrice currency category level rating enrollmentCount user createdAt tags')
-        .sort({ 'rating.average': -1, enrollmentCount: -1 })
+        .select('title description thumbnail price originalPrice currency category level language tags rating enrollmentCount user createdAt tags')
+        .sort(SORTS[req.query.sortBy] || { 'rating.average': -1, enrollmentCount: -1 })
         .skip(skip)
         .limit(Number(limit));
 
@@ -190,14 +183,7 @@ const searchMarketplace = asyncHandler(async (req, res) => {
 // @route   GET /api/marketplace/categories
 // @access  Public
 const getCategories = asyncHandler(async (req, res) => {
-    const categories = await Course.distinct('category', {
-        isMarketplace: true,
-        status: 'Published',
-        isAdminBlocked: { $ne: true },
-        category: { $ne: '' }
-    });
-
-    res.status(200).json(categories);
+    res.status(200).json(await getCategoryNames());
 });
 
 module.exports = {

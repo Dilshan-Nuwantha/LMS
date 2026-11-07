@@ -23,7 +23,7 @@ const StudentAnalytics = ({ courseId }) => {
             try {
                 const res = await api.get(`/courses/${courseId}/my-analytics`);
                 setData(res.data);
-            } catch (err) {
+            } catch {
                 setError('Failed to load analytics');
             } finally {
                 setLoading(false);
@@ -58,32 +58,9 @@ const StudentAnalytics = ({ courseId }) => {
         color: STATUS_COLORS[name] || FALLBACK_COLORS[i % FALLBACK_COLORS.length]
     }));
 
-    const totalLectures = overview.totalLectures;
     const radius = 54;
     const circumference = 2 * Math.PI * radius;
     const strokeDash = (overview.overallPercent / 100) * circumference;
-
-    const CustomTooltip = ({ active, payload, label }) => {
-        if (!active || !payload?.length) return null;
-        return (
-            <div className="bg-slate-900 dark:bg-slate-700 text-white px-3 py-2 rounded-lg shadow-xl text-[11px] font-medium border border-white/10">
-                {label && <p className="text-slate-400 text-[10px] mb-0.5">{label}</p>}
-                {payload.map((p, i) => (
-                    <p key={i}>{p.name || 'Value'}: <span className="font-bold">{p.value}</span></p>
-                ))}
-            </div>
-        );
-    };
-
-    const getActivityConfig = (action) => {
-        if (action?.includes('Completed')) return { icon: FaCheck, color: 'text-emerald-500', bg: 'bg-emerald-50 dark:bg-emerald-500/10' };
-        if (action?.includes('Started') || action?.includes('In Progress')) return { icon: FaPlay, color: 'text-blue-500', bg: 'bg-blue-50 dark:bg-blue-500/10' };
-        if (action?.includes('Quiz')) return { icon: FaClipboardList, color: 'text-violet-500', bg: 'bg-violet-50 dark:bg-violet-500/10' };
-        if (action?.includes('Note')) return { icon: FaPen, color: 'text-amber-500', bg: 'bg-amber-50 dark:bg-amber-500/10' };
-        if (action?.includes('Revision')) return { icon: FaBookmark, color: 'text-pink-500', bg: 'bg-pink-50 dark:bg-pink-500/10' };
-        if (action?.includes('Broadcast') || action?.includes('Lecture Added')) return { icon: FaBullhorn, color: 'text-indigo-500', bg: 'bg-indigo-50 dark:bg-indigo-500/10' };
-        return { icon: FaChartLine, color: 'text-slate-400', bg: 'bg-slate-50 dark:bg-slate-800' };
-    };
 
     return (
         <div className="space-y-4 max-w-5xl mx-auto">
@@ -278,6 +255,18 @@ const StudentAnalytics = ({ courseId }) => {
                     </div>
                 </div>
             )}
+        </div>
+    );
+};
+
+const CustomTooltip = ({ active, payload, label }) => {
+    if (!active || !payload?.length) return null;
+    return (
+        <div className="bg-slate-900 dark:bg-slate-700 text-white px-3 py-2 rounded-lg shadow-xl text-[11px] font-medium border border-white/10">
+            {label && <p className="text-slate-400 text-[10px] mb-0.5">{label}</p>}
+            {payload.map((p, i) => (
+                <p key={i}>{p.name || 'Value'}: <span className="font-bold">{p.value}</span></p>
+            ))}
         </div>
     );
 };

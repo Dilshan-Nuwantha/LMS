@@ -1,13 +1,12 @@
-import { useState, useEffect, useContext } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FaPlus, FaTimes, FaImage, FaVideo, FaSave, FaArrowLeft } from 'react-icons/fa';
 import api from '../../api/axios';
-import AuthContext from '../../context/AuthContext';
+import ImageUpload from '../../components/ui/ImageUpload';
 import { showSuccess, showError } from '../../utils/toast';
 
 const CreateMarketplaceCourse = () => {
     const navigate = useNavigate();
-    const { user } = useContext(AuthContext);
     const [loading, setLoading] = useState(false);
     const [step, setStep] = useState(1);
 
@@ -19,35 +18,20 @@ const CreateMarketplaceCourse = () => {
         language: 'English',
         price: '',
         originalPrice: '',
-        currency: 'INR',
+        currency: 'LKR',
+        tags: '',
         thumbnail: '',
         previewVideo: '',
         requirements: [''],
         whatYouWillLearn: ['']
     });
 
-    const defaultCategories = [
-        'Development', 'Business', 'Design', 'Marketing',
-        'IT & Software', 'Personal Development', 'Photography',
-        'Music', 'Health & Fitness', 'Other'
-    ];
-
-    const [categories, setCategories] = useState(defaultCategories);
+    const [categories, setCategories] = useState([]);
 
     useEffect(() => {
-        const fetchCategories = async () => {
-            try {
-                const res = await api.get('/marketplace/categories');
-                if (res.data.length > 0) {
-                    // Merge fetched categories with defaults, keeping unique values
-                    const merged = [...new Set([...res.data, ...defaultCategories])].sort();
-                    setCategories(merged);
-                }
-            } catch (error) {
-                // Fall back to default categories
-            }
-        };
-        fetchCategories();
+        api.get('/marketplace/categories')
+            .then(res => setCategories(res.data))
+            .catch(() => showError('Failed to load categories'));
     }, []);
 
     const levels = ['Beginner', 'Intermediate', 'Advanced'];
@@ -123,6 +107,7 @@ const CreateMarketplaceCourse = () => {
                 originalPrice: formData.originalPrice ? Number(formData.originalPrice) : Number(formData.price),
                 requirements: formData.requirements.filter(r => r.trim()),
                 whatYouWillLearn: formData.whatYouWillLearn.filter(w => w.trim()),
+                tags: formData.tags.split(','),
                 status
             };
 
@@ -163,10 +148,10 @@ const CreateMarketplaceCourse = () => {
                         <div key={s} className="flex items-center">
                             <div
                                 className={`w-10 h-10 rounded-full flex items-center justify-center font-semibold transition-colors ${s === step
-                                        ? 'bg-indigo-500 text-white'
-                                        : s < step
-                                            ? 'bg-green-500 text-white'
-                                            : 'bg-slate-200 dark:bg-slate-700 text-slate-500'
+                                    ? 'bg-indigo-500 text-white'
+                                    : s < step
+                                        ? 'bg-green-500 text-white'
+                                        : 'bg-slate-200 dark:bg-slate-700 text-slate-500'
                                     }`}
                             >
                                 {s}
@@ -266,6 +251,21 @@ const CreateMarketplaceCourse = () => {
                                     />
                                 </div>
                             </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                                    Tags
+                                </label>
+                                <input
+                                    type="text"
+                                    name="tags"
+                                    value={formData.tags}
+                                    onChange={handleChange}
+                                    placeholder="e.g. javascript, react, web design"
+                                    className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg text-slate-900 dark:text-white"
+                                />
+                                <p className="text-xs text-slate-500 mt-1">Separate tags with commas. Students can search by them.</p>
+                            </div>
                         </div>
                     )}
 
@@ -282,14 +282,16 @@ const CreateMarketplaceCourse = () => {
                                         Price *
                                     </label>
                                     <div className="relative">
-                                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500">₹</span>
+                                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-xs font-semibold">
+                                            {formData.currency === 'USD' ? '$' : 'Rs.'}
+                                        </span>
                                         <input
                                             type="number"
                                             name="price"
                                             value={formData.price}
                                             onChange={handleChange}
                                             placeholder="499"
-                                            className="w-full px-4 py-3 pl-8 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg focus:outline-none focus:border-indigo-500"
+                                            className="w-full px-4 py-3 pl-12 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg focus:outline-none focus:border-indigo-500"
                                         />
                                     </div>
                                 </div>
@@ -299,14 +301,16 @@ const CreateMarketplaceCourse = () => {
                                         Original Price (for discount)
                                     </label>
                                     <div className="relative">
-                                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500">₹</span>
+                                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-xs font-semibold">
+                                            {formData.currency === 'USD' ? '$' : 'Rs.'}
+                                        </span>
                                         <input
                                             type="number"
                                             name="originalPrice"
                                             value={formData.originalPrice}
                                             onChange={handleChange}
                                             placeholder="999"
-                                            className="w-full px-4 py-3 pl-8 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg focus:outline-none focus:border-indigo-500"
+                                            className="w-full px-4 py-3 pl-12 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg focus:outline-none focus:border-indigo-500"
                                         />
                                     </div>
                                 </div>
@@ -321,7 +325,7 @@ const CreateMarketplaceCourse = () => {
                                         onChange={handleChange}
                                         className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg focus:outline-none focus:border-indigo-500"
                                     >
-                                        <option value="INR">INR (₹)</option>
+                                        <option value="LKR">Rs. (LKR)</option>
                                         <option value="USD">USD ($)</option>
                                     </select>
                                 </div>
@@ -330,15 +334,11 @@ const CreateMarketplaceCourse = () => {
                             <div>
                                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
                                     <FaImage className="inline mr-2" />
-                                    Thumbnail URL
+                                    Thumbnail
                                 </label>
-                                <input
-                                    type="url"
-                                    name="thumbnail"
+                                <ImageUpload
                                     value={formData.thumbnail}
-                                    onChange={handleChange}
-                                    placeholder="https://example.com/image.jpg"
-                                    className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg focus:outline-none focus:border-indigo-500"
+                                    onChange={(url) => setFormData(current => ({ ...current, thumbnail: url }))}
                                 />
                             </div>
 

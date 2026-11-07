@@ -1,6 +1,8 @@
 const asyncHandler = require('express-async-handler');
 const Notification = require('../models/Notification');
 const Progress = require('../models/Progress');
+const User = require('../models/User');
+const { getPaging } = require('../utils/query');
 
 // Helper: Create notifications for all enrolled students of a course
 const notifyCourseStudents = async (courseId, { title, message, type, link, priority }) => {
@@ -41,17 +43,23 @@ const notifyUser = async (userId, { courseId, title, message, type, link, priori
     }
 };
 
+// Tells every admin about something waiting for them
+const notifyAdmins = async (details) => {
+    const admins = await User.find({ role: 'admin' }).select('_id').lean();
+    await Promise.all(admins.map(admin => notifyUser(admin._id, details)));
+};
+
 // @desc    Get notifications for current user
 // @route   GET /api/notifications
 // @access  Private
 const getNotifications = asyncHandler(async (req, res) => {
-    const { page = 1, limit = 20 } = req.query;
+    const { page, limit, skip } = getPaging(req.query, 20);
     const userId = req.user._id;
 
     const total = await Notification.countDocuments({ user: userId });
     const notifications = await Notification.find({ user: userId })
         .sort({ createdAt: -1 })
-        .skip((page - 1) * limit)
+        .skip(skip)
         .limit(Number(limit))
         .populate('course', 'title');
 
@@ -127,6 +135,13 @@ const sendCustomNotification = asyncHandler(async (req, res) => {
     }
 
     if (studentIds && studentIds.length > 0) {
+        const uniqueIds = [...new Set(studentIds.map(String))];
+        const enrolledCount = await Progress.countDocuments({ course: req.params.courseId, student: { $in: uniqueIds } });
+        if (enrolledCount !== uniqueIds.length) {
+            res.status(400);
+            throw new Error('Notifications can only be sent to students enrolled in this course');
+        }
+
         // Send to specific students
         for (const studentId of studentIds) {
             await notifyUser(studentId, {
@@ -175,6 +190,7 @@ const updateNotificationSettings = asyncHandler(async (req, res) => {
 });
 
 module.exports = {
+    notifyAdmins,
     notifyCourseStudents,
     notifyUser,
     getNotifications,

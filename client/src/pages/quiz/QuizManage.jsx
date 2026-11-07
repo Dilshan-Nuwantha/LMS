@@ -47,10 +47,6 @@ const QuizManage = () => {
         questionTypes: ['mcq']
     });
 
-    useEffect(() => {
-        fetchData();
-    }, [courseId]);
-
     const fetchData = async () => {
         try {
             const [courseRes, quizzesRes] = await Promise.all([
@@ -66,6 +62,10 @@ const QuizManage = () => {
             setLoading(false);
         }
     };
+
+    useEffect(() => {
+        fetchData();
+    }, [courseId]);
 
     const resetForm = () => {
         setFormData({
@@ -153,7 +153,7 @@ const QuizManage = () => {
             const res = await api.put(`/quizzes/${quiz._id}`, { isActive: !quiz.isActive });
             setQuizzes(quizzes.map(q => q._id === quiz._id ? res.data : q));
             showSuccess(res.data.isActive ? 'Quiz activated' : 'Quiz deactivated');
-        } catch (error) {
+        } catch {
             showError('Failed to update quiz status');
         }
     };

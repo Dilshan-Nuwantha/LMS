@@ -3,9 +3,16 @@ const mongoose = require('mongoose');
 const Resource = require('../models/Resource');
 const Course = require('../models/Course');
 const Progress = require('../models/Progress');
-const CourseTeacher = require('../models/CourseTeacher');
+const CourseInstructor = require('../models/CourseInstructor');
+const { isSafeUrl } = require('../utils/url');
 
-// @desc    Upload a resource (teacher or student)
+// Headers are limited to Latin characters, so the real name goes in the encoded filename* form
+const contentDisposition = (type, fileName) => {
+    const fallback = String(fileName).replace(/[^\x20-\x7e]|["\\]/g, '_');
+    return `${type}; filename="${fallback}"; filename*=UTF-8''${encodeURIComponent(fileName)}`;
+};
+
+// @desc    Upload a resource (instructor or student)
 // @route   POST /api/resources/:courseId
 const uploadResource = asyncHandler(async (req, res) => {
     const { courseId } = req.params;
@@ -26,10 +33,10 @@ const uploadResource = asyncHandler(async (req, res) => {
 
     // Determine role
     const isOwner = course.user.toString() === req.user.id;
-    const teacherRecord = await CourseTeacher.findOne({ course: courseId, teacher: req.user.id });
-    const isTeacher = isOwner || (teacherRecord && (teacherRecord.permissions.manage_content || teacherRecord.permissions.full_access));
+    const instructorRecord = await CourseInstructor.findOne({ course: courseId, instructor: req.user.id });
+    const isInstructor = isOwner || (instructorRecord && (instructorRecord.permissions.manage_content || instructorRecord.permissions.full_access));
 
-    if (!isTeacher) {
+    if (!isInstructor) {
         // Check if student & allowed
         const enrolled = await Progress.findOne({ student: req.user.id, course: courseId });
         if (!enrolled) {
@@ -42,10 +49,15 @@ const uploadResource = asyncHandler(async (req, res) => {
         }
     }
 
-    const uploaderRole = isTeacher ? 'teacher' : 'student';
+    const uploaderRole = isInstructor ? 'instructor' : 'student';
 
     // Handle link-type resource
     if (url) {
+        if (!isSafeUrl(url)) {
+            res.status(400);
+            throw new Error('Link must be a valid http or https URL');
+        }
+
         const resource = await Resource.create({
             course: courseId,
             uploadedBy: req.user.id,
@@ -105,12 +117,12 @@ const getResources = asyncHandler(async (req, res) => {
         throw new Error('Course not found');
     }
 
-    // Verify access: teacher or enrolled student
+    // Verify access: instructor or enrolled student
     const isOwner = course.user.toString() === req.user.id;
-    const teacherRecord = await CourseTeacher.findOne({ course: courseId, teacher: req.user.id });
-    const isTeacher = isOwner || !!teacherRecord;
+    const instructorRecord = await CourseInstructor.findOne({ course: courseId, instructor: req.user.id });
+    const isInstructor = isOwner || !!instructorRecord || req.user.role === 'admin';
 
-    if (!isTeacher) {
+    if (!isInstructor) {
         const enrolled = await Progress.findOne({ student: req.user.id, course: courseId });
         if (!enrolled) {
             res.status(403);
@@ -126,7 +138,7 @@ const getResources = asyncHandler(async (req, res) => {
     res.json({
         resources,
         allowStudentUploads: course.allowStudentUploads,
-        isTeacher
+        isInstructor
     });
 });
 
@@ -143,10 +155,10 @@ const downloadResource = asyncHandler(async (req, res) => {
 
     // Verify access
     const isOwner = course.user.toString() === req.user.id;
-    const teacherRecord = await CourseTeacher.findOne({ course: courseId, teacher: req.user.id });
-    const isTeacher = isOwner || !!teacherRecord;
+    const instructorRecord = await CourseInstructor.findOne({ course: courseId, instructor: req.user.id });
+    const isInstructor = isOwner || !!instructorRecord || req.user.role === 'admin';
 
-    if (!isTeacher) {
+    if (!isInstructor) {
         const enrolled = await Progress.findOne({ student: req.user.id, course: courseId });
         if (!enrolled) {
             res.status(403);
@@ -168,7 +180,7 @@ const downloadResource = asyncHandler(async (req, res) => {
     const buffer = Buffer.from(resource.fileData, 'base64');
     res.set({
         'Content-Type': resource.mimeType,
-        'Content-Disposition': `attachment; filename="${resource.fileName}"`,
+        'Content-Disposition': contentDisposition('attachment', resource.fileName),
         'Content-Length': buffer.length
     });
     res.send(buffer);
@@ -192,11 +204,11 @@ const deleteResource = asyncHandler(async (req, res) => {
     }
 
     const isOwner = course.user.toString() === req.user.id;
-    const teacherRecord = await CourseTeacher.findOne({ course: courseId, teacher: req.user.id });
-    const isTeacher = isOwner || (teacherRecord && (teacherRecord.permissions.manage_content || teacherRecord.permissions.full_access));
+    const instructorRecord = await CourseInstructor.findOne({ course: courseId, instructor: req.user.id });
+    const isInstructor = isOwner || (instructorRecord && (instructorRecord.permissions.manage_content || instructorRecord.permissions.full_access));
 
-    // Teachers can delete any resource, students can only delete their own
-    if (!isTeacher && resource.uploadedBy.toString() !== req.user.id) {
+    // Instructors can delete any resource, students can only delete their own
+    if (!isInstructor && resource.uploadedBy.toString() !== req.user.id) {
         res.status(403);
         throw new Error('Not authorized to delete this resource');
     }
@@ -232,12 +244,12 @@ const getResourcesByLecture = asyncHandler(async (req, res) => {
         throw new Error('Course not found');
     }
 
-    // Verify access: teacher or enrolled student
+    // Verify access: instructor or enrolled student
     const isOwner = course.user.toString() === req.user.id;
-    const teacherRecord = await CourseTeacher.findOne({ course: courseId, teacher: req.user.id });
-    const isTeacher = isOwner || !!teacherRecord;
+    const instructorRecord = await CourseInstructor.findOne({ course: courseId, instructor: req.user.id });
+    const isInstructor = isOwner || !!instructorRecord || req.user.role === 'admin';
 
-    if (!isTeacher) {
+    if (!isInstructor) {
         const enrolled = await Progress.findOne({ student: req.user.id, course: courseId });
         if (!enrolled) {
             res.status(403);
@@ -291,13 +303,13 @@ const updateResource = asyncHandler(async (req, res) => {
         throw new Error('Resource not found');
     }
 
-    // Verify access: teacher or uploader
+    // Verify access: instructor or uploader
     const isOwner = course.user.toString() === req.user.id;
-    const teacherRecord = await CourseTeacher.findOne({ course: courseId, teacher: req.user.id });
-    const isTeacher = isOwner || !!teacherRecord;
+    const instructorRecord = await CourseInstructor.findOne({ course: courseId, instructor: req.user.id });
+    const isInstructor = isOwner || !!instructorRecord || req.user.role === 'admin';
     const isUploader = resource.uploadedBy.toString() === req.user.id;
 
-    if (!isTeacher && !isUploader) {
+    if (!isInstructor && !isUploader) {
         res.status(403);
         throw new Error('Not authorized to edit this resource');
     }
@@ -326,10 +338,10 @@ const viewResource = asyncHandler(async (req, res) => {
 
     // Verify access
     const isOwner = course.user.toString() === req.user.id;
-    const teacherRecord = await CourseTeacher.findOne({ course: courseId, teacher: req.user.id });
-    const isTeacher = isOwner || !!teacherRecord;
+    const instructorRecord = await CourseInstructor.findOne({ course: courseId, instructor: req.user.id });
+    const isInstructor = isOwner || !!instructorRecord || req.user.role === 'admin';
 
-    if (!isTeacher) {
+    if (!isInstructor) {
         const enrolled = await Progress.findOne({ student: req.user.id, course: courseId });
         if (!enrolled) {
             res.status(403);
@@ -351,7 +363,7 @@ const viewResource = asyncHandler(async (req, res) => {
     const buffer = Buffer.from(resource.fileData, 'base64');
     res.set({
         'Content-Type': resource.mimeType,
-        'Content-Disposition': `inline; filename="${resource.fileName}"`,
+        'Content-Disposition': contentDisposition('inline', resource.fileName),
         'Content-Length': buffer.length
     });
     res.send(buffer);

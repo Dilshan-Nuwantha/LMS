@@ -3,6 +3,8 @@ const Broadcast = require('../models/Broadcast');
 const Course = require('../models/Course');
 const Progress = require('../models/Progress');
 const BroadcastView = require('../models/BroadcastView');
+const { isCourseMember } = require('../middleware/ownershipMiddleware');
+const { getPaging } = require('../utils/query');
 
 // @desc    Create broadcast
 // @route   POST /api/broadcasts/course/:courseId
@@ -48,9 +50,7 @@ const createBroadcast = asyncHandler(async (req, res) => {
 // @route   GET /api/broadcasts/course/:courseId
 // @access  Private (Admin, Course Owner, or Broadcaster)
 const getCourseBroadcasts = asyncHandler(async (req, res) => {
-    const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 5;
-    const skip = (page - 1) * limit;
+    const { page, limit, skip } = getPaging(req.query, 5);
 
     const total = await Broadcast.countDocuments({ course: req.params.courseId });
     const broadcasts = await Broadcast.find({ course: req.params.courseId })
@@ -74,9 +74,18 @@ const getCourseBroadcasts = asyncHandler(async (req, res) => {
 // @route   GET /api/broadcasts/course/:courseId/active
 // @access  Private (Enrolled students)
 const getActiveBroadcasts = asyncHandler(async (req, res) => {
-    const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 5;
-    const skip = (page - 1) * limit;
+    const course = await Course.findById(req.params.courseId);
+    if (!course) {
+        res.status(404);
+        throw new Error('Course not found');
+    }
+
+    if (!(await isCourseMember(req.user, course))) {
+        res.status(403);
+        throw new Error('You must be enrolled in this course to view its announcements');
+    }
+
+    const { page, limit, skip } = getPaging(req.query, 5);
 
     const query = { course: req.params.courseId, isActive: true };
     const total = await Broadcast.countDocuments(query);
@@ -144,19 +153,19 @@ const checkBroadcastPermission = asyncHandler(async (req, res) => {
     const isAdmin = req.user.role === 'admin';
     const isOwner = course.user.toString() === userId;
 
-    // Check if user is a teacher
-    const CourseTeacher = require('../models/CourseTeacher');
-    const teacherRecord = await CourseTeacher.findOne({ course: course._id, teacher: userId });
-    const isTeacher = !!teacherRecord;
+    // Check if user is an instructor
+    const CourseInstructor = require('../models/CourseInstructor');
+    const instructorRecord = await CourseInstructor.findOne({ course: course._id, instructor: userId });
+    const isInstructor = !!instructorRecord;
 
     // Check if user is enrolled
     const isEnrolled = await Progress.exists({ student: userId, course: course._id });
     const canStudentBroadcast = course.allowStudentBroadcasts && isEnrolled;
 
     res.status(200).json({
-        canBroadcast: isAdmin || isOwner || isTeacher || canStudentBroadcast,
+        canBroadcast: isAdmin || isOwner || isInstructor || canStudentBroadcast,
         isOwner: isAdmin || isOwner,
-        isTeacher,
+        isInstructor,
         allowStudentBroadcasts: course.allowStudentBroadcasts
     });
 });

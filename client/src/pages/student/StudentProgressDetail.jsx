@@ -49,7 +49,7 @@ const StudentProgressDetail = () => {
         }));
     };
 
-    const getStatusIcon = (status, lectureStatuses) => {
+    const getStatusIcon = (status) => {
         const completedLabel = data?.course?.lectureStatuses?.find(s => s.label === (data?.course?.completedStatus || 'Completed'))?.label || 'Completed';
         const inProgressLabel = 'In Progress';
 

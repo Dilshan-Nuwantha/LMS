@@ -19,6 +19,18 @@ const priorityDot = {
     normal: ''
 };
 
+const timeAgo = (date) => {
+    const diff = Date.now() - new Date(date).getTime();
+    const mins = Math.floor(diff / 60000);
+    if (mins < 1) return 'now';
+    if (mins < 60) return `${mins}m`;
+    const hrs = Math.floor(mins / 60);
+    if (hrs < 24) return `${hrs}h`;
+    const days = Math.floor(hrs / 24);
+    if (days < 7) return `${days}d`;
+    return new Date(date).toLocaleDateString();
+};
+
 const NotificationBell = () => {
     const navigate = useNavigate();
     const [unreadCount, setUnreadCount] = useState(0);
@@ -32,7 +44,7 @@ const NotificationBell = () => {
         try {
             const res = await api.get('/notifications/unread-count');
             setUnreadCount(res.data.count);
-        } catch {}
+        } catch { /* Not critical: the page keeps what it has */ }
     };
 
     // Fetch recent notifications
@@ -41,7 +53,7 @@ const NotificationBell = () => {
         try {
             const res = await api.get('/notifications?limit=10');
             setNotifications(res.data.notifications);
-        } catch {} finally {
+        } catch { /* Not critical: the page keeps what it has */ } finally {
             setLoading(false);
         }
     };
@@ -80,7 +92,7 @@ const NotificationBell = () => {
             await api.put('/notifications/mark-all-read');
             setUnreadCount(0);
             setNotifications(prev => prev.map(n => ({ ...n, read: true })));
-        } catch {}
+        } catch { /* Not critical: the page keeps what it has */ }
     };
 
     const handleClick = async (notif) => {
@@ -90,7 +102,7 @@ const NotificationBell = () => {
                 await api.put(`/notifications/${notif._id}/read`);
                 setUnreadCount(prev => Math.max(0, prev - 1));
                 setNotifications(prev => prev.map(n => n._id === notif._id ? { ...n, read: true } : n));
-            } catch {}
+            } catch { /* Not critical: the page keeps what it has */ }
         }
         setIsOpen(false);
         if (notif.link) navigate(notif.link);
@@ -102,19 +114,7 @@ const NotificationBell = () => {
             await api.delete(`/notifications/${notifId}`);
             setNotifications(prev => prev.filter(n => n._id !== notifId));
             fetchUnreadCount();
-        } catch {}
-    };
-
-    const timeAgo = (date) => {
-        const diff = Date.now() - new Date(date).getTime();
-        const mins = Math.floor(diff / 60000);
-        if (mins < 1) return 'now';
-        if (mins < 60) return `${mins}m`;
-        const hrs = Math.floor(mins / 60);
-        if (hrs < 24) return `${hrs}h`;
-        const days = Math.floor(hrs / 24);
-        if (days < 7) return `${days}d`;
-        return new Date(date).toLocaleDateString();
+        } catch { /* Not critical: the page keeps what it has */ }
     };
 
     return (

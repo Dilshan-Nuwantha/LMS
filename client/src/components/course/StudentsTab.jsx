@@ -7,10 +7,6 @@ import { showSuccess, showError } from '../../utils/toast';
 
 const StudentsTab = ({
     courseId,
-    course,
-    // AI chat viewer
-    onViewStudentAIChats,
-    onToggleAIBlock,
 }) => {
     const navigate = useNavigate();
 
@@ -157,31 +153,6 @@ const StudentsTab = ({
                                                     >
                                                         <FaHistory size={14} />
                                                     </button>
-                                                    {course.allowStudentAI && (
-                                                        <>
-                                                        <button
-                                                            onClick={() => onViewStudentAIChats(prog.student)}
-                                                            className="p-2 rounded transition-colors sm:opacity-0 sm:group-hover:opacity-100 focus:opacity-100 text-slate-400 hover:text-indigo-500 hover:bg-indigo-50 dark:hover:bg-indigo-900/20"
-                                                            title="View student AI conversations (instructor key only)"
-                                                        >
-                                                            <FaRobot size={14} />
-                                                        </button>
-                                                        <button
-                                                            onClick={() => onToggleAIBlock(prog.student?._id)}
-                                                            className={`p-2 rounded transition-colors sm:opacity-0 sm:group-hover:opacity-100 focus:opacity-100 ${
-                                                                course.aiBlockedStudents?.some(id => id === prog.student?._id || id?.toString() === prog.student?._id)
-                                                                    ? 'text-orange-500 hover:text-orange-600 hover:bg-orange-50 dark:hover:bg-orange-900/20'
-                                                                    : 'text-slate-400 hover:text-orange-500 hover:bg-orange-50 dark:hover:bg-orange-900/20'
-                                                            }`}
-                                                            title={course.aiBlockedStudents?.some(id => id === prog.student?._id || id?.toString() === prog.student?._id)
-                                                                ? 'AI Blocked — Click to restore access'
-                                                                : 'Block student from using your AI key'
-                                                            }
-                                                        >
-                                                            <FaBan size={14} />
-                                                        </button>
-                                                        </>
-                                                    )}
                                                     <button
                                                         onClick={() => handleRemoveStudent(prog.student?._id, prog.student?.name)}
                                                         className="text-red-400 hover:text-red-600 dark:hover:text-red-400 p-2 rounded hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors sm:opacity-0 sm:group-hover:opacity-100 focus:opacity-100"

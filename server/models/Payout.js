@@ -6,14 +6,23 @@ const payoutSchema = new mongoose.Schema({
         required: true,
         ref: 'User'
     },
+    // What the instructor receives
     amount: {
         type: Number,
         required: true
     },
+    // What was claimed, and the platform's share of it. Older payouts have neither.
+    grossAmount: {
+        type: Number
+    },
+    commissionAmount: {
+        type: Number,
+        default: 0
+    },
     currency: {
         type: String,
-        enum: ['INR', 'USD'],
-        default: 'INR'
+        enum: ['LKR', 'USD'],
+        default: 'LKR'
     },
     method: {
         type: String,
@@ -46,5 +55,8 @@ const payoutSchema = new mongoose.Schema({
 });
 
 payoutSchema.index({ instructor: 1, createdAt: -1 });
+
+// One open claim per currency, so two requests at once can't claim the same money
+payoutSchema.index({ instructor: 1, currency: 1 }, { unique: true, partialFilterExpression: { status: 'pending' } });
 
 module.exports = mongoose.model('Payout', payoutSchema);

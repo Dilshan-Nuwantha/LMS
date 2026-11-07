@@ -18,10 +18,6 @@ const InstructorPaymentSettings = () => {
     });
     const [saved, setSaved] = useState(false);
 
-    useEffect(() => {
-        fetchBankDetails();
-    }, []);
-
     const fetchBankDetails = async () => {
         try {
             const res = await api.get('/instructor/bank-details');
@@ -43,6 +39,10 @@ const InstructorPaymentSettings = () => {
             setLoading(false);
         }
     };
+
+    useEffect(() => {
+        fetchBankDetails();
+    }, []);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -87,7 +87,7 @@ const InstructorPaymentSettings = () => {
                 <div className="mb-6">
                     <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Payment Settings</h1>
                     <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">
-                        Add your payment details so the admin can pay you for your course sales
+                        Students who pay by bank slip see these details, and they are used for card sales paid to you
                     </p>
                 </div>
 
@@ -154,7 +154,7 @@ const InstructorPaymentSettings = () => {
                                         value={form.bankName}
                                         onChange={e => handleChange('bankName', e.target.value)}
                                         className="w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                                        placeholder="e.g. State Bank of India"
+                                        placeholder="e.g. Bank of Ceylon"
                                     />
                                 </div>
                                 <div>

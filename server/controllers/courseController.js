@@ -6,8 +6,62 @@ const Progress = require('../models/Progress');
 const Activity = require('../models/Activity');
 const QuizAttempt = require('../models/QuizAttempt');
 const Quiz = require('../models/Quiz');
-const CourseTeacher = require('../models/CourseTeacher');
-const { canManage, getTeacherPermissions } = require('../middleware/ownershipMiddleware');
+const CourseInstructor = require('../models/CourseInstructor');
+const Purchase = require('../models/Purchase');
+const Resource = require('../models/Resource');
+const Broadcast = require('../models/Broadcast');
+const BroadcastView = require('../models/BroadcastView');
+const Coupon = require('../models/Coupon');
+const Review = require('../models/Review');
+const Notification = require('../models/Notification');
+const { canManage, getInstructorPermissions, isCourseMember } = require('../middleware/ownershipMiddleware');
+const { escapeRegex, cleanTags } = require('../utils/query');
+const { isSafeUrl } = require('../utils/url');
+
+const BROADCAST_PRIORITIES = ['normal', 'important', 'urgent'];
+const PROGRESS_MILESTONES = [25, 50, 75, 100];
+
+// Announces new content. A draft has no students yet, and hidden content must stay hidden.
+const announceNewContent = async (req, course, title, message, link) => {
+    if (course.status !== 'Published') return;
+
+    const { broadcastMessage, broadcastPriority } = req.body;
+    const text = typeof broadcastMessage === 'string' && broadcastMessage.trim() ? broadcastMessage : message;
+    await Broadcast.create({
+        course: course._id,
+        createdBy: req.user.id,
+        title,
+        message: link ? `${text}\n🔗 ${link}` : text,
+        priority: BROADCAST_PRIORITIES.includes(broadcastPriority) ? broadcastPriority : 'normal'
+    });
+};
+
+// Tells a student when finishing a lecture takes them past a milestone
+const notifyProgressMilestone = async (course, progress, lectureId, completionLabel, studentId) => {
+    const lectureIds = course.sections.filter(s => s.isPublic !== false).flatMap(s => s.lectures);
+    const lectures = await Lecture.find({ _id: { $in: lectureIds }, isPublic: { $ne: false } }).select('_id').lean();
+    const visibleIds = new Set(lectures.map(l => l._id.toString()));
+    if (!visibleIds.has(lectureId)) return;
+
+    const done = progress.completedLectures.filter(l => l.status === completionLabel && visibleIds.has(l.lecture.toString())).length;
+    const before = ((done - 1) / visibleIds.size) * 100;
+    const now = (done / visibleIds.size) * 100;
+    const milestone = PROGRESS_MILESTONES.filter(m => before < m && now >= m).pop();
+    if (!milestone) return;
+
+    // Unticking and re-ticking a lecture crosses the same line again, which is not news
+    const title = milestone === 100 ? 'Course completed!' : `${milestone}% complete`;
+    if (await Notification.exists({ user: studentId, course: course._id, type: 'milestone', title })) return;
+
+    const { notifyUser } = require('./notificationController');
+    await notifyUser(studentId, {
+        courseId: course._id,
+        title,
+        message: `You have reached ${milestone}% of "${course.title}"`,
+        type: 'milestone',
+        link: `/course/${course._id}`
+    });
+};
 
 // @desc    Create new course
 // @route   POST /api/courses
@@ -59,7 +113,7 @@ const updateCourse = asyncHandler(async (req, res) => {
     if (req.body.category !== undefined) course.category = req.body.category;
     if (req.body.level !== undefined) course.level = req.body.level;
     if (req.body.thumbnail !== undefined) course.thumbnail = req.body.thumbnail;
-    if (req.body.tags !== undefined) course.tags = req.body.tags;
+    if (req.body.tags !== undefined) course.tags = cleanTags(req.body.tags);
     if (req.body.requirements !== undefined) course.requirements = req.body.requirements;
     if (req.body.whatYouWillLearn !== undefined) course.whatYouWillLearn = req.body.whatYouWillLearn;
     if (req.body.allowPeerProgress !== undefined) course.allowPeerProgress = req.body.allowPeerProgress;
@@ -78,7 +132,24 @@ const updateCourse = asyncHandler(async (req, res) => {
 // @route   GET /api/courses
 // @access  Private
 const getCourses = asyncHandler(async (req, res) => {
-    const courses = await Course.find();
+    if (req.user.role === 'admin') {
+        return res.status(200).json(await Course.find());
+    }
+
+    const [assignments, enrollments] = await Promise.all([
+        CourseInstructor.find({ instructor: req.user.id }).select('course').lean(),
+        Progress.find({ student: req.user.id }).select('course').lean()
+    ]);
+
+    const courses = await Course.find({
+        $or: [
+            { user: req.user.id },
+            { _id: { $in: assignments.map(a => a.course) } },
+            { _id: { $in: enrollments.map(e => e.course) }, status: { $ne: 'Draft' } },
+            { isMarketplace: true, status: 'Published', isAdminBlocked: { $ne: true } }
+        ]
+    });
+
     res.status(200).json(courses);
 });
 
@@ -110,12 +181,18 @@ const getCourse = asyncHandler(async (req, res) => {
     const userId = req.user?.id || req.user?._id;
     const isOwnerOrAdmin = canManage(req.user, course.user);
 
-    // Check if user is a teacher
-    const teacherPermissions = await getTeacherPermissions(userId, req.params.id);
-    const isTeacher = !!teacherPermissions;
-    const hasFullAccess = teacherPermissions?.full_access || teacherPermissions?.manage_content;
+    // Check if user is an instructor
+    const instructorPermissions = await getInstructorPermissions(userId, req.params.id);
+    const isInstructor = !!instructorPermissions;
+    const hasFullAccess = instructorPermissions?.full_access || instructorPermissions?.manage_content;
 
-    // Filter hidden content for non-owners and non-teachers
+    // Block students from accessing admin-blocked courses
+    if (course.isAdminBlocked && !isOwnerOrAdmin && !isInstructor) {
+        res.status(403);
+        throw new Error('This course is currently unavailable');
+    }
+
+    // Filter hidden content for non-owners and non-instructors
     if (!isOwnerOrAdmin && !hasFullAccess) {
         course.sections = course.sections
             .filter(section => section.isPublic)
@@ -125,12 +202,26 @@ const getCourse = asyncHandler(async (req, res) => {
             }));
     }
 
+    // Users who are not enrolled (e.g. haven't bought a marketplace course) only see
+    // lecture titles - same rule as getLecture, so the paywall can't be skipped here
+    if (!isOwnerOrAdmin && !isInstructor) {
+        const enrolled = await Progress.exists({ student: userId, course: req.params.id });
+        if (!enrolled) {
+            course.sections = course.sections.map(section => ({
+                ...section,
+                lectures: section.lectures.map(lecture => (
+                    lecture.isPreview ? lecture : { ...lecture, resourceUrl: '', description: '' }
+                ))
+            }));
+        }
+    }
+
     // Add user role info
     if (isOwnerOrAdmin) {
         course.userRole = req.user.role === 'admin' ? 'admin' : 'owner';
-    } else if (isTeacher) {
-        course.userRole = 'teacher';
-        course.permissions = teacherPermissions;
+    } else if (isInstructor) {
+        course.userRole = 'instructor';
+        course.permissions = instructorPermissions;
     } else {
         course.userRole = 'student';
     }
@@ -149,6 +240,10 @@ const addSection = asyncHandler(async (req, res) => {
 
     course.sections.push({ title, isPublic: req.body.isPublic, isPreview: req.body.isPreview, importance: req.body.importance || '', lectures: [] });
     await course.save();
+
+    if (course.sections[course.sections.length - 1].isPublic) {
+        await announceNewContent(req, course, `New Section: ${title}`, `📚 New section added: "${title}"`);
+    }
 
     // Notification trigger: new content
     if (course.notificationSettings?.newContent) {
@@ -226,6 +321,11 @@ const addLectureToSection = asyncHandler(async (req, res) => {
     const { title, number, resourceUrl, description, dueDate } = req.body;
     const { id, sectionId } = req.params;
 
+    if (!isSafeUrl(resourceUrl)) {
+        res.status(400);
+        throw new Error('Resource URL must be a valid http or https URL');
+    }
+
     // Course is attached by verifyCourseOwnership middleware
     const course = req.course;
 
@@ -253,6 +353,12 @@ const addLectureToSection = asyncHandler(async (req, res) => {
     section.lectures.push(lecture._id);
     await course.save();
 
+    if (lecture.isPublic && section.isPublic) {
+        const clientUrl = process.env.CLIENT_URL || 'http://localhost:5173';
+        const link = `${clientUrl}/course/${course._id}/lecture/${lecture._id}`;
+        await announceNewContent(req, course, `New Lecture: ${lecture.title}`, `🎬 New lecture added: "${lecture.title}" in "${section.title}"`, link);
+    }
+
     // Notification trigger: new content
     if (course.notificationSettings?.newContent) {
         const { notifyCourseStudents } = require('./notificationController');
@@ -273,13 +379,18 @@ const addLectureToSection = asyncHandler(async (req, res) => {
 const updateLecture = asyncHandler(async (req, res) => {
     const { title, resourceUrl, description, dueDate } = req.body;
 
+    if (resourceUrl && !isSafeUrl(resourceUrl)) {
+        res.status(400);
+        throw new Error('Resource URL must be a valid http or https URL');
+    }
+
     // Lecture and course are attached by verifyLectureOwnership middleware
     const lecture = req.lecture;
 
     lecture.title = title || lecture.title;
-    lecture.resourceUrl = resourceUrl || lecture.resourceUrl;
-    lecture.description = description || lecture.description;
-    lecture.dueDate = dueDate || lecture.dueDate;
+    lecture.resourceUrl = resourceUrl ?? lecture.resourceUrl;
+    lecture.description = description ?? lecture.description;
+    if (dueDate !== undefined) lecture.dueDate = dueDate || null;
     lecture.status = req.body.status || lecture.status;
     if (req.body.isPublic !== undefined) {
         lecture.isPublic = req.body.isPublic;
@@ -350,9 +461,13 @@ const enrollStudent = asyncHandler(async (req, res) => {
 
     // Log Activity
     await Activity.create({
+        user: user._id,
         student: user._id,
         course: courseId,
         action: 'Enrolled',
+        method: req.method,
+        url: req.originalUrl,
+        ip: req.ip,
         details: `Enrolled in ${course.title}`
     });
 });
@@ -364,12 +479,19 @@ const getEnrolledCourses = asyncHandler(async (req, res) => {
     const progresses = await Progress.find({ student: req.user.id })
         .populate({
             path: 'course',
-            select: 'title description status completedStatus sections thumbnail'
+            select: 'title description status completedStatus sections thumbnail category level',
+            populate: { path: 'sections.lectures', select: 'isPublic' }
         });
 
-    // Only show Published courses to students (hide Draft and Archived)
+    const purchases = await Purchase.find({ user: req.user.id, status: 'completed' }).select('course').lean();
+    const purchasedCourseIds = new Set(purchases.map(p => p.course.toString()));
+
+    // Students see Published courses, plus Archived ones they paid for
     const publishedProgresses = progresses.filter(progress =>
-        progress.course && progress.course.status === 'Published'
+        progress.course && (
+            progress.course.status === 'Published' ||
+            (progress.course.status === 'Archived' && purchasedCourseIds.has(progress.course._id.toString()))
+        )
     );
 
     // Transform data to include lecture counts instead of full lecture data
@@ -395,9 +517,12 @@ const getEnrolledCourses = asyncHandler(async (req, res) => {
             l => visibleLectureIds.has(l.lecture.toString())
         );
 
+        const completedCount = filteredCompletedLectures.filter(l => l.status === (course.completedStatus || 'Completed')).length;
+
         return {
             _id: progress._id,
             completedLectures: filteredCompletedLectures,
+            progressPercent: totalLectures ? Math.round((completedCount / totalLectures) * 100) : 0,
             course: {
                 _id: course._id,
                 title: course.title,
@@ -405,6 +530,8 @@ const getEnrolledCourses = asyncHandler(async (req, res) => {
                 status: course.status,
                 completedStatus: course.completedStatus,
                 thumbnail: course.thumbnail,
+                category: course.category,
+                level: course.level,
                 totalLectures // Pre-computed count
             }
         };
@@ -450,11 +577,17 @@ const getLecture = asyncHandler(async (req, res) => {
     }
 
     const isOwnerOrAdmin = canManage(req.user, course.user);
-    const teacherPermissions = await getTeacherPermissions(userId, course._id);
-    const isTeacher = !!teacherPermissions;
+    const instructorPermissions = await getInstructorPermissions(userId, course._id);
+    const isInstructor = !!instructorPermissions;
 
-    // If lecture or its section is hidden, only owner/admin/teacher can access
-    if (!isOwnerOrAdmin && !isTeacher) {
+    // Block students from accessing lectures in admin-blocked courses
+    if (course.isAdminBlocked && !isOwnerOrAdmin && !isInstructor) {
+        res.status(403);
+        throw new Error('This course is currently unavailable');
+    }
+
+    // If lecture or its section is hidden, only owner/admin/instructor can access
+    if (!isOwnerOrAdmin && !isInstructor) {
         if (!lecture.isPublic) {
             res.status(403);
             throw new Error('This lecture is not available');
@@ -507,6 +640,16 @@ const updateLectureProgress = asyncHandler(async (req, res) => {
         throw new Error('Not enrolled in this course');
     }
 
+    const course = await Course.findById(targetCourseId);
+    const statusLabels = course?.lectureStatuses?.length
+        ? course.lectureStatuses.map(s => s.label)
+        : ['Not Started', 'In Progress', 'Completed'];
+
+    if (status && !statusLabels.includes(status)) {
+        res.status(400);
+        throw new Error('Invalid lecture status');
+    }
+
     const lectureIndex = progress.completedLectures.findIndex(
         (item) => item.lecture.toString() === lectureId
     );
@@ -520,13 +663,16 @@ const updateLectureProgress = asyncHandler(async (req, res) => {
 
         progress.completedLectures[lectureIndex].status = status || progress.completedLectures[lectureIndex].status;
         progress.completedLectures[lectureIndex].notes = notes !== undefined ? notes : progress.completedLectures[lectureIndex].notes;
-        progress.completedLectures[lectureIndex].completedAt = Date.now();
+        // Only a status change moves this date, so editing notes can't make work look late
+        if (status && status !== previousStatus) {
+            progress.completedLectures[lectureIndex].completedAt = Date.now();
+        }
     } else {
         progress.completedLectures.push({
             lecture: lectureId,
             status: status || 'Pending',
             notes: notes || '',
-            completedAt: Date.now()
+            completedAt: status ? Date.now() : undefined
         });
     }
 
@@ -534,12 +680,15 @@ const updateLectureProgress = asyncHandler(async (req, res) => {
 
     // Prepare Activity Log Context for Middleware
     if (status && status !== previousStatus) {
-        const course = await Course.findById(targetCourseId);
         const completionLabel = course?.completedStatus || 'Completed';
 
         let action = 'In Progress';
         if (status === completionLabel) action = 'Completed';
         else if (previousStatus === 'Not Started' && status !== 'Not Started') action = 'Started';
+
+        if (status === completionLabel && course?.notificationSettings?.progressMilestone) {
+            await notifyProgressMilestone(course, progress, lectureId, completionLabel, req.user.id);
+        }
 
         // We can pass multiple activities? Middleware only handles one per request usually.
         // But here we might have Note AND Status update.
@@ -577,6 +726,7 @@ const updateLectureProgress = asyncHandler(async (req, res) => {
                 lecture: lectureId,
                 action: 'Note Updated',
                 method: req.method,
+                ip: req.ip,
                 details: `Updated notes for ${lectureTitle}: "${notes}"`
             });
         } else {
@@ -596,7 +746,19 @@ const updateLectureProgress = asyncHandler(async (req, res) => {
 // @access  Private
 const addComment = asyncHandler(async (req, res) => {
     const lectureId = req.params.id;
-    const { content, courseId } = req.body;
+    const { content } = req.body;
+
+    const lecture = await Lecture.findById(lectureId);
+    const course = lecture && await Course.findById(lecture.course);
+    if (!course) {
+        res.status(404);
+        throw new Error('Lecture not found');
+    }
+
+    if (!(await isCourseMember(req.user, course))) {
+        res.status(403);
+        throw new Error('You must be enrolled in this course to comment');
+    }
 
     // Use middleware for logging -> automatic if we set nothing?
     // Middleware detects '/comments' in URL and sets 'Comment' action.
@@ -636,16 +798,28 @@ const addComment = asyncHandler(async (req, res) => {
     const activity = await Activity.create({
         user: req.user.id,
         // student: req.user.id, // Optional: Save both for double safety locally during migration? No, let's stick to user.
-        course: courseId,
+        course: course._id,
         lecture: lectureId,
         action: 'Comment',
         method: req.method,
+        ip: req.ip,
         url: req.originalUrl,
         data: req.body,
         details: content
     });
 
     res.locals.activity = { skip: true }; // Tell middleware we handled it
+
+    if (course.user.toString() !== req.user.id) {
+        const { notifyUser } = require('./notificationController');
+        await notifyUser(course.user, {
+            courseId: course._id,
+            title: 'New comment',
+            message: `${req.user.name} commented on "${lecture.title}"`,
+            type: 'comment',
+            link: `/course/${course._id}/lecture/${lecture._id}`
+        });
+    }
 
     res.status(201).json(activity);
 });
@@ -655,6 +829,18 @@ const addComment = asyncHandler(async (req, res) => {
 // @access  Private
 const getLectureComments = asyncHandler(async (req, res) => {
     const { id } = req.params; // Lecture ID
+
+    const lecture = await Lecture.findById(id);
+    const course = lecture && await Course.findById(lecture.course);
+    if (!course) {
+        res.status(404);
+        throw new Error('Lecture not found');
+    }
+
+    if (!(await isCourseMember(req.user, course))) {
+        res.status(403);
+        throw new Error('You must be enrolled in this course to view comments');
+    }
 
     // Fetch activities for this lecture that are comments
     // Populate 'user' (new field) OR 'student' (old field) to support both if needed,
@@ -685,7 +871,7 @@ const getStudentActivity = asyncHandler(async (req, res) => {
     }
 
     // Build query - filter out personal notes (Note Updated action)
-    // Teachers should not see student's personal notes
+    // Instructors should not see student's personal notes
     const query = {
         course: id,
         user: studentId,
@@ -724,8 +910,8 @@ const getCourseProgresses = asyncHandler(async (req, res) => {
     if (keyword) {
         const users = await User.find({
             $or: [
-                { name: { $regex: keyword, $options: 'i' } },
-                { email: { $regex: keyword, $options: 'i' } }
+                { name: { $regex: escapeRegex(keyword), $options: 'i' } },
+                { email: { $regex: escapeRegex(keyword), $options: 'i' } }
             ]
         }).select('_id');
         const userIds = users.map(u => u._id);
@@ -735,6 +921,7 @@ const getCourseProgresses = asyncHandler(async (req, res) => {
     if (page && limit) {
         const count = await Progress.countDocuments(query);
         const progresses = await Progress.find(query)
+            .select('-completedLectures.notes')
             .populate('student', 'name email')
             .limit(Number(limit))
             .skip(Number(limit) * (Number(page) - 1));
@@ -747,6 +934,7 @@ const getCourseProgresses = asyncHandler(async (req, res) => {
         });
     } else {
         const progresses = await Progress.find(query)
+            .select('-completedLectures.notes')
             .populate('student', 'name email');
         res.status(200).json(progresses);
     }
@@ -763,8 +951,8 @@ const getEnrolledStudentList = asyncHandler(async (req, res) => {
     if (keyword) {
         const users = await User.find({
             $or: [
-                { name: { $regex: keyword, $options: 'i' } },
-                { email: { $regex: keyword, $options: 'i' } }
+                { name: { $regex: escapeRegex(keyword), $options: 'i' } },
+                { email: { $regex: escapeRegex(keyword), $options: 'i' } }
             ]
         }).select('_id');
         query.student = { $in: users.map(u => u._id) };
@@ -797,32 +985,16 @@ const getPeerStudentList = asyncHandler(async (req, res) => {
     const isEnrolled = await Progress.findOne({ course: req.params.id, student: req.user.id });
     if (!isEnrolled) { res.status(403); throw new Error('You are not enrolled in this course'); }
 
-    const { keyword } = req.query;
-    let query = { course: req.params.id };
-
-    if (keyword) {
-        const users = await User.find({
-            $or: [
-                { name: { $regex: keyword, $options: 'i' } },
-                { email: { $regex: keyword, $options: 'i' } }
-            ]
-        }).select('_id');
-        query.student = { $in: users.map(u => u._id) };
-    }
-
+    const keyword = String(req.query.keyword || '').trim().toLowerCase();
     const limit = Math.min(Number(req.query.limit) || 10, 50);
 
-    const students = await Progress.find(query)
-        .select('student')
-        .populate('student', 'name email')
-        .limit(limit)
-        .lean();
+    // Classmates are anonymous, so search works on the label and never on a name or email
+    const students = await Progress.find({ course: req.params.id }).select('student').sort({ _id: 1 }).lean();
+    const peers = students
+        .map((s, index) => ({ _id: s.student, name: `Student ${index + 1}`, email: '' }))
+        .filter(peer => peer.name.toLowerCase().includes(keyword));
 
-    res.status(200).json(students.map(s => ({
-        _id: s.student._id,
-        name: s.student.name,
-        email: s.student.email
-    })));
+    res.status(200).json(peers.slice(0, limit));
 });
 
 // @desc    Get peer student progress detail (student-facing, requires allowPeerProgress)
@@ -841,11 +1013,10 @@ const getPeerStudentProgress = asyncHandler(async (req, res) => {
     const isEnrolled = await Progress.findOne({ course: id, student: req.user.id });
     if (!isEnrolled) { res.status(403); throw new Error('You are not enrolled in this course'); }
 
-    const student = await User.findById(studentId).select('name email');
-    if (!student) { res.status(404); throw new Error('Student not found'); }
-
     const progress = await Progress.findOne({ course: id, student: studentId });
     if (!progress) { res.status(404); throw new Error('Student is not enrolled'); }
+
+    const position = await Progress.countDocuments({ course: id, _id: { $lt: progress._id } });
 
     const lectureProgressMap = new Map();
     progress.completedLectures.forEach(lp => {
@@ -874,7 +1045,7 @@ const getPeerStudentProgress = asyncHandler(async (req, res) => {
         });
 
     res.status(200).json({
-        student: { _id: student._id, name: student.name, email: student.email },
+        student: { _id: progress.student, name: `Student ${position + 1}`, email: '' },
         course: { _id: course._id, title: course.title, lectureStatuses: course.lectureStatuses },
         progress: { completedLectures, totalLectures, progressPercent: totalLectures > 0 ? Math.round((completedLectures / totalLectures) * 100) : 0 },
         sections: sectionsProgress
@@ -897,7 +1068,7 @@ const getUserStats = asyncHandler(async (req, res) => {
     // 2. Daily Activity & Streaks (from Activity Logs)
     // We only care about 'Completed' actions for streaks/consistency
     const activities = await Activity.find({
-        student: req.user.id,
+        $or: [{ user: req.user.id }, { student: req.user.id }],
         action: 'Completed'
     }).sort({ createdAt: 1 });
 
@@ -990,10 +1161,15 @@ const removeStudent = asyncHandler(async (req, res) => {
         throw new Error('Student not enrolled');
     }
 
+    // enrollmentCount only counts purchases, so a manual enrollment leaves it unchanged
+    if (await Purchase.exists({ user: studentId, course: id, status: 'completed' })) {
+        await Course.findByIdAndUpdate(id, { $inc: { enrollmentCount: -1 } });
+    }
+
     res.status(200).json({ message: 'Student removed' });
 });
 
-// @desc    Get courses created by current user OR where user is a teacher (optimized)
+// @desc    Get courses created by current user OR where user is an instructor (optimized)
 // @route   GET /api/courses/my/created
 // @access  Private
 const getCreatedCourses = asyncHandler(async (req, res) => {
@@ -1002,11 +1178,11 @@ const getCreatedCourses = asyncHandler(async (req, res) => {
         .select('title description status sections createdAt thumbnail')
         .sort({ createdAt: -1 });
 
-    // Get courses where user is a teacher
-    const teacherAssignments = await CourseTeacher.find({ teacher: req.user.id });
-    const teacherCourseIds = teacherAssignments.map(t => t.course);
+    // Get courses where user is an instructor
+    const instructorAssignments = await CourseInstructor.find({ instructor: req.user.id });
+    const instructorCourseIds = instructorAssignments.map(t => t.course);
 
-    const teachingCourses = await Course.find({ _id: { $in: teacherCourseIds } })
+    const teachingCourses = await Course.find({ _id: { $in: instructorCourseIds } })
         .select('title description status sections createdAt thumbnail')
         .sort({ createdAt: -1 });
 
@@ -1049,7 +1225,7 @@ const getCreatedCourses = asyncHandler(async (req, res) => {
 
     const teachingWithRole = teachingCourses.map(c => {
         const courseObj = c.toObject();
-        const assignment = teacherAssignments.find(t => t.course.toString() === c._id.toString());
+        const assignment = instructorAssignments.find(t => t.course.toString() === c._id.toString());
         const totalLectures = courseObj.sections?.reduce((acc, sec) => acc + (sec.lectures?.length || 0), 0) || 0;
         const sectionCount = courseObj.sections?.length || 0;
         const studentCount = studentCountMap[courseObj._id.toString()] || 0;
@@ -1064,7 +1240,7 @@ const getCreatedCourses = asyncHandler(async (req, res) => {
             totalLectures,
             sectionCount,
             studentCount,
-            userRole: 'teacher',
+            userRole: 'instructor',
             permissions: assignment ? assignment.permissions : {}
         };
     });
@@ -1079,7 +1255,7 @@ const getCreatedCourses = asyncHandler(async (req, res) => {
 
 // @desc    Get course analytics
 // @route   GET /api/courses/:id/analytics
-// @access  Private (Admin or Course Owner/Teacher)
+// @access  Private (Admin or Course Owner/Instructor)
 const getCourseAnalytics = asyncHandler(async (req, res) => {
     const courseId = req.params.id;
 
@@ -1257,7 +1433,7 @@ const getCourseAnalytics = asyncHandler(async (req, res) => {
         lectureStats,
         sectionStats,
         topStudents: studentProgressData.sort((a, b) => b.progressPercent - a.progressPercent).slice(0, 5),
-        recentActivity: activities.slice(-10).reverse().map(a => ({
+        recentActivity: activities.filter(a => a.action !== 'Note Updated').slice(-10).reverse().map(a => ({
             action: a.action,
             details: a.details,
             createdAt: a.createdAt
@@ -1272,6 +1448,17 @@ const deleteCourse = asyncHandler(async (req, res) => {
     // Course is attached by verifyCourseOwnership middleware
     const course = req.course;
 
+    // full_access instructors pass that middleware, but deleting stays with the owner and admins
+    if (!req.isOwner) {
+        res.status(403);
+        throw new Error('Only the course owner can delete this course');
+    }
+
+    if (await Purchase.exists({ course: course._id, status: 'completed' })) {
+        res.status(400);
+        throw new Error('This course has paying students and cannot be deleted. Archive it instead.');
+    }
+
     // Delete all lectures in all sections
     for (const section of course.sections) {
         if (section.lectures && section.lectures.length > 0) {
@@ -1282,8 +1469,20 @@ const deleteCourse = asyncHandler(async (req, res) => {
     // Delete all progress records for this course
     await Progress.deleteMany({ course: course._id });
 
-    // Delete all activity records for this course
-    await Activity.deleteMany({ course: course._id });
+    // Delete everything else that only exists for this course. Activity records stay as the audit trail.
+    const courseFilter = { course: course._id };
+    await Promise.all([
+        Quiz.deleteMany(courseFilter),
+        QuizAttempt.deleteMany(courseFilter),
+        Resource.deleteMany(courseFilter),
+        Broadcast.deleteMany(courseFilter),
+        BroadcastView.deleteMany(courseFilter),
+        Coupon.deleteMany(courseFilter),
+        CourseInstructor.deleteMany(courseFilter),
+        Review.deleteMany(courseFilter),
+        Notification.deleteMany(courseFilter),
+        Purchase.deleteMany({ ...courseFilter, status: { $in: ['pending', 'failed'] } })
+    ]);
 
     // Delete the course
     await course.deleteOne();
@@ -1295,14 +1494,15 @@ const deleteCourse = asyncHandler(async (req, res) => {
 // @route   GET /api/courses/search
 // @access  Private
 const searchCourses = asyncHandler(async (req, res) => {
-    const { q, filter = 'all' } = req.query;
+    const q = String(req.query.q ?? '');
+    const { filter = 'all' } = req.query;
 
-    if (!q || !q.trim()) {
+    if (!q.trim()) {
         return res.status(200).json([]);
     }
 
     const searchQuery = q.trim();
-    const searchRegex = new RegExp(searchQuery, 'i');
+    const searchRegex = new RegExp(escapeRegex(searchQuery), 'i');
     let results = [];
 
     // Search enrolled courses
@@ -1349,11 +1549,11 @@ const searchCourses = asyncHandler(async (req, res) => {
         }));
 
         // Teaching courses
-        const teacherAssignments = await CourseTeacher.find({ teacher: req.user.id });
-        const teacherCourseIds = teacherAssignments.map(t => t.course);
+        const instructorAssignments = await CourseInstructor.find({ instructor: req.user.id });
+        const instructorCourseIds = instructorAssignments.map(t => t.course);
 
         const teachingCourses = await Course.find({
-            _id: { $in: teacherCourseIds },
+            _id: { $in: instructorCourseIds },
             $or: [
                 { title: searchRegex },
                 { description: searchRegex }
@@ -1385,7 +1585,7 @@ const searchCourses = asyncHandler(async (req, res) => {
 
 // @desc    Get detailed progress of a specific student for a course (section/lecture breakdown)
 // @route   GET /api/courses/:id/progress/:studentId
-// @access  Private (Admin or Course Owner/Teacher with manage_students)
+// @access  Private (Admin or Course Owner/Instructor with manage_students)
 const getStudentProgressDetail = asyncHandler(async (req, res) => {
     const { id, studentId } = req.params;
 
@@ -1419,8 +1619,7 @@ const getStudentProgressDetail = asyncHandler(async (req, res) => {
     progress.completedLectures.forEach(lp => {
         lectureProgressMap.set(lp.lecture.toString(), {
             status: lp.status,
-            completedAt: lp.completedAt,
-            notes: lp.notes
+            completedAt: lp.completedAt
         });
     });
 
@@ -1445,8 +1644,7 @@ const getStudentProgressDetail = asyncHandler(async (req, res) => {
                 number: lecture.number || lectureIndex + 1,
                 duration: lecture.duration,
                 status: status,
-                statusDate: lectureProgress ? lectureProgress.completedAt : null,
-                notes: lectureProgress ? lectureProgress.notes : ''
+                statusDate: lectureProgress ? lectureProgress.completedAt : null
             };
         });
 
@@ -1499,7 +1697,7 @@ const getMyAnalytics = asyncHandler(async (req, res) => {
     // Fetch course with sections populated
     const course = await Course.findById(courseId).populate({
         path: 'sections',
-        populate: { path: 'lectures', select: 'title number dueDate' }
+        populate: { path: 'lectures', select: 'title number dueDate isPublic' }
     });
     if (!course) {
         res.status(404);
@@ -1507,6 +1705,11 @@ const getMyAnalytics = asyncHandler(async (req, res) => {
     }
 
     const completionLabel = course.completedStatus || 'Completed';
+
+    // Hidden sections and lectures don't count towards a student's progress
+    const sections = course.sections
+        .filter(section => section.isPublic !== false)
+        .map(section => ({ title: section.title, lectures: section.lectures.filter(lecture => lecture.isPublic !== false) }));
 
     // Fetch student progress
     const progress = await Progress.findOne({ student: studentId, course: courseId });
@@ -1520,13 +1723,15 @@ const getMyAnalytics = asyncHandler(async (req, res) => {
 
     // Calculate total lectures
     let totalLectures = 0;
-    course.sections.forEach(s => { totalLectures += s.lectures.length; });
+    sections.forEach(s => { totalLectures += s.lectures.length; });
 
-    const completedCount = completedLectures.filter(l => l.status === completionLabel).length;
+    const completedCount = sections
+        .flatMap(s => s.lectures)
+        .filter(l => progressMap[l._id.toString()]?.status === completionLabel).length;
     const overallPercent = totalLectures > 0 ? Math.round((completedCount / totalLectures) * 100) : 0;
 
     // Section-wise progress
-    const sectionProgress = course.sections.map(section => {
+    const sectionProgress = sections.map(section => {
         const total = section.lectures.length;
         const completed = section.lectures.filter(l => progressMap[l._id.toString()]?.status === completionLabel).length;
         return {
@@ -1577,7 +1782,7 @@ const getMyAnalytics = asyncHandler(async (req, res) => {
     // Status distribution (how many lectures in each status)
     const statusDistribution = {};
     let notStartedCount = 0;
-    course.sections.forEach(section => {
+    sections.forEach(section => {
         section.lectures.forEach(lec => {
             const status = progressMap[lec._id.toString()]?.status || 'Not Started';
             if (status === 'Not Started') {
@@ -1594,7 +1799,7 @@ const getMyAnalytics = asyncHandler(async (req, res) => {
     // Late submissions
     let lateCount = 0;
     let onTimeCount = 0;
-    course.sections.forEach(section => {
+    sections.forEach(section => {
         section.lectures.forEach(lec => {
             if (!lec.dueDate) return;
             const p = progressMap[lec._id.toString()];

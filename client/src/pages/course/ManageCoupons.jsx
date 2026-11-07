@@ -1,12 +1,14 @@
 import { useState, useEffect } from 'react';
-import { FaPlus, FaEdit, FaTrash, FaTag, FaPercent, FaRupeeSign, FaChevronLeft, FaChevronRight, FaTimes, FaExclamationTriangle } from 'react-icons/fa';
+import { FaPlus, FaEdit, FaTrash, FaTag, FaPercent, FaChevronLeft, FaChevronRight, FaTimes, FaExclamationTriangle } from 'react-icons/fa';
 import api from '../../api/axios';
 import { showSuccess, showError } from '../../utils/toast';
 
+const LkrIcon = ({ className }) => (
+    <span className={`font-bold tracking-tight select-none ${className || ''}`} style={{ fontSize: '11px' }}>Rs</span>
+);
+
 const ManageCoupons = ({ embeddedCourseId }) => {
     const courseId = embeddedCourseId;
-
-    if (!courseId) return null;
 
     const [coupons, setCoupons] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -33,10 +35,6 @@ const ManageCoupons = ({ embeddedCourseId }) => {
         validUntil: ''
     });
 
-    useEffect(() => {
-        fetchData(page);
-    }, [courseId, page]);
-
     const fetchData = async (currentPage = 1) => {
         try {
             const couponsRes = await api.get(`/coupons/course/${courseId}?page=${currentPage}&limit=${LIMIT}`);
@@ -50,12 +48,18 @@ const ManageCoupons = ({ embeddedCourseId }) => {
                 setTotalPages(1);
                 setTotalCoupons(couponsRes.data.length);
             }
-        } catch (error) {
+        } catch {
             showError('Failed to load coupons');
         } finally {
             setLoading(false);
         }
     };
+
+    useEffect(() => {
+        if (courseId) fetchData(page);
+    }, [courseId, page]);
+
+    if (!courseId) return null;
 
     const resetForm = () => {
         setFormData({
@@ -140,7 +144,7 @@ const ManageCoupons = ({ embeddedCourseId }) => {
             fetchData(page);
             setShowDeleteModal(false);
             setCouponToDelete(null);
-        } catch (error) {
+        } catch {
             showError('Failed to delete coupon');
         } finally {
             setDeleting(false);
@@ -152,7 +156,7 @@ const ManageCoupons = ({ embeddedCourseId }) => {
             await api.put(`/coupons/${coupon._id}`, { isActive: !coupon.isActive });
             showSuccess(coupon.isActive ? 'Coupon deactivated' : 'Coupon activated');
             fetchData(page);
-        } catch (error) {
+        } catch {
             showError('Failed to update coupon');
         }
     };
@@ -238,7 +242,7 @@ const ManageCoupons = ({ embeddedCourseId }) => {
                                             </div>
                                             <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-slate-500 dark:text-slate-400">
                                                 <span className="flex items-center gap-1.5 font-medium text-slate-700 dark:text-slate-300">
-                                                    {coupon.discountType === 'percentage' ? <FaPercent className="text-xs" /> : <FaRupeeSign className="text-xs" />}
+                                                    {coupon.discountType === 'percentage' ? <FaPercent className="text-xs" /> : <LkrIcon className="text-xs text-slate-500 dark:text-slate-400" />}
                                                     {coupon.discountValue}{coupon.discountType === 'percentage' ? '%' : ''} OFF
                                                 </span>
                                                 <span>
@@ -349,7 +353,7 @@ const ManageCoupons = ({ embeddedCourseId }) => {
                                             className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl focus:outline-none focus:border-slate-900 dark:focus:border-white text-sm font-medium transition-colors"
                                         >
                                             <option value="percentage">Percentage (%)</option>
-                                            <option value="fixed">Fixed Amount (₹)</option>
+                                            <option value="fixed">Fixed Amount (Rs.)</option>
                                         </select>
                                     </div>
                                     <div>
@@ -357,15 +361,15 @@ const ManageCoupons = ({ embeddedCourseId }) => {
                                             Value *
                                         </label>
                                         <div className="relative">
-                                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500">
-                                                {formData.discountType === 'percentage' ? '%' : '₹'}
+                                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-xs font-semibold">
+                                                {formData.discountType === 'percentage' ? '%' : 'Rs.'}
                                             </span>
                                             <input
                                                 type="number"
                                                 value={formData.discountValue}
                                                 onChange={(e) => setFormData({ ...formData, discountValue: e.target.value })}
                                                 placeholder={formData.discountType === 'percentage' ? '20' : '100'}
-                                                className="w-full px-4 py-3 pl-8 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl focus:outline-none focus:border-slate-900 dark:focus:border-white text-sm font-medium transition-colors"
+                                                className="w-full px-4 py-3 pl-12 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl focus:outline-none focus:border-slate-900 dark:focus:border-white text-sm font-medium transition-colors"
                                             />
                                         </div>
                                     </div>
@@ -392,7 +396,7 @@ const ManageCoupons = ({ embeddedCourseId }) => {
                                             type="date"
                                             value={formData.validUntil}
                                             onChange={(e) => setFormData({ ...formData, validUntil: e.target.value })}
-                                            min={new Date().toISOString().split('T')[0]}
+                                            min={editingCoupon ? undefined : new Date().toISOString().split('T')[0]}
                                             className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl focus:outline-none focus:border-slate-900 dark:focus:border-white text-sm font-medium transition-colors"
                                         />
                                     </div>

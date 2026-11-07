@@ -5,7 +5,6 @@ import AuthContext, { AuthProvider } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
 import Navbar from './components/layout/Navbar';
 import Footer from './components/layout/Footer';
-import FloatingAIChatButton from './components/ui/FloatingAIChatButton';
 import { Toaster } from 'react-hot-toast';
 import api from './api/axios';
 
@@ -13,6 +12,9 @@ import api from './api/axios';
 // Auth
 const Login = lazy(() => import('./pages/auth/Login'));
 const Register = lazy(() => import('./pages/auth/Register'));
+const ForgotPassword = lazy(() => import('./pages/auth/ForgotPassword'));
+const OTPInput = lazy(() => import('./pages/auth/OTPInput'));
+const Reset = lazy(() => import('./pages/auth/Reset'));
 
 // Course management
 const CourseManage = lazy(() => import('./pages/course/CourseManage'));
@@ -28,11 +30,10 @@ const QuizTake = lazy(() => import('./pages/quiz/QuizTake'));
 const QuizAnalytics = lazy(() => import('./pages/quiz/QuizAnalytics'));
 
 // Student
+const LegalPage = lazy(() => import('./pages/legal/LegalPage'));
 const StudentDashboard = lazy(() => import('./pages/student/StudentDashboard'));
 const StudentDetail = lazy(() => import('./pages/student/StudentDetail'));
 const StudentProgressDetail = lazy(() => import('./pages/student/StudentProgressDetail'));
-const StudentAISettings = lazy(() => import('./pages/student/StudentAISettings'));
-const AIChatPage = lazy(() => import('./pages/student/AIChatPage'));
 
 // Marketplace
 const Marketplace = lazy(() => import('./pages/marketplace/Marketplace'));
@@ -77,7 +78,7 @@ const HomePage = () => {
   const [checked, setChecked] = useState(false);
 
   useEffect(() => {
-    if (!user) { setChecked(true); return; }
+    if (!user) return;
     let cancelled = false;
     api.get('/courses/my/enrolled').then(res => {
       if (!cancelled && res.data && res.data.length > 0) setRedirect('/my-learning');
@@ -87,7 +88,7 @@ const HomePage = () => {
   }, [user]);
 
   if (redirect) return <Navigate to={redirect} replace />;
-  if (!checked) return <PageLoader />;
+  if (user && !checked) return <PageLoader />;
   return <Marketplace />;
 };
 
@@ -126,6 +127,12 @@ const CourseOwnerRoute = ({ children }) => {
 };
 
 // Route for instructors only
+// Old link: instructors now manage their courses in the Instructor Center
+const MyCoursesRedirect = () => {
+  const { user } = useContext(AuthContext);
+  return <Navigate to={user?.role === 'student' ? '/my-learning' : '/instructor/courses'} replace />;
+};
+
 const InstructorRoute = ({ children }) => {
   const { user, loading } = useContext(AuthContext);
 
@@ -144,14 +151,8 @@ const InstructorRoute = ({ children }) => {
   return children;
 };
 
-const AuthenticatedFloatingButton = () => {
-  const { user } = useContext(AuthContext);
-  if (!user) return null;
-  return <FloatingAIChatButton />;
-};
-
 function App() {
-  const authRoutePaths = ['/login', '/register', '/admin/login', '/teacher/register', '/teacher/login', '/admin/register'];
+  const authRoutePaths = ['/login', '/register', '/admin/login', '/instructor/register', '/instructor/login', '/admin/register', '/forgot-password', '/verify-otp', '/reset-password'];
   const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 
   return (
@@ -224,10 +225,14 @@ const AppShell = ({ authRoutePaths }) => {
           <Routes>
             <Route path="/login" element={<Login />} />
             <Route path="/admin/login" element={<Login />} />
-            <Route path="/teacher/login" element={<Login />} />
+            <Route path="/instructor/login" element={<Login />} />
+            <Route path="/teacher/login" element={<Navigate to="/instructor/login" replace />} />
             <Route path="/register" element={<Register />} />
-            <Route path="/teacher/register" element={<Register />} />
-            <Route path="/admin/register" element={<Register />} />
+            <Route path="/instructor/register" element={<Register />} />
+            <Route path="/teacher/register" element={<Navigate to="/instructor/register" replace />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/verify-otp" element={<OTPInput />} />
+            <Route path="/reset-password" element={<Reset />} />
 
             {/* Admin-only routes */}
             <Route path="/admin/dashboard" element={<ProtectedRoute adminOnly={true}><AdminDashboard /></ProtectedRoute>} />
@@ -249,7 +254,9 @@ const AppShell = ({ authRoutePaths }) => {
 
             {/* My Learning & My Courses - tabs on StudentDashboard */}
             <Route path="/my-learning" element={<ProtectedRoute><StudentDashboard /></ProtectedRoute>} />
-            <Route path="/my-courses" element={<ProtectedRoute><StudentDashboard defaultTab="created" /></ProtectedRoute>} />
+            <Route path="/my-courses" element={<ProtectedRoute><MyCoursesRedirect /></ProtectedRoute>} />
+            <Route path="/terms" element={<LegalPage page="terms" />} />
+            <Route path="/privacy" element={<LegalPage page="privacy" />} />
 
             <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
             <Route path="/my-activity" element={<ProtectedRoute><MyActivity /></ProtectedRoute>} />
@@ -263,12 +270,9 @@ const AppShell = ({ authRoutePaths }) => {
             <Route path="/checkout/success" element={<ProtectedRoute><CheckoutSuccess /></ProtectedRoute>} />
             <Route path="/my-purchases" element={<ProtectedRoute><MyPurchases /></ProtectedRoute>} />
 
-            {/* AI Chat - any logged-in user */}
-            <Route path="/ai-chat" element={<ProtectedRoute><AIChatPage /></ProtectedRoute>} />
-            <Route path="/ai-settings" element={<ProtectedRoute><StudentAISettings /></ProtectedRoute>} />
 
-            {/* Invoice - public (shareable via link) */}
-            <Route path="/invoice/:invoiceNumber" element={<InvoicePage />} />
+            {/* Invoice - student, course instructor or admin only */}
+            <Route path="/invoice/:invoiceNumber" element={<ProtectedRoute><InvoicePage /></ProtectedRoute>} />
 
 
             {/* Instructor routes */}
@@ -287,7 +291,6 @@ const AppShell = ({ authRoutePaths }) => {
         </Suspense>
       </div>
       {!isAuthRoute && <Footer />}
-      {!isAuthRoute && <AuthenticatedFloatingButton />}
     </div>
 
   );

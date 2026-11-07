@@ -79,16 +79,18 @@ const courseSchema = new mongoose.Schema({
     },
     price: {
         type: Number,
-        default: 0
+        default: 0,
+        min: [0, 'Price cannot be negative']
     },
     currency: {
         type: String,
-        enum: ['INR', 'USD'],
-        default: 'INR'
+        enum: ['LKR', 'USD'],
+        default: 'LKR'
     },
     originalPrice: {
         type: Number,
-        default: 0
+        default: 0,
+        min: [0, 'Original price cannot be negative']
     },
     thumbnail: {
         type: String,

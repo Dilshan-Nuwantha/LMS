@@ -8,6 +8,7 @@ const activityLogger = require('./middleware/activityLogger');
 const { apiLimiter } = require('./middleware/rateLimiter');
 const connectDB = require('./config/db');
 const cors = require('cors');
+const helmet = require('helmet');
 const https = require('https');
 const http = require('http');
 
@@ -19,6 +20,9 @@ const app = express();
 
 // Trust proxy (required for Render, rate-limiting, and correct client IP)
 app.set('trust proxy', 1);
+
+// The client runs on another origin, so API responses must stay readable from it
+app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }));
 
 app.use(cors({
     origin: process.env.CLIENT_URL || 'http://localhost:5173',
@@ -34,6 +38,12 @@ app.post('/api/purchase/webhook',
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
+
+// Express 5 leaves req.body undefined on a request with no body
+app.use((req, res, next) => {
+    req.body ??= {};
+    next();
+});
 
 // Health check route (no auth, no rate limit)
 app.get('/api/health', (req, res) => {
@@ -63,6 +73,10 @@ app.use('/api/reviews', require('./routes/reviewRoutes'));
 // Resource routes
 app.use('/api/resources', require('./routes/resourceRoutes'));
 
+// Uploaded images and the shared category list
+app.use('/api/uploads', require('./routes/uploadRoutes'));
+app.use('/api/categories', require('./routes/categoryRoutes'));
+
 // AI generation routes
 app.use('/api/ai', require('./routes/aiRoutes'));
 
@@ -74,18 +88,6 @@ app.use('/api/admin', require('./routes/adminRoutes'));
 
 // Notification routes
 app.use('/api/notifications', require('./routes/notificationRoutes'));
-
-// Error handler middleware
-app.use((err, req, res, next) => {
-    if (res.headersSent) {
-        return next(err);
-    }
-    const statusCode = res.statusCode && res.statusCode !== 200 ? res.statusCode : 500;
-    res.status(statusCode).json({
-        message: err.message,
-        stack: process.env.NODE_ENV === 'production' ? null : err.stack,
-    });
-});
 
 // Due date reminder check — runs every hour
 const checkDueDateReminders = async () => {
@@ -157,6 +159,14 @@ app.get('/api/cron/due-reminders', async (req, res) => {
         res.status(500).json({ error: err.message });
     }
 });
+
+// Anything under /api that matched no route above
+app.use('/api', (req, res) => {
+    res.status(404).json({ message: 'Route not found' });
+});
+
+// Error handler middleware
+app.use(errorHandler);
 
 if (require.main === module) {
     app.listen(port, () => {

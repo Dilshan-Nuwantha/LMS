@@ -342,7 +342,7 @@ Tenz Learn is a standalone web platform. It consists of two independently deploy
   - Full description, curriculum preview (public/preview lectures), requirements, learning outcomes, instructor profile, and reviews.
 
 #### FR-MKT-04: Course Pricing
-- Instructors shall set a price (and optional original/strike-through price) in INR or USD.
+- Instructors shall set a price (and optional original/strike-through price) in LKR or USD.
 - Courses may be listed as free (price = 0).
 
 #### FR-MKT-05: Coupon Codes
@@ -893,7 +893,7 @@ All API routes are prefixed with `/api`. Authentication is provided via `Authori
 
 ### 10.1 Constraints
 
-1. **Payment Currency**: The system supports INR and USD only.
+1. **Payment Currency**: The system supports LKR and USD only.
 2. **AI Provider**: At least one of OpenAI, Gemini, or Anthropic must be configured by the instructor for AI features to work.
 3. **Video Hosting**: The system does not host video files. Lecture videos must be hosted externally (e.g., YouTube, Vimeo) and referenced by URL.
 4. **File Uploads**: Uploaded files (PDFs, thumbnails) are subject to Multer memory limits; very large files are not supported.

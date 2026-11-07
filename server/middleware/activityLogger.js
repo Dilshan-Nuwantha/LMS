@@ -1,4 +1,20 @@
+const mongoose = require('mongoose');
 const Activity = require('../models/Activity');
+
+// Only these request fields are stored. Anything else, such as passwords, API keys,
+// bank details or sign-in codes, never reaches the log.
+const LOGGED_FIELDS = [
+    'title', 'status', 'priority', 'importance', 'isActive', 'isPublic', 'isPreview',
+    'courseId', 'sectionId', 'lectureId', 'rating', 'reason', 'role', 'email',
+    'amount', 'currency', 'method', 'provider', 'model', 'discountType', 'discountValue',
+    'hideCourses', 'maxWarnings'
+];
+
+const pickLoggedFields = (body) => Object.fromEntries(
+    LOGGED_FIELDS
+        .filter(field => ['string', 'number', 'boolean'].includes(typeof body?.[field]))
+        .map(field => [field, body[field]])
+);
 
 const activityLogger = async (req, res, next) => {
     // We use 'finish' to ensure we capture the outcome and any user set during the request (e.g. Login)
@@ -14,15 +30,10 @@ const activityLogger = async (req, res, next) => {
             const user = req.user || res.locals.user;
             if (!user) return; // Don't log anonymous actions
 
-            const userId = user._id || user.id;
+            const userId = req.impersonatedBy || user._id || user.id;
 
             // 3. Prepare Event Data (Body)
-            let eventData = { ...req.body };
-
-            // Sanitize sensitive fields
-            if (eventData.password) delete eventData.password;
-            if (eventData.token) delete eventData.token;
-            if (eventData.sections) delete eventData.sections; // sections too large for logs
+            const eventData = pickLoggedFields(req.body);
 
             const url = req.originalUrl;
 
@@ -53,11 +64,11 @@ const activityLogger = async (req, res, next) => {
             else if (url.match(/\/courses\/[a-f0-9]{24}$/i) && req.method === 'PUT') { action = 'Course Updated'; details = 'Updated course settings'; }
             else if (url.match(/\/courses\/[a-f0-9]{24}$/i) && req.method === 'DELETE') { action = 'Course Deleted'; details = 'Deleted a course'; }
             else if (url.match(/\/courses$/i) && req.method === 'POST') { action = 'Course Created'; details = `Created new course${eventData.title ? ': ' + eventData.title : ''}`; }
-            // Teachers
-            else if (url.includes('/teachers') && req.method === 'POST') { action = 'Teacher Added'; details = 'Added a teacher to the course'; }
-            else if (url.includes('/teachers/leave')) { action = 'Teacher Left'; details = 'Left the course as teacher'; }
-            else if (url.includes('/teachers') && req.method === 'DELETE') { action = 'Teacher Removed'; details = 'Removed a teacher from the course'; }
-            else if (url.includes('/teachers') && req.method === 'PUT') { action = 'Teacher Updated'; details = 'Updated teacher permissions'; }
+            // Instructors
+            else if (url.includes('/instructors') && req.method === 'POST') { action = 'Instructor Added'; details = 'Added an instructor to the course'; }
+            else if (url.includes('/instructors/leave')) { action = 'Instructor Left'; details = 'Left the course as instructor'; }
+            else if (url.includes('/instructors') && req.method === 'DELETE') { action = 'Instructor Removed'; details = 'Removed an instructor from the course'; }
+            else if (url.includes('/instructors') && req.method === 'PUT') { action = 'Instructor Updated'; details = 'Updated instructor permissions'; }
             // Broadcasts
             else if (url.includes('/broadcasts') && url.includes('/mark-read')) { action = 'Broadcast Read'; details = 'Marked announcements as read'; }
             else if (url.includes('/broadcasts') && url.includes('/settings')) { action = 'Broadcast Settings'; details = 'Updated broadcast settings'; }
@@ -75,6 +86,7 @@ const activityLogger = async (req, res, next) => {
             else if (url.includes('/resources') && req.method === 'POST') { action = 'Resource Uploaded'; details = `Uploaded a resource${eventData.title ? ': ' + eventData.title : ''}`; }
             else if (url.includes('/resources') && req.method === 'DELETE') { action = 'Resource Deleted'; details = 'Deleted a resource'; }
             // Admin actions
+            else if (url.includes('/warnings/') && req.method === 'DELETE') { action = 'Warning Removed'; details = 'Removed a warning from a user'; }
             else if (url.includes('/warn')) { action = 'User Warned'; details = 'Sent a warning to a user'; }
             else if (url.includes('/block') && url.includes('/users')) { action = 'User Blocked'; details = 'Blocked a user'; }
             else if (url.includes('/unblock') && url.includes('/users')) { action = 'User Unblocked'; details = 'Unblocked a user'; }
@@ -98,6 +110,7 @@ const activityLogger = async (req, res, next) => {
                 action: action || req.method,
                 method: req.method,
                 url: req.originalUrl,
+                ip: req.ip,
                 data: eventData,
                 details: details || action || `${req.method} action performed`
             };
@@ -113,7 +126,8 @@ const activityLogger = async (req, res, next) => {
                 if (match) courseId = match[1];
             }
 
-            if (courseId) logData.course = courseId;
+            // The id can come from the request body, and a bad one must not lose the whole entry
+            if (mongoose.isValidObjectId(courseId)) logData.course = courseId;
 
             // Override from Controller
             if (res.locals.activity) {
@@ -123,6 +137,11 @@ const activityLogger = async (req, res, next) => {
                 if (res.locals.activity.course) logData.course = res.locals.activity.course;
                 if (res.locals.activity.lecture) logData.lecture = res.locals.activity.lecture;
             }
+
+            // A refused request is still worth keeping, but it must not read as done
+            if (res.statusCode >= 400) logData.action = `Failed: ${logData.action}`;
+
+            if (req.impersonatedBy) logData.details = `[Impersonating ${user.email}] ${logData.details}`;
 
             await Activity.create(logData);
 

@@ -25,6 +25,12 @@ const CourseLanding = () => {
     const [couponApplied, setCouponApplied] = useState(null);
     const [expandedSections, setExpandedSections] = useState({});
     const [hasPurchased, setHasPurchased] = useState(false);
+    const [slipStatus, setSlipStatus] = useState(null);
+    const [rejectionReason, setRejectionReason] = useState('');
+    const [showSlipForm, setShowSlipForm] = useState(false);
+    const [slipFile, setSlipFile] = useState(null);
+    const [sendingSlip, setSendingSlip] = useState(false);
+    const [payDetails, setPayDetails] = useState(null);
     const [showPreviewVideo, setShowPreviewVideo] = useState(false);
 
     // Review form state
@@ -33,22 +39,13 @@ const CourseLanding = () => {
     const [submittingReview, setSubmittingReview] = useState(false);
     const [myReview, setMyReview] = useState(null);
 
-    useEffect(() => {
-        if (!id || id === 'undefined') return;
-        fetchCourse();
-        if (user) {
-            checkPurchase();
-            fetchMyReview();
-        }
-    }, [id, user]);
-
     const fetchCourse = async () => {
         try {
             const res = await api.get(`/marketplace/${id}`);
             setCourse(res.data.course);
             setReviews(res.data.reviews);
             // All sections collapsed by default
-        } catch (error) {
+        } catch {
             showError('Course not found');
             navigate('/marketplace');
         } finally {
@@ -60,6 +57,8 @@ const CourseLanding = () => {
         try {
             const res = await api.get(`/purchase/verify/${id}`);
             setHasPurchased(res.data.hasPurchased);
+            setSlipStatus(res.data.slipStatus || null);
+            setRejectionReason(res.data.rejectionReason || '');
         } catch (error) {
             console.error('Error checking purchase:', error);
         }
@@ -73,10 +72,19 @@ const CourseLanding = () => {
                 setReviewRating(res.data.rating);
                 setReviewComment(res.data.comment);
             }
-        } catch (error) {
+        } catch {
             // No existing review - that's fine
         }
     };
+
+    useEffect(() => {
+        if (!id || id === 'undefined') return;
+        fetchCourse();
+        if (user) {
+            checkPurchase();
+            fetchMyReview();
+        }
+    }, [id, user]);
 
     const handleSubmitReview = async () => {
         if (!user) {
@@ -119,7 +127,7 @@ const CourseLanding = () => {
         try {
             await api.post(`/reviews/${reviewId}/helpful`);
             fetchCourse();
-        } catch (error) {
+        } catch {
             showError('Failed to mark review as helpful');
         }
     };
@@ -140,6 +148,51 @@ const CourseLanding = () => {
         }
     };
 
+    const toggleSlipForm = async () => {
+        if (!user) {
+            navigate('/login', { state: { from: `/marketplace/course/${id}` } });
+            return;
+        }
+
+        setShowSlipForm(!showSlipForm);
+        try {
+            const res = await api.get(`/purchase/course/${id}/bank-details`);
+            setPayDetails(res.data);
+        } catch (error) {
+            showError(error, 'Failed to load the payment details');
+        }
+    };
+
+    const handleSendSlip = async () => {
+        if (!user) {
+            navigate('/login', { state: { from: `/marketplace/course/${id}` } });
+            return;
+        }
+
+        if (!slipFile) {
+            showError('Please choose your payment slip');
+            return;
+        }
+
+        const form = new FormData();
+        form.append('slip', slipFile);
+        form.append('courseId', id);
+        if (couponApplied) form.append('couponCode', couponCode);
+
+        setSendingSlip(true);
+        try {
+            await api.post('/purchase/slip', form, { headers: { 'Content-Type': 'multipart/form-data' } });
+            setSlipStatus('pending');
+            setShowSlipForm(false);
+            setSlipFile(null);
+            showSuccess('Slip sent. You will get access once it is approved.');
+        } catch (error) {
+            showError(error, 'Failed to send the slip');
+        } finally {
+            setSendingSlip(false);
+        }
+    };
+
     const handlePurchase = async () => {
         if (!user) {
             navigate('/login', { state: { from: `/marketplace/course/${id}` } });
@@ -152,6 +205,14 @@ const CourseLanding = () => {
                 courseId: id,
                 couponCode: couponApplied ? couponCode : null
             });
+
+            // Free course / 100% coupon: enrolled directly, no payment needed
+            if (res.data.enrolled) {
+                setHasPurchased(true);
+                showSuccess('You are now enrolled in this course!');
+                setPurchasing(false);
+                return;
+            }
 
             // Redirect to Stripe checkout
             if (res.data.url) {
@@ -325,7 +386,7 @@ const CourseLanding = () => {
                                                 <span className="font-medium">Coupon applied!</span>
                                             </div>
                                             <p className="text-sm text-green-600 dark:text-green-400 mt-1">
-                                                You save ₹{couponApplied.discountAmount}
+                                                You save {course.currency === 'USD' ? '$' : 'Rs. '}{couponApplied.discountAmount}
                                             </p>
                                         </div>
                                     )}
@@ -344,8 +405,63 @@ const CourseLanding = () => {
                                             disabled={purchasing}
                                             className="w-full py-3 bg-indigo-500 hover:bg-indigo-600 text-white font-semibold rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                                         >
-                                            {purchasing ? 'Processing...' : 'Buy Now'}
+                                            {purchasing ? 'Processing...' : course.price === 0 ? 'Enroll for Free' : 'Buy Now'}
                                         </button>
+                                    )}
+
+                                    {/* Pay by bank slip */}
+                                    {!hasPurchased && course.price > 0 && (
+                                        <div className="mt-3 text-sm">
+                                            {slipStatus === 'pending' ? (
+                                                <p className="p-3 rounded-lg bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-300">
+                                                    Your payment slip is waiting for the instructor to approve it.
+                                                </p>
+                                            ) : (
+                                                <>
+                                                    {slipStatus === 'failed' && (
+                                                        <p className="mb-2 p-3 rounded-lg bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300">
+                                                            Your slip was rejected{rejectionReason ? `: ${rejectionReason}` : ''}. You can send a new one.
+                                                        </p>
+                                                    )}
+                                                    <button
+                                                        type="button"
+                                                        onClick={toggleSlipForm}
+                                                        className="w-full py-2.5 rounded-lg border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-200 font-semibold"
+                                                    >
+                                                        Pay by Bank Slip
+                                                    </button>
+                                                    {showSlipForm && (
+                                                        <div className="mt-3 space-y-2 text-slate-600 dark:text-slate-300">
+                                                            {payDetails ? (
+                                                                <p className="p-3 rounded-lg bg-slate-50 dark:bg-slate-900/50">
+                                                                    Pay the instructor:<br />
+                                                                    {payDetails.accountHolderName}<br />
+                                                                    {payDetails.bankName}<br />
+                                                                    {payDetails.accountNumber}
+                                                                </p>
+                                                            ) : (
+                                                                <p>This instructor has not added bank details yet.</p>
+                                                            )}
+                                                            <p>Upload an image or PDF of your slip, up to 2 MB.</p>
+                                                            <input
+                                                                type="file"
+                                                                accept="image/png,image/jpeg,image/webp,application/pdf"
+                                                                onChange={(e) => setSlipFile(e.target.files?.[0] || null)}
+                                                                className="block w-full text-xs"
+                                                            />
+                                                            <button
+                                                                type="button"
+                                                                onClick={handleSendSlip}
+                                                                disabled={sendingSlip}
+                                                                className="w-full py-2.5 bg-indigo-500 hover:bg-indigo-600 text-white font-semibold rounded-lg disabled:opacity-50"
+                                                            >
+                                                                {sendingSlip ? 'Sending...' : 'Send Slip'}
+                                                            </button>
+                                                        </div>
+                                                    )}
+                                                </>
+                                            )}
+                                        </div>
                                     )}
 
                                     {/* Course includes */}
@@ -416,7 +532,7 @@ const CourseLanding = () => {
                                 Course Curriculum
                             </h2>
                             <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden">
-                                {course.sections?.map((section, index) => (
+                                {course.sections?.map((section) => (
                                     <div key={section._id} className="border-b border-slate-200 dark:border-slate-700 last:border-0">
                                         <button
                                             onClick={() => toggleSection(section._id)}
