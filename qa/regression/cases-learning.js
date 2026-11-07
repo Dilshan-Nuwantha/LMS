@@ -68,7 +68,7 @@ tc('QZ-013', M, 'Medium', 'Inactive quiz is unavailable', 'Set isActive false', 
     ok(!(await api('GET', `/quizzes/course/${F.course.id}`, { token: F.s1.token })).text.includes(q._id), 'listed');
     is(await start(q._id), 400);
 });
-tc('QZ-014', M, 'High', 'Quiz analytics are for teachers', 'GET analytics as the owner and as a student', 'Owner HTTP 200; student HTTP 403', async () => {
+tc('QZ-014', M, 'High', 'Quiz analytics are for instructors', 'GET analytics as the owner and as a student', 'Owner HTTP 200; student HTTP 403', async () => {
     const r = await api('GET', `/quizzes/${F.quiz._id}/analytics`, { token: F.instr.token });
     is(r, 200); ok(r.json.overview.totalAttempts >= 2, 'attempts missing');
     is(await api('GET', `/quizzes/${F.quiz._id}/analytics`, { token: F.s1.token }), 403);
@@ -132,7 +132,7 @@ const convo = async (u, body) => (await api('POST', '/student-ai/conversations',
 tc('AI-001', A, 'Critical', 'Instructor AI key is encrypted at rest', 'POST /ai/config, read the stored record', 'Key stored as AES-GCM ciphertext; response masked (NFR-SEC-03)', async () => {
     const r = await api('POST', '/ai/config', { token: F.instr.token, body: { provider: 'openai', apiKey: KEY, model: 'gpt-x' } });
     is(r, 200); ok(!r.text.includes(KEY), 'key returned');
-    const db = await models.TeacherAIConfig.findOne({ teacher: F.instr.id });
+    const db = await models.InstructorAIConfig.findOne({ instructor: F.instr.id });
     ok(!db.apiKey.includes('sk-qa') && db.apiKey.split(':').length === 3, 'not encrypted');
 });
 tc('AI-002', A, 'High', 'Config read returns a masked key', 'GET /ai/config', 'apiKeyMasked only', async () => {
@@ -159,7 +159,7 @@ tc('AI-007', A, 'High', 'Generate notes', 'POST /ai/generate-notes', 'Notes retu
     is(r, 200); ok(r.json.notes, 'none');
 });
 tc('AI-008', A, 'Medium', 'Generating without a key is a client error', 'POST /ai/generate-notes with no saved key', 'HTTP 400', async () => {
-    const u = await newUser('teacher', 'nokey');
+    const u = await newUser('instructor', 'nokey');
     const c = await mkCourse(u);
     is(await api('POST', '/ai/generate-notes', { token: u.token, body: { courseId: c.id, topic: 'x' } }), 400);
 });

@@ -13,7 +13,7 @@ const BecomeInstructor = () => {
     const handleBecomeInstructor = async () => {
         setLoading(true);
         try {
-            const res = await api.post('/instructor/become');
+            const res = await api.post('/instructor/become', {});
             setUser(res.data.user || { ...user, role: 'instructor' });
             showSuccess('You are now an instructor!');
             navigate('/instructor/dashboard');

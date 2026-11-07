@@ -1,5 +1,5 @@
 const asyncHandler = require('express-async-handler');
-const TeacherAIConfig = require('../models/TeacherAIConfig');
+const InstructorAIConfig = require('../models/InstructorAIConfig');
 const Conversation = require('../models/Conversation');
 const Course = require('../models/Course');
 const { encrypt, decrypt } = require('../utils/encryption');
@@ -16,7 +16,7 @@ async function getStudentAI(user, courseId = null, useInstructorKey = false) {
 
     // If student explicitly wants instructor key, skip own config
     if (!useInstructorKey) {
-        const studentConfig = await TeacherAIConfig.findOne({ teacher: userId, isActive: true });
+        const studentConfig = await InstructorAIConfig.findOne({ instructor: userId, isActive: true });
         if (studentConfig) {
             const apiKey = decrypt(studentConfig.apiKey);
             return { apiKey, provider: studentConfig.provider, model: studentConfig.model, source: 'student' };
@@ -39,7 +39,7 @@ async function getStudentAI(user, courseId = null, useInstructorKey = false) {
                 err.statusCode = 403;
                 throw err;
             }
-            const instructorConfig = await TeacherAIConfig.findOne({ teacher: course.user, isActive: true });
+            const instructorConfig = await InstructorAIConfig.findOne({ instructor: course.user, isActive: true });
             if (instructorConfig) {
                 const apiKey = decrypt(instructorConfig.apiKey);
                 return { apiKey, provider: instructorConfig.provider, model: instructorConfig.model, source: 'instructor' };
@@ -58,7 +58,7 @@ const getCourseAIStatus = asyncHandler(async (req, res) => {
     const userId = req.user._id;
 
     const [studentConfig, course] = await Promise.all([
-        TeacherAIConfig.findOne({ teacher: userId, isActive: true }).select('_id'),
+        InstructorAIConfig.findOne({ instructor: userId, isActive: true }).select('_id'),
         Course.findById(courseId).select('user allowStudentAI aiBlockedStudents')
     ]);
 
@@ -68,7 +68,7 @@ const getCourseAIStatus = asyncHandler(async (req, res) => {
 
     let instructorHasKey = false;
     if (allowStudentAI && !isBlocked && course?.user) {
-        instructorHasKey = !!(await TeacherAIConfig.findOne({ teacher: course.user, isActive: true }).select('_id'));
+        instructorHasKey = !!(await InstructorAIConfig.findOne({ instructor: course.user, isActive: true }).select('_id'));
     }
 
     res.json({ hasOwnKey, allowStudentAI, isBlocked: !!isBlocked, instructorHasKey });
@@ -77,7 +77,7 @@ const getCourseAIStatus = asyncHandler(async (req, res) => {
 // ─── CONFIG CRUD ───────────────────────────────────────────────────
 
 const getConfig = asyncHandler(async (req, res) => {
-    const config = await TeacherAIConfig.findOne({ teacher: req.user._id });
+    const config = await InstructorAIConfig.findOne({ instructor: req.user._id });
     if (!config) return res.json(null);
 
     let maskedKey = '••••••••';
@@ -104,8 +104,8 @@ const saveConfig = asyncHandler(async (req, res) => {
         throw new Error('Invalid provider');
     }
     const encryptedKey = encrypt(apiKey);
-    const config = await TeacherAIConfig.findOneAndUpdate(
-        { teacher: req.user._id },
+    const config = await InstructorAIConfig.findOneAndUpdate(
+        { instructor: req.user._id },
         { provider, apiKey: encryptedKey, model, isActive: true },
         { upsert: true, new: true }
     );
@@ -120,7 +120,7 @@ const saveConfig = asyncHandler(async (req, res) => {
 });
 
 const deleteConfig = asyncHandler(async (req, res) => {
-    const config = await TeacherAIConfig.findOneAndDelete({ teacher: req.user._id });
+    const config = await InstructorAIConfig.findOneAndDelete({ instructor: req.user._id });
     if (!config) { res.status(404); throw new Error('No AI configuration found'); }
     res.json({ message: 'AI configuration deleted' });
 });

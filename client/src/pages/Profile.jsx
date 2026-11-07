@@ -2,6 +2,7 @@ import { useState, useContext } from 'react';
 import AuthContext from '../context/AuthContext';
 import api from '../api/axios';
 import { showSuccess, showError } from '../utils/toast';
+import ImageUpload from '../components/ui/ImageUpload';
 import { FaLock, FaExclamationTriangle, FaEye, FaEyeSlash, FaGoogle, FaPencilAlt, FaUser, FaImages, FaShieldAlt } from 'react-icons/fa';
 
 // Avatar categories with DiceBear (no package needed — just image URLs)
@@ -160,7 +161,6 @@ const Profile = () => {
     const [profileLoading, setProfileLoading] = useState(false);
     const [activeTab, setActiveTab] = useState('about');
     const [bioRole, setBioRole] = useState(user?.role || 'student');
-    const [customUrl, setCustomUrl] = useState('');
 
     // Password state
     const [passwords, setPasswords] = useState({ currentPassword: '', newPassword: '', confirmPassword: '' });
@@ -172,7 +172,6 @@ const Profile = () => {
 
     const startEditing = () => {
         setProfileForm({ name: user?.name || '', bio: user?.bio || '', profileImage: user?.profileImage || '' });
-        setCustomUrl('');
         setEditingProfile(true);
     };
 
@@ -426,27 +425,15 @@ const Profile = () => {
                                     )}
                                 </div>
 
-                                {/* Custom image URL — only when editing */}
+                                {/* Picture upload, only when editing */}
                                 {editingProfile && (
                                     <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6">
-                                        <h3 className="text-sm font-semibold text-slate-900 dark:text-white mb-3">Profile Image from URL</h3>
-                                        <p className="text-xs text-slate-500 dark:text-slate-400 mb-3">Paste a direct link to use as your profile picture.</p>
-                                        <div className="flex gap-2">
-                                            <input
-                                                type="url"
-                                                value={customUrl}
-                                                onChange={e => setCustomUrl(e.target.value)}
-                                                placeholder="https://example.com/my-photo.jpg"
-                                                className={`${inputClass} flex-1`}
-                                            />
-                                            <button
-                                                onClick={() => { if (customUrl) { setProfileForm(f => ({ ...f, profileImage: customUrl })); setCustomUrl(''); } }}
-                                                disabled={!customUrl}
-                                                className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white text-sm font-semibold rounded-xl transition-colors"
-                                            >
-                                                Set
-                                            </button>
-                                        </div>
+                                        <h3 className="text-sm font-semibold text-slate-900 dark:text-white mb-3">Profile Picture</h3>
+                                        <ImageUpload
+                                            value={profileForm.profileImage}
+                                            onChange={(url) => setProfileForm(f => ({ ...f, profileImage: url }))}
+                                            label="Upload a picture"
+                                        />
                                     </div>
                                 )}
                             </div>

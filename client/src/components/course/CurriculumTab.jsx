@@ -22,7 +22,6 @@ const CurriculumTab = ({
     onToggleLectureVisibility,
     // Toggles
     onTogglePeerProgress,
-    onToggleStudentAI,
     // Student progress overlay
     selectedStudentId,
     selectedStudentName,
@@ -189,18 +188,6 @@ const CurriculumTab = ({
                                     <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform shadow-sm ${course.allowPeerProgress ? 'translate-x-[18px]' : 'translate-x-[3px]'}`} />
                                 </button>
                             </div>
-                            <div className="w-px h-4 bg-slate-200 dark:bg-slate-700 hidden sm:block" />
-                            <div className="flex items-center gap-2">
-                                <span className="text-[10px] text-slate-500 dark:text-slate-400 hidden sm:inline">Student AI</span>
-                                <button
-                                    type="button"
-                                    onClick={onToggleStudentAI}
-                                    className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors shrink-0 ${course.allowStudentAI ? 'bg-indigo-500' : 'bg-slate-300 dark:bg-slate-600'}`}
-                                    title={course.allowStudentAI ? 'AI Access: ON — Students without their own API key will use yours for AI chat in this course. Click to disable.' : 'AI Access: OFF — Students need their own API key for AI chat. Click to let them use yours.'}
-                                >
-                                    <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform shadow-sm ${course.allowStudentAI ? 'translate-x-[18px]' : 'translate-x-[3px]'}`} />
-                                </button>
-                            </div>
                         </div>
                     </div>
                 ) : (
@@ -249,7 +236,7 @@ const CurriculumTab = ({
                 <div className="flex items-center shrink-0">
                     <span className="text-[9px] font-bold text-slate-400 dark:text-slate-600 uppercase tracking-widest mr-1">Visibility</span>
                     {[{ v: 'all', l: 'All' }, { v: 'public', l: 'Public' }, { v: 'hidden', l: 'Hidden' }].map(f => (
-                        <button key={f.v} onClick={() => setCurrVisibility(f.v)}
+                        <button key={f.v} onClick={() => { setCurrVisibility(f.v); setCurrImportance('all'); }}
                             className={`px-3 py-2.5 text-[11px] sm:text-xs font-medium border-b-2 -mb-px transition-colors whitespace-nowrap ${currVisibility === f.v
                                 ? 'border-slate-900 dark:border-white text-slate-900 dark:text-white'
                                 : 'border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:border-slate-300 dark:hover:border-slate-600'}`}>
@@ -260,8 +247,8 @@ const CurriculumTab = ({
                 {/* Importance Group */}
                 <div className="flex items-center shrink-0">
                     <span className="text-[9px] font-bold text-slate-400 dark:text-slate-600 uppercase tracking-widest mr-1">Importance</span>
-                    {[{ v: 'all', l: 'All' }, { v: 'Very Important', l: 'Critical' }, { v: 'Important', l: 'Important' }, { v: 'Normal', l: 'Normal' }, { v: 'Optional', l: 'Optional' }].map(f => (
-                        <button key={f.v} onClick={() => setCurrImportance(f.v)}
+                    {[{ v: 'all', l: 'All' }, { v: 'Very Important', l: 'Very Important' }, { v: 'Important', l: 'Important' }, { v: 'Normal', l: 'Normal' }, { v: 'Optional', l: 'Optional' }].map(f => (
+                        <button key={f.v} onClick={() => { setCurrImportance(f.v); setCurrVisibility('all'); }}
                             className={`px-3 py-2.5 text-[11px] sm:text-xs font-medium border-b-2 -mb-px transition-colors whitespace-nowrap ${currImportance === f.v
                                 ? 'border-slate-900 dark:border-white text-slate-900 dark:text-white'
                                 : 'border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:border-slate-300 dark:hover:border-slate-600'}`}>
@@ -279,8 +266,9 @@ const CurriculumTab = ({
                         if (currVisibility === 'public' && !section.isPublic) return false;
                         if (currVisibility === 'hidden' && section.isPublic) return false;
                         if (currImportance !== 'all') {
-                            const secImp = section.importance || '';
-                            if (secImp !== currImportance) return false;
+                            const secImp = section.importance || 'Normal';
+                            const has = secImp === currImportance || section.lectures?.some(l => (l.importance || secImp) === currImportance);
+                            if (!has) return false;
                         }
                         if (lectureSearch.trim()) {
                             const q = lectureSearch.trim().toLowerCase();

@@ -1,5 +1,5 @@
 import { useState, useEffect, useContext, useRef } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, Link } from 'react-router-dom';
 import api from '../../api/axios';
 import AuthContext from '../../context/AuthContext';
 import { FaPlayCircle, FaChevronDown, FaChevronUp, FaArrowLeft, FaClock, FaBars, FaTimes, FaStepBackward, FaStepForward, FaStickyNote, FaSave, FaLock, FaUserGraduate, FaCheckCircle, FaSearch, FaBookmark, FaRegBookmark, FaFolderOpen, FaDownload, FaFilePdf, FaImage, FaFileAlt, FaLink as FaLinkIcon, FaEye } from 'react-icons/fa';
@@ -37,6 +37,7 @@ const CourseView = () => {
     // Comments state
     const [comments, setComments] = useState([]);
     const [newComment, setNewComment] = useState('');
+    const [commentsLocked, setCommentsLocked] = useState(false);
     const [notes, setNotes] = useState('');
     const [isSavingNotes, setIsSavingNotes] = useState(false);
     const [currentPage, setCurrentPage] = useState(1);
@@ -138,8 +139,10 @@ const CourseView = () => {
         try {
             const res = await api.get(`/courses/lectures/${lectureId}/comments`);
             setComments(res.data);
-        } catch {
-            console.error("Failed to fetch comments");
+            setCommentsLocked(false);
+        } catch (error) {
+            setComments([]);
+            setCommentsLocked(error.response?.status === 403);
         }
     };
 
@@ -1149,7 +1152,13 @@ const CourseView = () => {
                                 )}
 
                                 {/* Discussion Tab */}
-                                {activeTab === 'discussion' && (
+                                {activeTab === 'discussion' && commentsLocked && (
+                                    <div className="py-8 text-center">
+                                        <p className="text-sm text-slate-500 dark:text-slate-400 mb-3">Enroll in this course to join the discussion.</p>
+                                        <Link to={`/marketplace/course/${id}`} className="text-sm font-semibold text-primary hover:underline">View course</Link>
+                                    </div>
+                                )}
+                                {activeTab === 'discussion' && !commentsLocked && (
                                     <div className="space-y-4">
                                         {/* Comment Input */}
                                         <form onSubmit={handleAddComment} className="flex gap-3 items-start">

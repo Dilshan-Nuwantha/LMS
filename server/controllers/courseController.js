@@ -6,7 +6,7 @@ const Progress = require('../models/Progress');
 const Activity = require('../models/Activity');
 const QuizAttempt = require('../models/QuizAttempt');
 const Quiz = require('../models/Quiz');
-const CourseTeacher = require('../models/CourseTeacher');
+const CourseInstructor = require('../models/CourseInstructor');
 const Purchase = require('../models/Purchase');
 const Resource = require('../models/Resource');
 const Broadcast = require('../models/Broadcast');
@@ -14,7 +14,7 @@ const BroadcastView = require('../models/BroadcastView');
 const Coupon = require('../models/Coupon');
 const Review = require('../models/Review');
 const Notification = require('../models/Notification');
-const { canManage, getTeacherPermissions, isCourseMember } = require('../middleware/ownershipMiddleware');
+const { canManage, getInstructorPermissions, isCourseMember } = require('../middleware/ownershipMiddleware');
 const { escapeRegex } = require('../utils/query');
 const { isSafeUrl } = require('../utils/url');
 
@@ -137,7 +137,7 @@ const getCourses = asyncHandler(async (req, res) => {
     }
 
     const [assignments, enrollments] = await Promise.all([
-        CourseTeacher.find({ teacher: req.user.id }).select('course').lean(),
+        CourseInstructor.find({ instructor: req.user.id }).select('course').lean(),
         Progress.find({ student: req.user.id }).select('course').lean()
     ]);
 
@@ -181,18 +181,18 @@ const getCourse = asyncHandler(async (req, res) => {
     const userId = req.user?.id || req.user?._id;
     const isOwnerOrAdmin = canManage(req.user, course.user);
 
-    // Check if user is a teacher
-    const teacherPermissions = await getTeacherPermissions(userId, req.params.id);
-    const isTeacher = !!teacherPermissions;
-    const hasFullAccess = teacherPermissions?.full_access || teacherPermissions?.manage_content;
+    // Check if user is an instructor
+    const instructorPermissions = await getInstructorPermissions(userId, req.params.id);
+    const isInstructor = !!instructorPermissions;
+    const hasFullAccess = instructorPermissions?.full_access || instructorPermissions?.manage_content;
 
     // Block students from accessing admin-blocked courses
-    if (course.isAdminBlocked && !isOwnerOrAdmin && !isTeacher) {
+    if (course.isAdminBlocked && !isOwnerOrAdmin && !isInstructor) {
         res.status(403);
         throw new Error('This course is currently unavailable');
     }
 
-    // Filter hidden content for non-owners and non-teachers
+    // Filter hidden content for non-owners and non-instructors
     if (!isOwnerOrAdmin && !hasFullAccess) {
         course.sections = course.sections
             .filter(section => section.isPublic)
@@ -204,7 +204,7 @@ const getCourse = asyncHandler(async (req, res) => {
 
     // Users who are not enrolled (e.g. haven't bought a marketplace course) only see
     // lecture titles - same rule as getLecture, so the paywall can't be skipped here
-    if (!isOwnerOrAdmin && !isTeacher) {
+    if (!isOwnerOrAdmin && !isInstructor) {
         const enrolled = await Progress.exists({ student: userId, course: req.params.id });
         if (!enrolled) {
             course.sections = course.sections.map(section => ({
@@ -219,9 +219,9 @@ const getCourse = asyncHandler(async (req, res) => {
     // Add user role info
     if (isOwnerOrAdmin) {
         course.userRole = req.user.role === 'admin' ? 'admin' : 'owner';
-    } else if (isTeacher) {
-        course.userRole = 'teacher';
-        course.permissions = teacherPermissions;
+    } else if (isInstructor) {
+        course.userRole = 'instructor';
+        course.permissions = instructorPermissions;
     } else {
         course.userRole = 'student';
     }
@@ -517,9 +517,12 @@ const getEnrolledCourses = asyncHandler(async (req, res) => {
             l => visibleLectureIds.has(l.lecture.toString())
         );
 
+        const completedCount = filteredCompletedLectures.filter(l => l.status === (course.completedStatus || 'Completed')).length;
+
         return {
             _id: progress._id,
             completedLectures: filteredCompletedLectures,
+            progressPercent: totalLectures ? Math.round((completedCount / totalLectures) * 100) : 0,
             course: {
                 _id: course._id,
                 title: course.title,
@@ -574,17 +577,17 @@ const getLecture = asyncHandler(async (req, res) => {
     }
 
     const isOwnerOrAdmin = canManage(req.user, course.user);
-    const teacherPermissions = await getTeacherPermissions(userId, course._id);
-    const isTeacher = !!teacherPermissions;
+    const instructorPermissions = await getInstructorPermissions(userId, course._id);
+    const isInstructor = !!instructorPermissions;
 
     // Block students from accessing lectures in admin-blocked courses
-    if (course.isAdminBlocked && !isOwnerOrAdmin && !isTeacher) {
+    if (course.isAdminBlocked && !isOwnerOrAdmin && !isInstructor) {
         res.status(403);
         throw new Error('This course is currently unavailable');
     }
 
-    // If lecture or its section is hidden, only owner/admin/teacher can access
-    if (!isOwnerOrAdmin && !isTeacher) {
+    // If lecture or its section is hidden, only owner/admin/instructor can access
+    if (!isOwnerOrAdmin && !isInstructor) {
         if (!lecture.isPublic) {
             res.status(403);
             throw new Error('This lecture is not available');
@@ -807,6 +810,17 @@ const addComment = asyncHandler(async (req, res) => {
 
     res.locals.activity = { skip: true }; // Tell middleware we handled it
 
+    if (course.user.toString() !== req.user.id) {
+        const { notifyUser } = require('./notificationController');
+        await notifyUser(course.user, {
+            courseId: course._id,
+            title: 'New comment',
+            message: `${req.user.name} commented on "${lecture.title}"`,
+            type: 'comment',
+            link: `/course/${course._id}/lecture/${lecture._id}`
+        });
+    }
+
     res.status(201).json(activity);
 });
 
@@ -857,7 +871,7 @@ const getStudentActivity = asyncHandler(async (req, res) => {
     }
 
     // Build query - filter out personal notes (Note Updated action)
-    // Teachers should not see student's personal notes
+    // Instructors should not see student's personal notes
     const query = {
         course: id,
         user: studentId,
@@ -1155,7 +1169,7 @@ const removeStudent = asyncHandler(async (req, res) => {
     res.status(200).json({ message: 'Student removed' });
 });
 
-// @desc    Get courses created by current user OR where user is a teacher (optimized)
+// @desc    Get courses created by current user OR where user is an instructor (optimized)
 // @route   GET /api/courses/my/created
 // @access  Private
 const getCreatedCourses = asyncHandler(async (req, res) => {
@@ -1164,11 +1178,11 @@ const getCreatedCourses = asyncHandler(async (req, res) => {
         .select('title description status sections createdAt thumbnail')
         .sort({ createdAt: -1 });
 
-    // Get courses where user is a teacher
-    const teacherAssignments = await CourseTeacher.find({ teacher: req.user.id });
-    const teacherCourseIds = teacherAssignments.map(t => t.course);
+    // Get courses where user is an instructor
+    const instructorAssignments = await CourseInstructor.find({ instructor: req.user.id });
+    const instructorCourseIds = instructorAssignments.map(t => t.course);
 
-    const teachingCourses = await Course.find({ _id: { $in: teacherCourseIds } })
+    const teachingCourses = await Course.find({ _id: { $in: instructorCourseIds } })
         .select('title description status sections createdAt thumbnail')
         .sort({ createdAt: -1 });
 
@@ -1211,7 +1225,7 @@ const getCreatedCourses = asyncHandler(async (req, res) => {
 
     const teachingWithRole = teachingCourses.map(c => {
         const courseObj = c.toObject();
-        const assignment = teacherAssignments.find(t => t.course.toString() === c._id.toString());
+        const assignment = instructorAssignments.find(t => t.course.toString() === c._id.toString());
         const totalLectures = courseObj.sections?.reduce((acc, sec) => acc + (sec.lectures?.length || 0), 0) || 0;
         const sectionCount = courseObj.sections?.length || 0;
         const studentCount = studentCountMap[courseObj._id.toString()] || 0;
@@ -1226,7 +1240,7 @@ const getCreatedCourses = asyncHandler(async (req, res) => {
             totalLectures,
             sectionCount,
             studentCount,
-            userRole: 'teacher',
+            userRole: 'instructor',
             permissions: assignment ? assignment.permissions : {}
         };
     });
@@ -1241,7 +1255,7 @@ const getCreatedCourses = asyncHandler(async (req, res) => {
 
 // @desc    Get course analytics
 // @route   GET /api/courses/:id/analytics
-// @access  Private (Admin or Course Owner/Teacher)
+// @access  Private (Admin or Course Owner/Instructor)
 const getCourseAnalytics = asyncHandler(async (req, res) => {
     const courseId = req.params.id;
 
@@ -1434,7 +1448,7 @@ const deleteCourse = asyncHandler(async (req, res) => {
     // Course is attached by verifyCourseOwnership middleware
     const course = req.course;
 
-    // full_access teachers pass that middleware, but deleting stays with the owner and admins
+    // full_access instructors pass that middleware, but deleting stays with the owner and admins
     if (!req.isOwner) {
         res.status(403);
         throw new Error('Only the course owner can delete this course');
@@ -1464,7 +1478,7 @@ const deleteCourse = asyncHandler(async (req, res) => {
         Broadcast.deleteMany(courseFilter),
         BroadcastView.deleteMany(courseFilter),
         Coupon.deleteMany(courseFilter),
-        CourseTeacher.deleteMany(courseFilter),
+        CourseInstructor.deleteMany(courseFilter),
         Review.deleteMany(courseFilter),
         Notification.deleteMany(courseFilter),
         Purchase.deleteMany({ ...courseFilter, status: { $in: ['pending', 'failed'] } })
@@ -1535,11 +1549,11 @@ const searchCourses = asyncHandler(async (req, res) => {
         }));
 
         // Teaching courses
-        const teacherAssignments = await CourseTeacher.find({ teacher: req.user.id });
-        const teacherCourseIds = teacherAssignments.map(t => t.course);
+        const instructorAssignments = await CourseInstructor.find({ instructor: req.user.id });
+        const instructorCourseIds = instructorAssignments.map(t => t.course);
 
         const teachingCourses = await Course.find({
-            _id: { $in: teacherCourseIds },
+            _id: { $in: instructorCourseIds },
             $or: [
                 { title: searchRegex },
                 { description: searchRegex }
@@ -1571,7 +1585,7 @@ const searchCourses = asyncHandler(async (req, res) => {
 
 // @desc    Get detailed progress of a specific student for a course (section/lecture breakdown)
 // @route   GET /api/courses/:id/progress/:studentId
-// @access  Private (Admin or Course Owner/Teacher with manage_students)
+// @access  Private (Admin or Course Owner/Instructor with manage_students)
 const getStudentProgressDetail = asyncHandler(async (req, res) => {
     const { id, studentId } = req.params;
 

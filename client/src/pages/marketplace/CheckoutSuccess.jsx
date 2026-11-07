@@ -8,6 +8,7 @@ const CheckoutSuccess = () => {
     const sessionId = searchParams.get('session_id');
     const [status, setStatus] = useState(sessionId ? 'loading' : 'error');
     const [course, setCourse] = useState(null);
+    const [invoiceNumber, setInvoiceNumber] = useState('');
 
     const MAX_RETRIES = 15; // 15 retries * 2s = 30 seconds max
 
@@ -15,6 +16,7 @@ const CheckoutSuccess = () => {
         try {
             const res = await api.get(`/purchase/session/${sessionId}`);
             setCourse(res.data.course);
+            setInvoiceNumber(res.data.invoiceNumber || '');
 
             if (res.data.status === 'completed') {
                 setStatus('success');
@@ -103,6 +105,11 @@ const CheckoutSuccess = () => {
                         </Link>
                     )}
 
+                    {invoiceNumber && (
+                        <Link to={`/invoice/${invoiceNumber}`} className="block text-center text-sm font-semibold text-primary hover:underline">
+                            View Receipt ({invoiceNumber})
+                        </Link>
+                    )}
                     <Link
                         to="/my-purchases"
                         className="block w-full px-6 py-3 border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg transition-colors"

@@ -64,11 +64,11 @@ const activityLogger = async (req, res, next) => {
             else if (url.match(/\/courses\/[a-f0-9]{24}$/i) && req.method === 'PUT') { action = 'Course Updated'; details = 'Updated course settings'; }
             else if (url.match(/\/courses\/[a-f0-9]{24}$/i) && req.method === 'DELETE') { action = 'Course Deleted'; details = 'Deleted a course'; }
             else if (url.match(/\/courses$/i) && req.method === 'POST') { action = 'Course Created'; details = `Created new course${eventData.title ? ': ' + eventData.title : ''}`; }
-            // Teachers
-            else if (url.includes('/teachers') && req.method === 'POST') { action = 'Teacher Added'; details = 'Added a teacher to the course'; }
-            else if (url.includes('/teachers/leave')) { action = 'Teacher Left'; details = 'Left the course as teacher'; }
-            else if (url.includes('/teachers') && req.method === 'DELETE') { action = 'Teacher Removed'; details = 'Removed a teacher from the course'; }
-            else if (url.includes('/teachers') && req.method === 'PUT') { action = 'Teacher Updated'; details = 'Updated teacher permissions'; }
+            // Instructors
+            else if (url.includes('/instructors') && req.method === 'POST') { action = 'Instructor Added'; details = 'Added an instructor to the course'; }
+            else if (url.includes('/instructors/leave')) { action = 'Instructor Left'; details = 'Left the course as instructor'; }
+            else if (url.includes('/instructors') && req.method === 'DELETE') { action = 'Instructor Removed'; details = 'Removed an instructor from the course'; }
+            else if (url.includes('/instructors') && req.method === 'PUT') { action = 'Instructor Updated'; details = 'Updated instructor permissions'; }
             // Broadcasts
             else if (url.includes('/broadcasts') && url.includes('/mark-read')) { action = 'Broadcast Read'; details = 'Marked announcements as read'; }
             else if (url.includes('/broadcasts') && url.includes('/settings')) { action = 'Broadcast Settings'; details = 'Updated broadcast settings'; }

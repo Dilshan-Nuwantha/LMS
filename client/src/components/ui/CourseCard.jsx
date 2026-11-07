@@ -1,8 +1,8 @@
 import { Link } from 'react-router-dom';
-import { FaClock, FaHeart, FaStar, FaUser, FaUsers } from 'react-icons/fa';
+import { FaCheckCircle, FaClock, FaStar, FaUser, FaUsers } from 'react-icons/fa';
 import PriceDisplay from './PriceDisplay';
 
-const CourseCard = ({ course }) => {
+const CourseCard = ({ course, enrolled = false }) => {
     const {
         _id,
         title,
@@ -32,7 +32,7 @@ const CourseCard = ({ course }) => {
     const formattedDuration = formatDuration(totalDuration);
 
     return (
-        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-sm hover:shadow-TenZe-lg transition-all duration-300 flex flex-col overflow-hidden group card-hover-lift">
+        <div className="relative bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-sm hover:shadow-TenZe-lg transition-all duration-300 flex flex-col overflow-hidden group card-hover-lift">
             {/* Thumbnail Header */}
             <div className="relative aspect-[16/10] overflow-hidden bg-slate-100 dark:bg-slate-800">
                 {thumbnail ? (
@@ -52,6 +52,11 @@ const CourseCard = ({ course }) => {
                     {category && (
                         <span className="bg-primary/90 backdrop-blur-sm text-white text-[11px] font-semibold px-2.5 py-1 rounded-md">
                             {category}
+                        </span>
+                    )}
+                    {enrolled && (
+                        <span className="bg-success text-white text-[11px] font-semibold px-2.5 py-1 rounded-lg inline-flex items-center gap-1">
+                            <FaCheckCircle /> Enrolled
                         </span>
                     )}
                     {level && (
@@ -85,7 +90,7 @@ const CourseCard = ({ course }) => {
                 </div>
 
                 {/* Title */}
-                <Link to={`/marketplace/course/${_id}`} className="group-hover:text-primary transition-colors">
+                <Link to={enrolled ? `/course/${_id}` : `/marketplace/course/${_id}`} className="group-hover:text-primary transition-colors after:absolute after:inset-0">
                     <h3 className="font-bold text-slate-900 dark:text-white text-sm leading-snug line-clamp-2 mb-2">
                         {title}
                     </h3>
@@ -110,9 +115,9 @@ const CourseCard = ({ course }) => {
                 <div className="border-t border-slate-100 dark:border-slate-800 pt-3 mt-auto flex items-center justify-between">
                     {/* Instructor Info */}
                     <div className="flex items-center gap-2">
-                        {instructor?.profilePicture ? (
+                        {instructor?.profileImage ? (
                             <img
-                                src={instructor.profilePicture}
+                                src={instructor.profileImage}
                                 alt={instructor.name || ''}
                                 className="w-7 h-7 rounded-full object-cover border border-slate-200 dark:border-slate-700"
                             />
@@ -128,7 +133,9 @@ const CourseCard = ({ course }) => {
 
                     {/* Price Display */}
                     <div>
-                        {price === 0 ? (
+                        {enrolled ? (
+                            <span className="text-primary font-extrabold text-xs">Go to Course</span>
+                        ) : price === 0 ? (
                             <span className="text-success font-extrabold text-sm">Free</span>
                         ) : (
                             <PriceDisplay

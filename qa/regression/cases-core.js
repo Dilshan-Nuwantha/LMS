@@ -34,8 +34,8 @@ tc('AUTH-007', M, 'High', 'Unknown email gets the same error as a wrong password
     const r = await api('POST', '/auth/login', { body: { email: 'none@qa.test', password: 'x' } });
     is(r, 400); eq(r.json.message, 'Invalid credentials', 'message');
 });
-tc('AUTH-008', M, 'Medium', 'Role-specific login rejects the wrong role', 'Log a student in through /auth/teacher/login', 'HTTP 400', async () => {
-    is(await api('POST', '/auth/teacher/login', { body: { email: F.s1.email, password: F.s1.password } }), 400);
+tc('AUTH-008', M, 'Medium', 'Role-specific login rejects the wrong role', 'Log a student in through /auth/instructor/login', 'HTTP 400', async () => {
+    is(await api('POST', '/auth/instructor/login', { body: { email: F.s1.email, password: F.s1.password } }), 400);
 });
 tc('AUTH-009', M, 'High', 'Current user profile excludes the password', 'GET /auth/me', 'HTTP 200 and no password field', async () => {
     const r = await api('GET', '/auth/me', { token: F.s1.token });
@@ -385,60 +385,62 @@ tc('PRG-011', P, 'Medium', 'Peer progress is off by default', 'GET /courses/:id/
 });
 
 const T = 'Co-instructors';
-tc('TCH-001', T, 'High', 'Owner adds a co-instructor', 'POST /courses/:id/teachers', 'HTTP 201', async () => {
-    F.teacher = await newUser('student', 'coteacher');
-    is(await api('POST', `/courses/${F.course.id}/teachers`, { token: F.instr.token, body: { email: F.teacher.email, permissions: { manage_content: true } } }), 201);
+tc('TCH-001', T, 'High', 'Owner adds a co-instructor', 'POST /courses/:id/instructors', 'HTTP 201', async () => {
+    F.instructor = await newUser('instructor', 'coinstructor');
+    is(await api('POST', `/courses/${F.course.id}/instructors`, { token: F.instr.token, body: { email: F.instructor.email, permissions: { manage_content: true } } }), 201);
 });
 tc('TCH-002', T, 'Medium', 'Reject a duplicate co-instructor', 'Add the same user twice', 'HTTP 400', async () => {
-    is(await api('POST', `/courses/${F.course.id}/teachers`, { token: F.instr.token, body: { email: F.teacher.email } }), 400);
+    is(await api('POST', `/courses/${F.course.id}/instructors`, { token: F.instr.token, body: { email: F.instructor.email } }), 400);
 });
 tc('TCH-003', T, 'Low', 'Owner cannot add themselves', 'Add the owner email', 'HTTP 400', async () => {
-    is(await api('POST', `/courses/${F.course.id}/teachers`, { token: F.instr.token, body: { email: F.instr.email } }), 400);
+    is(await api('POST', `/courses/${F.course.id}/instructors`, { token: F.instr.token, body: { email: F.instr.email } }), 400);
 });
-tc('TCH-004', T, 'High', 'Outsider cannot add a co-instructor', 'POST teachers as a different instructor', 'HTTP 403', async () => {
-    is(await api('POST', `/courses/${F.course.id}/teachers`, { token: F.instr2.token, body: { email: F.s3.email } }), 403);
+tc('TCH-004', T, 'High', 'Outsider cannot add a co-instructor', 'POST instructors as a different instructor', 'HTTP 403', async () => {
+    is(await api('POST', `/courses/${F.course.id}/instructors`, { token: F.instr2.token, body: { email: F.s3.email } }), 403);
 });
 tc('TCH-005', T, 'High', 'manage_content can add sections', 'POST a section as the co-instructor', 'HTTP 201', async () => {
-    is(await api('POST', `/courses/${F.course.id}/sections`, { token: F.teacher.token, body: { title: 'From teacher' } }), 201);
+    is(await api('POST', `/courses/${F.course.id}/sections`, { token: F.instructor.token, body: { title: 'From instructor' } }), 201);
 });
 tc('TCH-006', T, 'High', 'manage_content can edit lectures', 'PUT /courses/lectures/:id as the co-instructor', 'HTTP 200 (SRS 3.4: add, edit and delete lectures)', async () => {
-    is(await api('PUT', `/courses/lectures/${F.L2}`, { token: F.teacher.token, body: { title: 'By teacher' } }), 200);
+    is(await api('PUT', `/courses/lectures/${F.L2}`, { token: F.instructor.token, body: { title: 'By instructor' } }), 200);
 });
 tc('TCH-007', T, 'High', 'manage_content can delete lectures', 'DELETE a lecture as the co-instructor', 'HTTP 200', async () => {
     const lid = await addLecture(F.instr, F.course.id, F.course.sectionId, 'Disposable');
-    is(await api('DELETE', `/courses/lectures/${lid}`, { token: F.teacher.token }), 200);
+    is(await api('DELETE', `/courses/lectures/${lid}`, { token: F.instructor.token }), 200);
 });
 tc('TCH-008', T, 'High', 'manage_content alone cannot enroll students', 'POST enroll as the co-instructor', 'HTTP 403', async () => {
-    is(await api('POST', `/courses/${F.course.id}/enroll`, { token: F.teacher.token, body: { email: F.s3.email } }), 403);
+    is(await api('POST', `/courses/${F.course.id}/enroll`, { token: F.instructor.token, body: { email: F.s3.email } }), 403);
 });
-tc('TCH-009', T, 'Medium', 'Update co-instructor permissions', 'PUT teachers/:id adding manage_students and manage_teachers', 'HTTP 200 with new permissions', async () => {
-    const r = await api('PUT', `/courses/${F.course.id}/teachers/${F.teacher.id}`, { token: F.instr.token, body: { permissions: { manage_students: true, manage_teachers: true } } });
+tc('TCH-009', T, 'Medium', 'Update co-instructor permissions', 'PUT instructors/:id adding manage_students', 'HTTP 200 with new permissions', async () => {
+    const r = await api('PUT', `/courses/${F.course.id}/instructors/${F.instructor.id}`, { token: F.instr.token, body: { permissions: { manage_students: true } } });
     is(r, 200); eq(r.json.permissions.manage_students, true, 'manage_students');
 });
-tc('TCH-010', T, 'High', 'manage_teachers cannot grant full_access', 'As the co-instructor, add a user with full_access', 'User is added without full_access', async () => {
-    const u = await newUser('student', 'sub');
-    const r = await api('POST', `/courses/${F.course.id}/teachers`, { token: F.teacher.token, body: { email: u.email, permissions: { full_access: true } } });
-    is(r, 201); eq(r.json.permissions.full_access, false, 'full_access');
-    const self = await api('PUT', `/courses/${F.course.id}/teachers/${F.teacher.id}`, { token: F.teacher.token, body: { permissions: { full_access: true } } });
-    eq(self.json.permissions.full_access, false, 'self-grant');
+tc('TCH-010', T, 'High', 'A co-instructor cannot manage other instructors', 'As a co-instructor with full_access, add, change and remove instructors', 'HTTP 403 each time', async () => {
+    const c = await mkCourse(F.instr);
+    const co = await newUser('instructor', 'fullco');
+    const other = await newUser('instructor', 'sub');
+    await api('POST', `/courses/${c.id}/instructors`, { token: F.instr.token, body: { email: co.email, permissions: { full_access: true } } });
+    is(await api('POST', `/courses/${c.id}/instructors`, { token: co.token, body: { email: other.email } }), 403, 'add');
+    is(await api('PUT', `/courses/${c.id}/instructors/${co.id}`, { token: co.token, body: { permissions: { manage_students: true } } }), 403, 'change');
+    is(await api('DELETE', `/courses/${c.id}/instructors/${co.id}`, { token: co.token }), 403, 'remove');
 });
-tc('TCH-011', T, 'Medium', 'My permissions endpoint', 'GET /courses/:id/my-permissions for owner, teacher, outsider', 'Each role is reported correctly', async () => {
+tc('TCH-011', T, 'Medium', 'My permissions endpoint', 'GET /courses/:id/my-permissions for owner, instructor, outsider', 'Each role is reported correctly', async () => {
     eq((await api('GET', `/courses/${F.course.id}/my-permissions`, { token: F.instr.token })).json.isCreator, true, 'owner');
-    eq((await api('GET', `/courses/${F.course.id}/my-permissions`, { token: F.teacher.token })).json.isTeacher, true, 'teacher');
-    eq((await api('GET', `/courses/${F.course.id}/my-permissions`, { token: F.s3.token })).json.isTeacher, false, 'outsider');
+    eq((await api('GET', `/courses/${F.course.id}/my-permissions`, { token: F.instructor.token })).json.isInstructor, true, 'instructor');
+    eq((await api('GET', `/courses/${F.course.id}/my-permissions`, { token: F.s3.token })).json.isInstructor, false, 'outsider');
 });
-tc('TCH-012', T, 'Medium', 'Co-instructor leaves a course', 'DELETE teachers/leave', 'HTTP 200', async () => {
-    is(await api('DELETE', `/courses/${F.course.id}/teachers/leave`, { token: F.teacher.token }), 200);
+tc('TCH-012', T, 'Medium', 'Co-instructor leaves a course', 'DELETE instructors/leave', 'HTTP 200', async () => {
+    is(await api('DELETE', `/courses/${F.course.id}/instructors/leave`, { token: F.instructor.token }), 200);
 });
-tc('TCH-013', T, 'Medium', 'Owner removes a co-instructor', 'Add a user, then DELETE teachers/:id', 'HTTP 200', async () => {
-    const u = await newUser('student', 'rm');
-    await api('POST', `/courses/${F.course.id}/teachers`, { token: F.instr.token, body: { email: u.email } });
-    is(await api('DELETE', `/courses/${F.course.id}/teachers/${u.id}`, { token: F.instr.token }), 200);
+tc('TCH-013', T, 'Medium', 'Owner removes a co-instructor', 'Add a user, then DELETE instructors/:id', 'HTTP 200', async () => {
+    const u = await newUser('instructor', 'rm');
+    await api('POST', `/courses/${F.course.id}/instructors`, { token: F.instr.token, body: { email: u.email } });
+    is(await api('DELETE', `/courses/${F.course.id}/instructors/${u.id}`, { token: F.instr.token }), 200);
 });
 tc('TCH-014', T, 'Medium', 'A co-instructor cannot delete the course', 'Give full_access, then DELETE the course', 'HTTP 403 (SRS 3.4)', async () => {
     const c = await mkCourse(F.instr);
-    const u = await newUser('student', 'full');
-    await api('POST', `/courses/${c.id}/teachers`, { token: F.instr.token, body: { email: u.email, permissions: { full_access: true } } });
+    const u = await newUser('instructor', 'full');
+    await api('POST', `/courses/${c.id}/instructors`, { token: F.instr.token, body: { email: u.email, permissions: { full_access: true } } });
     is(await api('DELETE', `/courses/${c.id}`, { token: u.token }), 403);
 });
 

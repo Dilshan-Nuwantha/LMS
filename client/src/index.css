@@ -7,6 +7,11 @@
         --navbar-height: 64px;
     }
 
+    /* Native controls such as the calendar icon follow the dark theme */
+    .dark {
+        color-scheme: dark;
+    }
+
     html.impersonating {
         --navbar-height: 92px;
     }

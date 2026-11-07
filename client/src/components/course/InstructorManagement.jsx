@@ -16,14 +16,6 @@ const PERMISSIONS_CONFIG = [
         bgColor: 'bg-purple-50 dark:bg-purple-900/20'
     },
     {
-        key: 'manage_teachers',
-        label: 'Manage Teachers',
-        description: 'Add/remove other teachers (except creator)',
-        badgeColor: 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400',
-        borderColor: 'border-orange-500',
-        bgColor: 'bg-orange-50 dark:bg-orange-900/20'
-    },
-    {
         key: 'manage_students',
         label: 'Manage Students',
         description: 'Enroll/remove students, view progress',
@@ -41,71 +33,70 @@ const PERMISSIONS_CONFIG = [
     }
 ];
 
-const TeacherManagement = ({
+const InstructorManagement = ({
     courseId,
-    canManageTeachers = false,
+    canManageInstructors = false,
     isOwner = false
 }) => {
     const { user } = useContext(AuthContext);
     const currentUserId = user?._id;
 
-    // Only owners (admin/creator) can grant full_access and manage_teachers
+    // Only owners (admin/creator) can grant full_access
     const canGrantAdvancedPermissions = isOwner;
 
-    const [teachers, setTeachers] = useState([]);
+    const [instructors, setInstructors] = useState([]);
     const [creator, setCreator] = useState(null);
     const [loading, setLoading] = useState(true);
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-    const [editingTeacher, setEditingTeacher] = useState(null);
-    const [newTeacher, setNewTeacher] = useState({
+    const [editingInstructor, setEditingInstructor] = useState(null);
+    const [newInstructor, setNewInstructor] = useState({
         email: '',
         permissions: {
             manage_content: false,
             manage_students: false,
-            full_access: false,
-            manage_teachers: false
+            full_access: false
         }
     });
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
 
-    // Fetch teachers
-    const fetchTeachers = async () => {
+    // Fetch instructors
+    const fetchInstructors = async () => {
         try {
             setLoading(true);
-            const res = await api.get(`/courses/${courseId}/teachers`);
+            const res = await api.get(`/courses/${courseId}/instructors`);
             setCreator(res.data.creator);
-            setTeachers(res.data.teachers);
+            setInstructors(res.data.instructors);
         } catch {
-            showError('Failed to load teachers');
+            showError('Failed to load instructors');
         } finally {
             setLoading(false);
         }
     };
 
     useEffect(() => {
-        fetchTeachers();
+        fetchInstructors();
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [courseId]);
 
-    // Filter teachers by search (ensure teachers is always an array)
-    const filteredTeachers = (teachers || []).filter((t) =>
+    // Filter instructors by search (ensure instructors is always an array)
+    const filteredInstructors = (instructors || []).filter((t) =>
         searchQuery === '' ||
-        t.teacher?.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        t.teacher?.email?.toLowerCase().includes(searchQuery.toLowerCase())
+        t.instructor?.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        t.instructor?.email?.toLowerCase().includes(searchQuery.toLowerCase())
     );
 
-    // Add teacher
+    // Add instructor
     const handleAdd = async (e) => {
         e.preventDefault();
-        if (!newTeacher.email.trim()) {
+        if (!newInstructor.email.trim()) {
             showError('Please enter an email');
             return;
         }
 
         // Check if at least one permission is selected
-        const hasPermission = Object.values(newTeacher.permissions).some(v => v);
+        const hasPermission = Object.values(newInstructor.permissions).some(v => v);
         if (!hasPermission) {
             showError('Please select at least one permission');
             return;
@@ -113,32 +104,31 @@ const TeacherManagement = ({
 
         setIsSubmitting(true);
         try {
-            await api.post(`/courses/${courseId}/teachers`, newTeacher);
-            setNewTeacher({
+            await api.post(`/courses/${courseId}/instructors`, newInstructor);
+            setNewInstructor({
                 email: '',
                 permissions: {
                     manage_content: false,
                     manage_students: false,
-                    full_access: false,
-                    manage_teachers: false
+                    full_access: false
                 }
             });
             setIsAddModalOpen(false);
-            fetchTeachers();
-            showSuccess('Teacher added!');
+            fetchInstructors();
+            showSuccess('Instructor added!');
         } catch (error) {
-            showError(error, 'Error adding teacher');
+            showError(error, 'Error adding instructor');
         } finally {
             setIsSubmitting(false);
         }
     };
 
-    // Update teacher permissions
+    // Update instructor permissions
     const handleUpdate = async (e) => {
         e.preventDefault();
-        if (!editingTeacher) return;
+        if (!editingInstructor) return;
 
-        const hasPermission = Object.values(editingTeacher.permissions).some(v => v);
+        const hasPermission = Object.values(editingInstructor.permissions).some(v => v);
         if (!hasPermission) {
             showError('Please select at least one permission');
             return;
@@ -146,12 +136,12 @@ const TeacherManagement = ({
 
         setIsSubmitting(true);
         try {
-            await api.put(`/courses/${courseId}/teachers/${editingTeacher.teacher._id}`, {
-                permissions: editingTeacher.permissions
+            await api.put(`/courses/${courseId}/instructors/${editingInstructor.instructor._id}`, {
+                permissions: editingInstructor.permissions
             });
             setIsEditModalOpen(false);
-            setEditingTeacher(null);
-            fetchTeachers();
+            setEditingInstructor(null);
+            fetchInstructors();
             showSuccess('Permissions updated!');
         } catch (error) {
             showError(error, 'Error updating permissions');
@@ -160,21 +150,21 @@ const TeacherManagement = ({
         }
     };
 
-    // Remove teacher
-    const handleRemove = async (teacherId) => {
-        if (!confirm('Are you sure you want to remove this teacher?')) return;
+    // Remove instructor
+    const handleRemove = async (instructorId) => {
+        if (!confirm('Are you sure you want to remove this instructor?')) return;
         try {
-            await api.delete(`/courses/${courseId}/teachers/${teacherId}`);
-            fetchTeachers();
-            showSuccess('Teacher removed');
+            await api.delete(`/courses/${courseId}/instructors/${instructorId}`);
+            fetchInstructors();
+            showSuccess('Instructor removed');
         } catch (error) {
-            showError(error, 'Error removing teacher');
+            showError(error, 'Error removing instructor');
         }
     };
 
-    // Permission checkbox handler for new teacher
+    // Permission checkbox handler for new instructor
     const handleNewPermissionChange = (permission) => {
-        setNewTeacher(prev => ({
+        setNewInstructor(prev => ({
             ...prev,
             permissions: {
                 ...prev.permissions,
@@ -183,9 +173,9 @@ const TeacherManagement = ({
         }));
     };
 
-    // Permission checkbox handler for editing teacher
+    // Permission checkbox handler for editing instructor
     const handleEditPermissionChange = (permission) => {
-        setEditingTeacher(prev => ({
+        setEditingInstructor(prev => ({
             ...prev,
             permissions: {
                 ...prev.permissions,
@@ -247,7 +237,7 @@ const TeacherManagement = ({
                 <div className="flex items-center gap-2">
                     <FaUserTie className="text-indigo-600" />
                     <h3 className="font-semibold text-slate-800 dark:text-white">
-                        Course Teachers ({(teachers || []).length + 1})
+                        Course Instructors ({(instructors || []).length + 1})
                     </h3>
                 </div>
                 <div className="flex items-center gap-2 w-full sm:w-auto">
@@ -271,19 +261,19 @@ const TeacherManagement = ({
                         )}
                     </div>
                     {/* Add button */}
-                    {canManageTeachers && (
+                    {canManageInstructors && (
                         <button
                             onClick={() => setIsAddModalOpen(true)}
                             className="flex items-center gap-1.5 px-3 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors text-sm font-medium"
                         >
                             <FaPlus className="text-xs" />
-                            <span className="hidden sm:inline">Add Teacher</span>
+                            <span className="hidden sm:inline">Add Instructor</span>
                         </button>
                     )}
                 </div>
             </div>
 
-            {/* Teachers List */}
+            {/* Instructors List */}
             <div className="space-y-2">
                 {/* Course Creator */}
                 {creator && (
@@ -306,19 +296,19 @@ const TeacherManagement = ({
                     </div>
                 )}
 
-                {/* Added Teachers */}
-                {filteredTeachers.length === 0 && (teachers || []).length === 0 ? (
+                {/* Added Instructors */}
+                {filteredInstructors.length === 0 && (instructors || []).length === 0 ? (
                     <div className="text-center py-8 text-slate-500 dark:text-slate-400">
                         <FaUserTie className="mx-auto text-3xl mb-2 opacity-30" />
-                        <p>No additional teachers added yet</p>
+                        <p>No additional instructors added yet</p>
                     </div>
-                ) : filteredTeachers.length === 0 ? (
+                ) : filteredInstructors.length === 0 ? (
                     <div className="text-center py-4 text-slate-500 dark:text-slate-400">
-                        No teachers match your search
+                        No instructors match your search
                     </div>
                 ) : (
-                    filteredTeachers.map((t) => {
-                        const isCurrentUser = t.teacher?._id === currentUserId;
+                    filteredInstructors.map((t) => {
+                        const isCurrentUser = t.instructor?._id === currentUserId;
                         return (
                             <div
                                 key={t._id}
@@ -332,11 +322,11 @@ const TeacherManagement = ({
                                     <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-bold ${
                                         isCurrentUser ? 'bg-indigo-600' : 'bg-indigo-500'
                                     }`}>
-                                        {t.teacher?.name?.charAt(0).toUpperCase() || 'T'}
+                                        {t.instructor?.name?.charAt(0).toUpperCase() || 'T'}
                                     </div>
                                     <div>
                                         <div className="flex items-center gap-2">
-                                            <span className="font-medium text-slate-800 dark:text-white">{t.teacher?.name}</span>
+                                            <span className="font-medium text-slate-800 dark:text-white">{t.instructor?.name}</span>
                                             {isCurrentUser && (
                                                 <span className="flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-indigo-200 text-indigo-800 dark:bg-indigo-900/50 dark:text-indigo-300">
                                                     <FaUser className="text-[10px]" />
@@ -344,7 +334,7 @@ const TeacherManagement = ({
                                                 </span>
                                             )}
                                         </div>
-                                        <div className="text-sm text-slate-500 dark:text-slate-400">{t.teacher?.email}</div>
+                                        <div className="text-sm text-slate-500 dark:text-slate-400">{t.instructor?.email}</div>
                                         <div className="flex flex-wrap gap-1 mt-1">
                                             {/* Show badges in priority order */}
                                             {PERMISSIONS_CONFIG.map(p => (
@@ -353,12 +343,12 @@ const TeacherManagement = ({
                                         </div>
                                     </div>
                                 </div>
-                                {/* Only show edit/delete for other teachers, not for self */}
-                                {canManageTeachers && !isCurrentUser && (
+                                {/* Only show edit/delete for other instructors, not for self */}
+                                {canManageInstructors && !isCurrentUser && (
                                     <div className="flex items-center gap-2">
                                         <button
                                             onClick={() => {
-                                                setEditingTeacher(t);
+                                                setEditingInstructor(t);
                                                 setIsEditModalOpen(true);
                                             }}
                                             className="p-2 text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 rounded-lg transition-colors"
@@ -367,9 +357,9 @@ const TeacherManagement = ({
                                             <FaEdit />
                                         </button>
                                         <button
-                                            onClick={() => handleRemove(t.teacher._id)}
+                                            onClick={() => handleRemove(t.instructor._id)}
                                             className="p-2 text-slate-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
-                                            title="Remove teacher"
+                                            title="Remove instructor"
                                         >
                                             <FaTrash />
                                         </button>
@@ -381,8 +371,8 @@ const TeacherManagement = ({
                 )}
             </div>
 
-            {/* Add Teacher Modal */}
-            <Modal isOpen={isAddModalOpen} onClose={() => setIsAddModalOpen(false)} title="Add Teacher">
+            {/* Add Instructor Modal */}
+            <Modal isOpen={isAddModalOpen} onClose={() => setIsAddModalOpen(false)} title="Add Instructor">
                 <form onSubmit={handleAdd} className="space-y-4">
                     <div>
                         <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
@@ -390,9 +380,9 @@ const TeacherManagement = ({
                         </label>
                         <input
                             type="email"
-                            value={newTeacher.email}
-                            onChange={(e) => setNewTeacher(prev => ({ ...prev, email: e.target.value }))}
-                            placeholder="teacher@example.com"
+                            value={newInstructor.email}
+                            onChange={(e) => setNewInstructor(prev => ({ ...prev, email: e.target.value }))}
+                            placeholder="instructor@example.com"
                             className="w-full px-3 py-2 border border-gray-200 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 text-slate-800 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                             required
                         />
@@ -404,19 +394,19 @@ const TeacherManagement = ({
                         <div className="space-y-2">
                             {/* Render permissions in priority order, filter advanced permissions for non-owners */}
                             {PERMISSIONS_CONFIG
-                                .filter(p => canGrantAdvancedPermissions || (p.key !== 'full_access' && p.key !== 'manage_teachers'))
+                                .filter(p => canGrantAdvancedPermissions || p.key !== 'full_access')
                                 .map(p => (
                                     <PermissionCheckbox
                                         key={p.key}
                                         permissionKey={p.key}
-                                        checked={newTeacher.permissions[p.key]}
+                                        checked={newInstructor.permissions[p.key]}
                                         onChange={handleNewPermissionChange}
                                     />
                                 ))}
                         </div>
                         {!canGrantAdvancedPermissions && (
                             <p className="text-xs text-slate-400 dark:text-slate-500 mt-2 italic">
-                                Note: Only the course creator can grant Full Access or Manage Teachers permissions.
+                                Note: Only the course creator can grant Full Access permissions.
                             </p>
                         )}
                     </div>
@@ -433,7 +423,7 @@ const TeacherManagement = ({
                             disabled={isSubmitting}
                             className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors disabled:opacity-50"
                         >
-                            {isSubmitting ? 'Adding...' : 'Add Teacher'}
+                            {isSubmitting ? 'Adding...' : 'Add Instructor'}
                         </button>
                     </div>
                 </form>
@@ -441,15 +431,15 @@ const TeacherManagement = ({
 
             {/* Edit Permissions Modal */}
             <Modal isOpen={isEditModalOpen} onClose={() => setIsEditModalOpen(false)} title="Edit Permissions">
-                {editingTeacher && (
+                {editingInstructor && (
                     <form onSubmit={handleUpdate} className="space-y-4">
                         <div className="flex items-center gap-3 p-3 bg-slate-50 dark:bg-slate-800 rounded-lg">
                             <div className="w-10 h-10 rounded-full bg-indigo-500 flex items-center justify-center text-white font-bold">
-                                {editingTeacher.teacher?.name?.charAt(0).toUpperCase() || 'T'}
+                                {editingInstructor.instructor?.name?.charAt(0).toUpperCase() || 'T'}
                             </div>
                             <div>
-                                <div className="font-medium text-slate-800 dark:text-white">{editingTeacher.teacher?.name}</div>
-                                <div className="text-sm text-slate-500 dark:text-slate-400">{editingTeacher.teacher?.email}</div>
+                                <div className="font-medium text-slate-800 dark:text-white">{editingInstructor.instructor?.name}</div>
+                                <div className="text-sm text-slate-500 dark:text-slate-400">{editingInstructor.instructor?.email}</div>
                             </div>
                         </div>
                         <div>
@@ -459,19 +449,19 @@ const TeacherManagement = ({
                             <div className="space-y-2">
                                 {/* Render permissions in priority order, filter advanced permissions for non-owners */}
                                 {PERMISSIONS_CONFIG
-                                    .filter(p => canGrantAdvancedPermissions || (p.key !== 'full_access' && p.key !== 'manage_teachers'))
+                                    .filter(p => canGrantAdvancedPermissions || p.key !== 'full_access')
                                     .map(p => (
                                         <PermissionCheckbox
                                             key={p.key}
                                             permissionKey={p.key}
-                                            checked={editingTeacher.permissions?.[p.key] || false}
+                                            checked={editingInstructor.permissions?.[p.key] || false}
                                             onChange={handleEditPermissionChange}
                                         />
                                     ))}
                             </div>
                             {!canGrantAdvancedPermissions && (
                                 <p className="text-xs text-slate-400 dark:text-slate-500 mt-2 italic">
-                                    Note: Only the course creator can grant Full Access or Manage Teachers permissions.
+                                    Note: Only the course creator can grant Full Access permissions.
                                 </p>
                             )}
                         </div>
@@ -498,4 +488,4 @@ const TeacherManagement = ({
     );
 };
 
-export default TeacherManagement;
+export default InstructorManagement;

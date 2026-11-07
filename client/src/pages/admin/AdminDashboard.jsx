@@ -6,9 +6,11 @@ import {
     FaArrowRight, FaExclamationCircle, FaCheckCircle, FaSearch,
     FaBan, FaUnlock, FaExclamationTriangle, FaTimes, FaEdit,
     FaChevronDown, FaChevronUp, FaShieldAlt, FaChevronLeft, FaChevronRight,
-    FaUserSecret, FaSignInAlt
+    FaTags, FaUserSecret, FaSignInAlt
 } from 'react-icons/fa';
 import api from '../../api/axios';
+import CategoriesTab from '../../components/admin/CategoriesTab';
+import { formatMoney } from '../../utils/currency';
 import { showSuccess, showError } from '../../utils/toast';
 
 const LkrIcon = ({ className }) => (
@@ -18,9 +20,7 @@ const LkrIcon = ({ className }) => (
 /* ─────────────────────────────────────────────────────────────────────────────
    Shared helpers
 ───────────────────────────────────────────────────────────────────────────── */
-const formatCurrency = (amount, currency = 'LKR') => currency === 'USD'
-    ? `$${(amount || 0).toLocaleString('en-US')}`
-    : `LKR ${(amount || 0).toLocaleString('en-LK')}`;
+const formatCurrency = formatMoney;
 
 // LKR and USD can't be added together, so totals show LKR with the USD part underneath when there is any
 const UsdLine = ({ amount, className = '' }) => (amount > 0
@@ -985,6 +985,7 @@ const AdminDashboard = () => {
         { id: 'instructors', label: 'Instructors', icon: FaChalkboardTeacher },
         { id: 'payouts', label: 'Payouts', icon: FaMoneyCheckAlt },
         { id: 'users', label: 'Users', icon: FaShieldAlt },
+        { id: 'categories', label: 'Categories', icon: FaTags },
         { id: 'impersonate', label: 'Login As', icon: FaUserSecret },
     ];
 
@@ -1223,6 +1224,7 @@ const AdminDashboard = () => {
                 {activeTab === 'users' && <UsersTab />}
 
                 {/* ── IMPERSONATE TAB ─────────────────────────────────────── */}
+                {activeTab === 'categories' && <CategoriesTab />}
                 {activeTab === 'impersonate' && <ImpersonateTab />}
 
             </div>{/* end tab content */}
@@ -1256,7 +1258,7 @@ const AdminDashboard = () => {
                                     onChange={e => setPayoutForm({ ...payoutForm, currency: e.target.value })}
                                     className="w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
                                 >
-                                    <option value="LKR">LKR (pending {formatCurrency(pendingIn(selectedInstructor, 'LKR'))})</option>
+                                    <option value="LKR">Rs. (pending {formatCurrency(pendingIn(selectedInstructor, 'LKR'))})</option>
                                     <option value="USD">USD (pending {formatCurrency(pendingIn(selectedInstructor, 'USD'), 'USD')})</option>
                                 </select>
                             </div>

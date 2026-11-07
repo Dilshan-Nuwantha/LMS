@@ -2,7 +2,7 @@ const asyncHandler = require('express-async-handler');
 const Course = require('../models/Course');
 const Lecture = require('../models/Lecture');
 const Broadcast = require('../models/Broadcast');
-const CourseTeacher = require('../models/CourseTeacher');
+const CourseInstructor = require('../models/CourseInstructor');
 const Progress = require('../models/Progress');
 
 /**
@@ -33,28 +33,28 @@ const canManage = (user, ownerId) => {
 };
 
 /**
- * Get teacher permissions for a course
+ * Get instructor permissions for a course
  * @param {string} userId - User's ID
  * @param {string} courseId - Course ID
- * @returns {Object|null} - Permissions object or null if not a teacher
+ * @returns {Object|null} - Permissions object or null if not an instructor
  */
-const getTeacherPermissions = async (userId, courseId) => {
-    const courseTeacher = await CourseTeacher.findOne({
+const getInstructorPermissions = async (userId, courseId) => {
+    const courseInstructor = await CourseInstructor.findOne({
         course: courseId,
-        teacher: userId
+        instructor: userId
     });
-    return courseTeacher ? courseTeacher.permissions : null;
+    return courseInstructor ? courseInstructor.permissions : null;
 };
 
 /**
- * Check if user has specific teacher permission
+ * Check if user has specific instructor permission
  * @param {string} userId - User's ID
  * @param {string} courseId - Course ID
- * @param {string} permission - Permission to check (manage_content, manage_students, full_access, manage_teachers)
+ * @param {string} permission - Permission to check (manage_content, manage_students, full_access, manage_instructors)
  * @returns {boolean}
  */
-const hasTeacherPermission = async (userId, courseId, permission) => {
-    const permissions = await getTeacherPermissions(userId, courseId);
+const hasInstructorPermission = async (userId, courseId, permission) => {
+    const permissions = await getInstructorPermissions(userId, courseId);
     if (!permissions) return false;
     // full_access grants all permissions
     if (permissions.full_access) return true;
@@ -62,7 +62,7 @@ const hasTeacherPermission = async (userId, courseId, permission) => {
 };
 
 /**
- * Check if user belongs to a course (admin, owner, assigned teacher or enrolled student)
+ * Check if user belongs to a course (admin, owner, assigned instructor or enrolled student)
  * @param {Object} user - User object
  * @param {Object} course - Course object
  * @returns {boolean}
@@ -70,7 +70,7 @@ const hasTeacherPermission = async (userId, courseId, permission) => {
 const isCourseMember = async (user, course) => {
     const userId = user?.id || user?._id;
     if (canManage(user, course.user)) return true;
-    if (await getTeacherPermissions(userId, course._id)) return true;
+    if (await getInstructorPermissions(userId, course._id)) return true;
     return !!(await Progress.exists({ student: userId, course: course._id }));
 };
 
@@ -92,7 +92,7 @@ const canBroadcast = (user, course, isEnrolled = false) => {
 
 /**
  * Middleware: Verify course ownership
- * Allows access if user is admin OR course owner OR teacher with full_access
+ * Allows access if user is admin OR course owner OR instructor with full_access
  * Attaches course to req.course
  */
 const verifyCourseOwnership = asyncHandler(async (req, res, next) => {
@@ -119,12 +119,12 @@ const verifyCourseOwnership = asyncHandler(async (req, res, next) => {
         return next();
     }
 
-    // Check if teacher with full_access permission
-    const hasFullAccess = await hasTeacherPermission(userId, courseId, 'full_access');
+    // Check if instructor with full_access permission
+    const hasFullAccess = await hasInstructorPermission(userId, courseId, 'full_access');
     if (hasFullAccess) {
         req.course = course;
         req.isOwner = false;
-        req.isTeacher = true;
+        req.isInstructor = true;
         return next();
     }
 
@@ -134,7 +134,7 @@ const verifyCourseOwnership = asyncHandler(async (req, res, next) => {
 
 /**
  * Middleware: Verify course content management permission
- * Allows access if user is admin OR course owner OR teacher with manage_content
+ * Allows access if user is admin OR course owner OR instructor with manage_content
  * Attaches course to req.course
  */
 const verifyCourseContentPermission = asyncHandler(async (req, res, next) => {
@@ -161,12 +161,12 @@ const verifyCourseContentPermission = asyncHandler(async (req, res, next) => {
         return next();
     }
 
-    // Check if teacher with manage_content or full_access permission
-    const hasContentAccess = await hasTeacherPermission(userId, courseId, 'manage_content');
+    // Check if instructor with manage_content or full_access permission
+    const hasContentAccess = await hasInstructorPermission(userId, courseId, 'manage_content');
     if (hasContentAccess) {
         req.course = course;
         req.isOwner = false;
-        req.isTeacher = true;
+        req.isInstructor = true;
         return next();
     }
 
@@ -176,7 +176,7 @@ const verifyCourseContentPermission = asyncHandler(async (req, res, next) => {
 
 /**
  * Middleware: Verify student management permission
- * Allows access if user is admin OR course owner OR teacher with manage_students
+ * Allows access if user is admin OR course owner OR instructor with manage_students
  * Attaches course to req.course
  */
 const verifyStudentManagementPermission = asyncHandler(async (req, res, next) => {
@@ -203,12 +203,12 @@ const verifyStudentManagementPermission = asyncHandler(async (req, res, next) =>
         return next();
     }
 
-    // Check if teacher with manage_students or full_access permission
-    const hasStudentAccess = await hasTeacherPermission(userId, courseId, 'manage_students');
+    // Check if instructor with manage_students or full_access permission
+    const hasStudentAccess = await hasInstructorPermission(userId, courseId, 'manage_students');
     if (hasStudentAccess) {
         req.course = course;
         req.isOwner = false;
-        req.isTeacher = true;
+        req.isInstructor = true;
         return next();
     }
 
@@ -217,11 +217,11 @@ const verifyStudentManagementPermission = asyncHandler(async (req, res, next) =>
 });
 
 /**
- * Middleware: Verify teacher management permission
- * Allows access if user is admin OR course owner OR teacher with manage_teachers
+ * Middleware: Verify instructor management permission
+ * Allows access if user is admin OR course owner OR instructor with manage_instructors
  * Attaches course to req.course
  */
-const verifyTeacherManagementPermission = asyncHandler(async (req, res, next) => {
+const verifyInstructorManagementPermission = asyncHandler(async (req, res, next) => {
     const courseId = req.params.id || req.params.courseId;
 
     if (!courseId) {
@@ -245,22 +245,13 @@ const verifyTeacherManagementPermission = asyncHandler(async (req, res, next) =>
         return next();
     }
 
-    // Check if teacher with manage_teachers or full_access permission
-    const hasTeacherAccess = await hasTeacherPermission(userId, courseId, 'manage_teachers');
-    if (hasTeacherAccess) {
-        req.course = course;
-        req.isOwner = false;
-        req.isTeacher = true;
-        return next();
-    }
-
     res.status(403);
-    throw new Error('Not authorized to manage teachers');
+    throw new Error('Only the course owner or an admin can manage instructors');
 });
 
 /**
- * Middleware: Verify any course access (owner or any teacher)
- * Allows access if user is admin OR course owner OR any assigned teacher
+ * Middleware: Verify any course access (owner or any instructor)
+ * Allows access if user is admin OR course owner OR any assigned instructor
  * Attaches course to req.course
  */
 const verifyCourseAccess = asyncHandler(async (req, res, next) => {
@@ -287,13 +278,13 @@ const verifyCourseAccess = asyncHandler(async (req, res, next) => {
         return next();
     }
 
-    // Check if any teacher
-    const permissions = await getTeacherPermissions(userId, courseId);
+    // Check if any instructor
+    const permissions = await getInstructorPermissions(userId, courseId);
     if (permissions) {
         req.course = course;
         req.isOwner = false;
-        req.isTeacher = true;
-        req.teacherPermissions = permissions;
+        req.isInstructor = true;
+        req.instructorPermissions = permissions;
         return next();
     }
 
@@ -303,7 +294,7 @@ const verifyCourseAccess = asyncHandler(async (req, res, next) => {
 
 /**
  * Middleware: Verify lecture ownership (via course)
- * Allows access if user is admin OR owns the course OR is a teacher with manage_content
+ * Allows access if user is admin OR owns the course OR is an instructor with manage_content
  * Attaches lecture and course to req
  */
 const verifyLectureOwnership = asyncHandler(async (req, res, next) => {
@@ -330,7 +321,7 @@ const verifyLectureOwnership = asyncHandler(async (req, res, next) => {
 
     const userId = req.user?.id || req.user?._id;
 
-    if (!canManage(req.user, course.user) && !(await hasTeacherPermission(userId, course._id, 'manage_content'))) {
+    if (!canManage(req.user, course.user) && !(await hasInstructorPermission(userId, course._id, 'manage_content'))) {
         res.status(403);
         throw new Error('Not authorized to access this lecture');
     }
@@ -342,7 +333,7 @@ const verifyLectureOwnership = asyncHandler(async (req, res, next) => {
 
 /**
  * Middleware: Verify broadcast permission (via course)
- * Allows access if user is admin OR owner OR teacher OR (student broadcasts allowed AND enrolled)
+ * Allows access if user is admin OR owner OR instructor OR (student broadcasts allowed AND enrolled)
  * Attaches course to req.course
  */
 const verifyBroadcastPermission = asyncHandler(async (req, res, next) => {
@@ -369,13 +360,13 @@ const verifyBroadcastPermission = asyncHandler(async (req, res, next) => {
         return next();
     }
 
-    // Check if teacher (any assigned teacher can view/create broadcasts)
-    const teacherPermissions = await getTeacherPermissions(userId, courseId);
-    if (teacherPermissions) {
+    // Check if instructor (any assigned instructor can view/create broadcasts)
+    const instructorPermissions = await getInstructorPermissions(userId, courseId);
+    if (instructorPermissions) {
         req.course = course;
         req.isOwner = false;
-        req.isTeacher = true;
-        req.teacherPermissions = teacherPermissions;
+        req.isInstructor = true;
+        req.instructorPermissions = instructorPermissions;
         return next();
     }
 
@@ -386,7 +377,7 @@ const verifyBroadcastPermission = asyncHandler(async (req, res, next) => {
     if (course.allowStudentBroadcasts && isEnrolled) {
         req.course = course;
         req.isOwner = false;
-        req.isTeacher = false;
+        req.isInstructor = false;
         return next();
     }
 
@@ -440,13 +431,13 @@ module.exports = {
     isOwner,
     canManage,
     canBroadcast,
-    getTeacherPermissions,
-    hasTeacherPermission,
+    getInstructorPermissions,
+    hasInstructorPermission,
     isCourseMember,
     verifyCourseOwnership,
     verifyCourseContentPermission,
     verifyStudentManagementPermission,
-    verifyTeacherManagementPermission,
+    verifyInstructorManagementPermission,
     verifyCourseAccess,
     verifyLectureOwnership,
     verifyBroadcastPermission,

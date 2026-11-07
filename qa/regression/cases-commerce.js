@@ -297,7 +297,7 @@ tc('INS-001', I, 'High', 'Student becomes an instructor', 'POST /instructor/beco
     is(r, 200); eq(r.json.user.role, 'instructor', 'role');
 });
 tc('INS-002', I, 'High', 'Instructor dashboard and earnings totals', 'GET /instructor/dashboard and /earnings', 'Revenue equals completed sales', async () => {
-    const u = await newUser('teacher', 'earn');
+    const u = await newUser('instructor', 'earn');
     const c = await mkCourse(u, { price: 2500 });
     await buy(F.s3, c, u);
     const d = await api('GET', '/instructor/dashboard', { token: u.token });
@@ -363,7 +363,7 @@ tc('ADM-008', A, 'Medium', 'Set the warning limit', 'POST max-warnings 5', 'HTTP
 });
 tc('ADM-009', A, 'Low', 'Non-numeric warning limit is rejected', 'POST max-warnings "abc"', 'HTTP 400', async () => is(await adm('POST', `/users/${F.warned.id}/max-warnings`, { maxWarnings: 'abc' }), 400));
 tc('ADM-010', A, 'Critical', 'Blocked user cannot log in', 'Block a user, then log in', 'HTTP 403 (FR-ADMIN-02)', async () => {
-    F.blocked = await newUser('teacher', 'blocked');
+    F.blocked = await newUser('instructor', 'blocked');
     F.blockedCourse = await mkCourse(F.blocked);
     is(await adm('POST', `/users/${F.blocked.id}/block`, { reason: 'qa', hideCourses: true }), 200);
     is(await api('POST', '/auth/login', { body: { email: F.blocked.email, password: F.blocked.password } }), 403);

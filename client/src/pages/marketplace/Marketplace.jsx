@@ -1,10 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useContext } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import {
     FaSearch, FaFilter, FaTimes, FaChevronDown, FaStore, FaBookOpen,
     FaChalkboardTeacher, FaCheckCircle, FaGraduationCap, FaStar, FaUsers, FaArrowRight
 } from 'react-icons/fa';
 import api from '../../api/axios';
+import AuthContext from '../../context/AuthContext';
 import CourseCard from '../../components/ui/CourseCard';
 import { showError } from '../../utils/toast';
 
@@ -13,7 +14,9 @@ const Marketplace = () => {
 
     const [courses, setCourses] = useState([]);
     const [loading, setLoading] = useState(true);
+    const { user } = useContext(AuthContext);
     const [categories, setCategories] = useState([]);
+    const [enrolledIds, setEnrolledIds] = useState(new Set());
     const [showFilters, setShowFilters] = useState(false);
     const [pagination, setPagination] = useState({
         page: 1,
@@ -63,6 +66,14 @@ const Marketplace = () => {
     useEffect(() => {
         fetchCategories();
     }, []);
+
+    // Enrolled courses get marked on their cards
+    useEffect(() => {
+        if (!user) return;
+        api.get('/courses/my/enrolled')
+            .then(res => setEnrolledIds(new Set(res.data.map(enrollment => enrollment.course._id))))
+            .catch(() => { /* Not critical: cards just stay unmarked */ });
+    }, [user]);
 
     const fetchCourses = async () => {
         setLoading(true);
@@ -358,7 +369,7 @@ const Marketplace = () => {
                             </div>
 
                             <div>
-                                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Min Price (LKR)</label>
+                                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Min Price (Rs.)</label>
                                 <input
                                     type="number"
                                     placeholder="0"
@@ -369,7 +380,7 @@ const Marketplace = () => {
                             </div>
 
                             <div>
-                                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Max Price (LKR)</label>
+                                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Max Price (Rs.)</label>
                                 <input
                                     type="number"
                                     placeholder="Any"
@@ -418,7 +429,7 @@ const Marketplace = () => {
                     ) : (
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                             {courses.map((course) => (
-                                <CourseCard key={course._id} course={course} />
+                                <CourseCard key={course._id} course={course} enrolled={!!user && enrolledIds.has(course._id)} />
                             ))}
                         </div>
                     )}

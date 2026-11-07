@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 
-const teacherAIConfigSchema = new mongoose.Schema({
-    teacher: {
+const instructorAIConfigSchema = new mongoose.Schema({
+    instructor: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User',
         required: true,
@@ -26,4 +26,4 @@ const teacherAIConfigSchema = new mongoose.Schema({
     }
 }, { timestamps: true });
 
-module.exports = mongoose.model('TeacherAIConfig', teacherAIConfigSchema);
+module.exports = mongoose.model('InstructorAIConfig', instructorAIConfigSchema);

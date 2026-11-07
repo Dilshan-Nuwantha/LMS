@@ -62,7 +62,7 @@ const LectureSidebarItem = ({
                         importance === 'Normal' ? 'bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400' :
                         'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400'
                     }`}>
-                        {importance === 'Very Important' ? 'V.Imp' : importance === 'Important' ? 'Imp' : importance}
+                        {importance === 'Very Important' ? 'Very Important' : importance === 'Important' ? 'Imp' : importance}
                     </span>
                 )}
                 {showStatus && (

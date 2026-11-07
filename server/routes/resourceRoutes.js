@@ -47,7 +47,7 @@ const upload = multer({
     }
 });
 
-// Teacher toggle for student uploads (before :resourceId routes)
+// Instructor toggle for student uploads (before :resourceId routes)
 router.put('/:courseId/toggle-student-uploads', protect, verifyCourseContentPermission, toggleStudentUploads);
 
 // Lecture-specific resources

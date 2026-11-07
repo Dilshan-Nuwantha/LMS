@@ -2,6 +2,7 @@ const asyncHandler = require('express-async-handler');
 const User = require('../models/User');
 const Course = require('../models/Course');
 const Purchase = require('../models/Purchase');
+const CourseInstructor = require('../models/CourseInstructor');
 const Lecture = require('../models/Lecture');
 const BankDetail = require('../models/BankDetail');
 const Payout = require('../models/Payout');
@@ -44,11 +45,12 @@ const becomeInstructor = asyncHandler(async (req, res) => {
 const getInstructorDashboard = asyncHandler(async (req, res) => {
     const instructorId = req.user.id;
 
-    // Get all marketplace courses by instructor
-    const courses = await Course.find({
-        user: instructorId,
-        isMarketplace: true
-    }).select('title enrollmentCount rating price status');
+    // Courses this instructor owns, then the ones they were added to
+    const fields = 'title enrollmentCount rating price status';
+    const owned = await Course.find({ user: instructorId }).select(fields);
+    const assignments = await CourseInstructor.find({ instructor: instructorId }).select('course').lean();
+    const assigned = await Course.find({ _id: { $in: assignments.map(a => a.course) } }).select(fields).lean();
+    const courses = [...owned, ...assigned.map(course => ({ ...course, isAssigned: true }))];
 
     // Get total revenue, per currency. Aggregations don't cast ids, so use the ObjectId.
     const revenue = toSummary(totalsFor(await getEarningsByCurrency({ instructor: req.user._id })));
@@ -71,7 +73,7 @@ const getInstructorDashboard = asyncHandler(async (req, res) => {
 
     res.status(200).json({
         courses,
-        totalCourses: courses.length,
+        totalCourses: owned.length,
         totalRevenue: revenue.totalEarnings, // LKR
         totalSales: revenue.totalSales,
         revenueByCurrency: revenue.byCurrency,

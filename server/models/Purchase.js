@@ -30,6 +30,21 @@ const purchaseSchema = new mongoose.Schema({
         type: String,
         default: ''
     },
+    // A slip is a bank payment proof that the instructor approves by hand
+    paymentMethod: {
+        type: String,
+        enum: ['stripe', 'slip'],
+        default: 'stripe'
+    },
+    slip: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Upload',
+        default: null
+    },
+    rejectionReason: {
+        type: String,
+        default: ''
+    },
     // Empty for free enrollments (price 0 or 100% coupon)
     stripeSessionId: {
         type: String,

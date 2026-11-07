@@ -1,7 +1,7 @@
 const asyncHandler = require('express-async-handler');
-const TeacherAIConfig = require('../models/TeacherAIConfig');
+const InstructorAIConfig = require('../models/InstructorAIConfig');
 const Course = require('../models/Course');
-const CourseTeacher = require('../models/CourseTeacher');
+const CourseInstructor = require('../models/CourseInstructor');
 const { encrypt, decrypt } = require('../utils/encryption');
 const { generateQuiz, generateNotes, testConnection } = require('../services/aiService');
 
@@ -14,7 +14,7 @@ function maskKey(key) {
 // ─── Get AI Config ──────────────────────────────────────────────────
 // GET /api/ai/config
 const getConfig = asyncHandler(async (req, res) => {
-    const config = await TeacherAIConfig.findOne({ teacher: req.user._id });
+    const config = await InstructorAIConfig.findOne({ instructor: req.user._id });
     if (!config) {
         return res.json(null);
     }
@@ -55,8 +55,8 @@ const saveConfig = asyncHandler(async (req, res) => {
 
     const encryptedKey = encrypt(apiKey);
 
-    const config = await TeacherAIConfig.findOneAndUpdate(
-        { teacher: req.user._id },
+    const config = await InstructorAIConfig.findOneAndUpdate(
+        { instructor: req.user._id },
         { provider, apiKey: encryptedKey, model, isActive: true },
         { upsert: true, new: true }
     );
@@ -74,7 +74,7 @@ const saveConfig = asyncHandler(async (req, res) => {
 // ─── Delete AI Config ───────────────────────────────────────────────
 // DELETE /api/ai/config
 const deleteConfig = asyncHandler(async (req, res) => {
-    const config = await TeacherAIConfig.findOneAndDelete({ teacher: req.user._id });
+    const config = await InstructorAIConfig.findOneAndDelete({ instructor: req.user._id });
     if (!config) {
         res.status(404);
         throw new Error('No AI configuration found');
@@ -101,9 +101,9 @@ const testConfig = asyncHandler(async (req, res) => {
     }
 });
 
-// ─── Helper: get teacher's decrypted config ─────────────────────────
-async function getTeacherAI(userId) {
-    const config = await TeacherAIConfig.findOne({ teacher: userId, isActive: true });
+// ─── Helper: get instructor's decrypted config ─────────────────────────
+async function getInstructorAI(userId) {
+    const config = await InstructorAIConfig.findOne({ instructor: userId, isActive: true });
     if (!config) {
         const err = new Error('No AI configuration found. Please set up your API key in AI Settings.');
         err.statusCode = 400;
@@ -123,9 +123,9 @@ async function verifyCourseAccess(userId, courseId) {
     }
     // Owner
     if (course.user.toString() === userId.toString()) return course;
-    // Teacher with content permission
-    const teacher = await CourseTeacher.findOne({ course: courseId, teacher: userId });
-    if (teacher && (teacher.permissions.manage_content || teacher.permissions.full_access)) return course;
+    // Instructor with content permission
+    const instructor = await CourseInstructor.findOne({ course: courseId, instructor: userId });
+    if (instructor && (instructor.permissions.manage_content || instructor.permissions.full_access)) return course;
     const err = new Error('Not authorized to generate content for this course');
     err.statusCode = 403;
     throw err;
@@ -142,7 +142,7 @@ const aiGenerateQuiz = asyncHandler(async (req, res) => {
     }
 
     const course = await verifyCourseAccess(req.user._id, courseId);
-    const { apiKey, provider, model } = await getTeacherAI(req.user._id);
+    const { apiKey, provider, model } = await getInstructorAI(req.user._id);
 
     const questions = await generateQuiz(apiKey, provider, model, {
         topic,
@@ -166,7 +166,7 @@ const aiGenerateNotes = asyncHandler(async (req, res) => {
     }
 
     const course = await verifyCourseAccess(req.user._id, courseId);
-    const { apiKey, provider, model } = await getTeacherAI(req.user._id);
+    const { apiKey, provider, model } = await getInstructorAI(req.user._id);
 
     const notes = await generateNotes(apiKey, provider, model, {
         topic,

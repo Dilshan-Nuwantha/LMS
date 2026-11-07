@@ -48,7 +48,7 @@ const buy = async (student, course, instructor) => {
 
 const seed = async () => {
     await mongoose.connect(env.MONGO);
-    for (const name of ['User', 'Course', 'Lecture', 'Purchase', 'Progress', 'Activity', 'Coupon', 'QuizAttempt', 'Notification', 'TeacherAIConfig', 'Payout', 'Conversation', 'Resource', 'Review', 'Broadcast']) {
+    for (const name of ['User', 'Course', 'Lecture', 'Purchase', 'Progress', 'Activity', 'Coupon', 'QuizAttempt', 'Notification', 'InstructorAIConfig', 'Payout', 'Conversation', 'Resource', 'Review', 'Broadcast']) {
         models[name] = serverRequire(`./models/${name}`);
     }
 
@@ -60,8 +60,8 @@ const seed = async () => {
     is(login, 200, 'admin login');
     F.admin = { id: login.json._id, email: adminEmail, password: adminPassword, token: login.json.token };
 
-    F.instr = await newUser('teacher', 'owner');
-    F.instr2 = await newUser('teacher', 'other-instructor');
+    F.instr = await newUser('instructor', 'owner');
+    F.instr2 = await newUser('instructor', 'other-instructor');
     F.s1 = await newUser('student', 'student1');
     F.s2 = await newUser('student', 'student2');
     F.s3 = await newUser('student', 'outsider');

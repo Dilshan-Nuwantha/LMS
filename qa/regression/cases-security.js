@@ -1,5 +1,5 @@
 // Security checks and error handling. Rate limit and production checks use the production instance.
-const { tc, api, prod, ok, is, eq, lastOtp, googleCode, newUser, multipart, sleep, uid, lines, webhook, serverRequire, env } = require('./lib');
+const { tc, api, prod, ok, is, eq, lastOtp, googleCode, newUser, multipart, sleep, uid, lines, webhook, serverRequire, env, MINIMAL_PDF } = require('./lib');
 const { F, models, mkCourse, addSection, addLecture, enroll, buy } = require('./fixtures');
 const jwt = serverRequire('jsonwebtoken');
 
@@ -35,13 +35,13 @@ tc('SEC-006', S, 'Critical', 'Passwords never reach the activity log', 'Change a
     ok(!JSON.stringify(row).includes('PlainNewPass99!'), 'plaintext old and new passwords are stored in Activity.data');
 });
 tc('SEC-007', S, 'Critical', 'AI keys never reach the activity log', 'Save an AI key, read the log entry', 'No key value stored', async () => {
-    const u = await newUser('teacher', 'logkey');
+    const u = await newUser('instructor', 'logkey');
     await api('POST', '/ai/config', { token: u.token, body: { provider: 'openai', apiKey: 'sk-plain-secret-key-9999', model: 'm' } });
     await sleep(150);
     ok(!(await models.Activity.exists({ user: u.id, 'data.apiKey': 'sk-plain-secret-key-9999' })), 'plaintext AI key is stored in Activity.data, bypassing AES encryption');
 });
 tc('SEC-008', S, 'High', 'Bank details never reach the activity log', 'Save bank details, read the log entry', 'No account number stored', async () => {
-    const u = await newUser('teacher', 'logbank');
+    const u = await newUser('instructor', 'logbank');
     await api('POST', '/instructor/bank-details', { token: u.token, body: { accountHolderName: 'Q', accountNumber: '998877665544' } });
     await sleep(150);
     ok(!(await models.Activity.exists({ user: u.id, 'data.accountNumber': '998877665544' })), 'account number stored in Activity.data');
@@ -108,9 +108,19 @@ tc('SEC-071', S, 'High', 'A blocked user with the right password sees the reason
     const r = await api('POST', '/auth/login', { body: { email: u.email, password: u.password } });
     is(r, 403); eq(r.json.message, 'Policy reason', 'message');
 });
+tc('SEC-072', S, 'High', 'Only instructors can be added to a course', 'As a course owner, add a student account by email with manage_content', 'HTTP 400, and the student gets no course access', async () => {
+    const u = await newUser('student', 'noninstructor');
+    const c = await mkCourse(F.instr);
+    const r = await api('POST', `/courses/${c.id}/instructors`, { token: F.instr.token, body: { email: u.email, permissions: { manage_content: true } } });
+    if (r.status === 201) {
+        const l = await api('POST', `/courses/${c.id}/sections/${c.sectionId}/lectures`, { token: u.token, body: { title: 'By a student', number: 2 } });
+        ok(false, `student was added, then adding a lecture returned HTTP ${l.status}`);
+    }
+    is(r, 400);
+});
 tc('SEC-017', S, 'Medium', 'Marketplace course creation is rate limited', 'Production mode: 11 calls to POST /instructor/course', 'HTTP 429 at the limit (NFR-SEC-06 covers course creation)', async () => {
     const h = ip();
-    const reg = await prod('POST', '/auth/teacher/register', { headers: h, body: { name: 'T', email: `t.${uid()}@qa.test`, password: 'Secret123!' } });
+    const reg = await prod('POST', '/auth/instructor/register', { headers: h, body: { name: 'T', email: `t.${uid()}@qa.test`, password: 'Secret123!' } });
     is(reg, 201);
     let last;
     for (let i = 0; i < 11; i++) last = await prod('POST', '/instructor/course', { headers: h, token: reg.json.token, body: { title: 'T', description: 'D', price: 1 } });
@@ -205,10 +215,10 @@ tc('SEC-038', S, 'Medium', 'Impersonated actions stay out of the personal log', 
     await sleep(150);
     eq(await count(), before, 'entries in the student log');
 });
-tc('SEC-039', S, 'Medium', 'Student notes stay private from teachers', 'Read progress and analytics as the course owner', 'Personal notes are not returned (code comment: "Teachers should not see")', async () => {
+tc('SEC-039', S, 'Medium', 'Student notes stay private from instructors', 'Read progress and analytics as the course owner', 'Personal notes are not returned (code comment: "Instructors should not see")', async () => {
     const a = await api('GET', `/courses/${F.course.id}/progress/${F.s1.id}`, { token: F.instr.token });
     const b = await api('GET', `/courses/${F.course.id}/progresses`, { token: F.instr.token });
-    ok(!a.text.includes('PRIVATE-NOTE') && !b.text.includes('PRIVATE-NOTE'), 'notes returned to the teacher');
+    ok(!a.text.includes('PRIVATE-NOTE') && !b.text.includes('PRIVATE-NOTE'), 'notes returned to the instructor');
 });
 tc('SEC-040', S, 'High', 'Peer progress is anonymous', 'Enable allowPeerProgress, GET /courses/:id/peers as a student', 'No names or emails (FR-COURSE-11)', async () => {
     await api('PUT', `/courses/${F.course.id}`, { token: F.instr.token, body: { allowPeerProgress: true } });
@@ -348,14 +358,14 @@ tc('PAY-033', 'Payments', 'High', 'Refunding a removed buyer does not lower the 
 tc('TCH-015', 'Co-instructors', 'High', 'A co-instructor without manage_content cannot edit lectures', 'PUT and DELETE a lecture as a co-instructor with no permissions', 'HTTP 403', async () => {
     const c = await mkCourse(F.instr);
     const u = await newUser('student', 'noperm');
-    await api('POST', `/courses/${c.id}/teachers`, { token: F.instr.token, body: { email: u.email } });
+    await api('POST', `/courses/${c.id}/instructors`, { token: F.instr.token, body: { email: u.email } });
     is(await api('PUT', `/courses/lectures/${c.lectureId}`, { token: u.token, body: { title: 'x' } }), 403, 'edit');
     is(await api('DELETE', `/courses/lectures/${c.lectureId}`, { token: u.token }), 403, 'delete');
 });
 tc('NTF-010', 'Notifications', 'Medium', 'A co-instructor with manage_students can notify the course', 'POST /notifications/course/:id/send as that co-instructor', 'HTTP 200', async () => {
     const c = await mkCourse(F.instr);
-    const u = await newUser('teacher', 'notifier');
-    await api('POST', `/courses/${c.id}/teachers`, { token: F.instr.token, body: { email: u.email, permissions: { manage_students: true } } });
+    const u = await newUser('instructor', 'notifier');
+    await api('POST', `/courses/${c.id}/instructors`, { token: F.instr.token, body: { email: u.email, permissions: { manage_students: true } } });
     is(await api('POST', `/notifications/course/${c.id}/send`, { token: u.token, body: { title: 'Hi' } }), 200);
 });
 const retakeQuiz = async (attemptsAllowed) => {
@@ -428,7 +438,7 @@ tc('SEC-067', S, 'Medium', 'Course analytics hide private notes', 'Read recent a
     const r = await api('GET', `/courses/${F.course.id}/analytics`, { token: F.instr.token });
     is(r, 200); ok(!r.text.includes('ANALYTICS-PRIVATE'), 'note returned');
 });
-tc('SEC-068', S, 'High', 'Teachers still see student progress status', 'GET progress detail and progress list as the owner', 'Lecture statuses are returned', async () => {
+tc('SEC-068', S, 'High', 'Instructors still see student progress status', 'GET progress detail and progress list as the owner', 'Lecture statuses are returned', async () => {
     const a = await api('GET', `/courses/${F.course.id}/progress/${F.s1.id}`, { token: F.instr.token });
     is(a, 200); ok(a.json.sections.some(s => s.lectures.some(l => l.status === 'Completed')), 'status missing');
     ok((await api('GET', `/courses/${F.course.id}/progresses`, { token: F.instr.token })).json.some(p => p.completedLectures.length > 0), 'progress missing');
@@ -538,6 +548,176 @@ tc('ACT-009', 'Activity log', 'Medium', 'Refused actions are recorded as failed'
     await api('PUT', `/courses/${F.course.id}`, { token: u.token, body: { title: 'x' } });
     await sleep(150);
     ok(await models.Activity.exists({ user: u.id, action: 'Failed: Course Updated' }), 'no failed entry');
+});
+
+// Fixes for the team's manual UI findings
+const PNG = Buffer.concat([Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]), Buffer.alloc(32)]);
+const fileForm = (field, name, type, data, fields = {}) => {
+    const form = new FormData();
+    Object.entries(fields).forEach(([k, v]) => form.append(k, v));
+    form.append(field, new Blob([data], { type }), name);
+    return form;
+};
+const sendSlip = (u, courseId, fields = {}) => api('POST', '/purchase/slip', { token: u.token, form: fileForm('slip', 'slip.png', 'image/png', PNG, { courseId, ...fields }) });
+const newStudentAndCourse = async (price = 500) => [await newUser('student', 'slip'), await mkCourse(F.instr, { price })];
+const slipOf = (u, c) => models.Purchase.findOne({ user: u.id, course: c.id }).lean();
+
+tc('AUTH-044', 'Authentication', 'High', 'A login lasts one hour', 'Register and read the token expiry', 'exp minus iat is 3600 seconds', async () => {
+    const u = await newUser('student', 'ttl');
+    const payload = JSON.parse(Buffer.from(u.token.split('.')[1], 'base64url').toString());
+    eq(payload.exp - payload.iat, 3600, 'lifetime');
+});
+tc('ERR-010', 'Error handling', 'High', 'Start Teaching works with no request body', 'POST /instructor/become with an empty request', 'HTTP 200 and the role becomes instructor', async () => {
+    const u = await newUser('student', 'become');
+    const r = await api('POST', '/instructor/become', { token: u.token });
+    is(r, 200); eq(r.json.user.role, 'instructor', 'role');
+});
+tc('MKT-012', 'Marketplace', 'High', 'Search finds courses by instructor name', 'Search the marketplace for an instructor name', 'That instructor\'s course is returned', async () => {
+    const name = `Findme${uid()}`;
+    const r = await api('POST', '/auth/instructor/register', { body: { name, email: `${name}@qa.test`.toLowerCase(), password: 'Secret123!' } });
+    const c = await mkCourse({ token: r.json.token });
+    const found = (await api('GET', `/marketplace/search?q=${name}`)).json.courses;
+    eq(found.length, 1, 'courses'); eq(found[0]._id, c.id, 'course');
+});
+tc('MKT-013', 'Marketplace', 'High', 'Every category is listed', 'GET /marketplace/categories', 'Saved categories and those used by published courses are returned', async () => {
+    const list = (await api('GET', '/marketplace/categories')).json;
+    for (const name of ['Web Development', 'Marketing', 'Health & Fitness', 'Testing']) ok(list.includes(name), `missing ${name}`);
+});
+tc('MKT-014', 'Marketplace', 'High', 'Admins manage categories', 'Add, repeat and delete a category as an admin', 'Added with HTTP 201, repeat refused, deleted with HTTP 200', async () => {
+    const name = `Cat ${uid()}`;
+    const r = await api('POST', '/categories', { token: F.admin.token, body: { name } });
+    is(r, 201);
+    ok((await api('GET', '/marketplace/categories')).json.includes(name), 'not listed');
+    is(await api('POST', '/categories', { token: F.admin.token, body: { name: name.toUpperCase() } }), 400, 'repeat');
+    is(await api('DELETE', `/categories/${r.json._id}`, { token: F.admin.token }), 200);
+    ok(!(await api('GET', '/marketplace/categories')).json.includes(name), 'still listed');
+});
+tc('MKT-015', 'Marketplace', 'High', 'Only admins change categories', 'POST /categories as a student, an instructor and a guest', 'HTTP 403, 403 and 401', async () => {
+    is(await api('POST', '/categories', { token: F.s1.token, body: { name: 'No' } }), 403, 'student');
+    is(await api('POST', '/categories', { token: F.instr.token, body: { name: 'No' } }), 403, 'instructor');
+    is(await api('POST', '/categories', { body: { name: 'No' } }), 401, 'guest');
+});
+tc('NTF-012', 'Notifications', 'Medium', 'A comment notifies the course owner', 'Comment as an enrolled student, then as the owner', 'One notification for the student comment, none for the owner\'s own', async () => {
+    const c = await mkCourse(F.instr);
+    const u = await newUser('student', 'commenter');
+    await enroll(F.instr, c.id, u);
+    is(await api('POST', `/courses/lectures/${c.lectureId}/comments`, { token: u.token, body: { content: 'Hello' } }), 201);
+    is(await api('POST', `/courses/lectures/${c.lectureId}/comments`, { token: F.instr.token, body: { content: 'Reply' } }), 201);
+    eq(await models.Notification.countDocuments({ user: F.instr.id, course: c.id, type: 'comment' }), 1, 'notifications');
+});
+tc('PRG-013', 'Lecture progress', 'Medium', 'Enrolled list includes progress', 'Complete one of two lectures, then GET /courses/my/enrolled', 'progressPercent is 50', async () => {
+    const c = await mkCourse(F.instr);
+    await addLecture(F.instr, c.id, c.sectionId, 'Second');
+    const u = await newUser('student', 'pct');
+    await enroll(F.instr, c.id, u);
+    await api('PUT', `/courses/lectures/${c.lectureId}/progress`, { token: u.token, body: { status: 'Completed' } });
+    eq((await api('GET', '/courses/my/enrolled', { token: u.token })).json[0].progressPercent, 50, 'progressPercent');
+});
+tc('TCH-020', 'Co-instructors', 'High', 'The Instructor Center lists assigned courses', 'Add an instructor to a course, then read their dashboard', 'The course is listed and marked as assigned', async () => {
+    const c = await mkCourse(F.instr);
+    const co = await newUser('instructor', 'assigned');
+    await api('POST', `/courses/${c.id}/instructors`, { token: F.instr.token, body: { email: co.email, permissions: { manage_content: true } } });
+    const listed = (await api('GET', '/instructor/dashboard', { token: co.token })).json.courses.find(x => x._id === c.id);
+    ok(listed?.isAssigned, 'not listed as assigned');
+});
+tc('SEC-073', S, 'Critical', 'Students cannot reach instructor or admin routes', 'Call instructor and admin routes as a student', 'HTTP 403 every time', async () => {
+    const calls = [['GET', '/instructor/dashboard'], ['GET', '/instructor/courses'], ['POST', '/instructor/course'], ['POST', '/courses'], ['POST', '/coupons'],
+        ['GET', `/coupons/course/${F.course.id}`], ['POST', '/ai/generate-quiz'], ['GET', '/purchase/slips'], ['GET', '/categories'], ['GET', '/admin/dashboard'], ['GET', '/admin/users'], ['GET', '/activities']];
+    for (const [method, path] of calls) is(await api(method, path, { token: F.s1.token, ...(method !== 'GET' && { body: {} }) }), 403, path);
+});
+tc('SEC-074', S, 'Critical', 'Instructors cannot reach admin routes', 'Call admin routes as an instructor', 'HTTP 403 every time', async () => {
+    const calls = [['GET', '/admin/dashboard'], ['GET', '/admin/users'], ['POST', '/admin/impersonate'], ['POST', `/admin/users/${F.s1.id}/block`], ['POST', `/admin/users/${F.s1.id}/role`],
+        ['GET', '/admin/payouts'], ['GET', '/activities'], ['GET', '/categories']];
+    for (const [method, path] of calls) is(await api(method, path, { token: F.instr.token, ...(method !== 'GET' && { body: {} }) }), 403, path);
+});
+tc('SEC-075', S, 'Critical', 'An instructor cannot change another instructor\'s course', 'Call course routes as an unrelated instructor', 'Refused every time', async () => {
+    const id = F.course.id;
+    const calls = [['PUT', `/courses/${id}`], ['DELETE', `/courses/${id}`], ['POST', `/courses/${id}/sections`], ['POST', `/courses/${id}/enroll`], ['PUT', `/instructor/course/${id}`],
+        ['GET', `/instructor/course/${id}/sales`], ['PUT', `/courses/${id}/toggle-student-ai`], ['PUT', `/courses/${id}/ai-block/${F.s1.id}`], ['GET', `/ai/course/${id}/student-conversations`],
+        ['PUT', `/courses/lectures/${F.L1}`], ['DELETE', `/courses/lectures/${F.L1}`], ['GET', `/coupons/course/${id}`], ['PUT', `/notifications/course/${id}/settings`]];
+    for (const [method, path] of calls) {
+        const { status } = await api(method, path, { token: F.instr2.token, ...(method !== 'GET' && { body: { title: 'x' } }) });
+        ok(status === 403 || status === 404, `${method} ${path} returned HTTP ${status}`);
+    }
+});
+tc('PAY-040', 'Payments', 'Critical', 'A slip gives access only after approval', 'Send a slip, then approve it as the course owner', 'No access while pending; access, a paid invoice and a notification after approval', async () => {
+    const [u, c] = await newStudentAndCourse();
+    is(await sendSlip(u, c.id), 201);
+    eq((await api('GET', `/purchase/verify/${c.id}`, { token: u.token })).json.slipStatus, 'pending', 'slipStatus');
+    ok(!(await models.Progress.exists({ student: u.id, course: c.id })), 'access before approval');
+    const pending = await slipOf(u, c);
+    ok((await api('GET', '/purchase/slips', { token: F.instr.token })).json.some(s => s._id === pending._id.toString()), 'not in the instructor list');
+    is(await api('PUT', `/purchase/${pending._id}/slip/approve`, { token: F.instr.token }), 200);
+    ok(await models.Progress.exists({ student: u.id, course: c.id }), 'no access after approval');
+    const paid = await slipOf(u, c);
+    eq(paid.status, 'completed', 'status'); eq(paid.invoiceStatus, 'paid', 'invoiceStatus');
+    is(await api('PUT', `/purchase/${pending._id}/slip/approve`, { token: F.instr.token }), 400, 'second approval');
+    eq((await models.Course.findById(c.id).lean()).enrollmentCount, 1, 'enrollmentCount');
+    ok(await models.Notification.exists({ user: u.id, type: 'payment' }), 'no notification');
+});
+tc('PAY-041', 'Payments', 'High', 'A rejected slip can be replaced', 'Reject a slip with a reason, then send a new one', 'The reason is shown and the new slip is accepted', async () => {
+    const [u, c] = await newStudentAndCourse();
+    is(await sendSlip(u, c.id), 201);
+    const first = await slipOf(u, c);
+    is(await api('PUT', `/purchase/${first._id}/slip/reject`, { token: F.instr.token, body: { reason: 'Unclear photo' } }), 200);
+    const v = (await api('GET', `/purchase/verify/${c.id}`, { token: u.token })).json;
+    eq(v.slipStatus, 'failed', 'slipStatus'); eq(v.rejectionReason, 'Unclear photo', 'reason');
+    ok(!(await models.Progress.exists({ student: u.id, course: c.id })), 'access after rejection');
+    is(await sendSlip(u, c.id), 201, 'second slip');
+});
+tc('PAY-042', 'Payments', 'High', 'A pending slip cannot be paid twice', 'Send a slip, then send another and try card checkout', 'HTTP 400 for both', async () => {
+    const [u, c] = await newStudentAndCourse();
+    is(await sendSlip(u, c.id), 201);
+    is(await sendSlip(u, c.id), 400, 'second slip');
+    is(await api('POST', '/purchase/checkout', { token: u.token, body: { courseId: c.id } }), 400, 'checkout');
+});
+tc('PAY-043', 'Payments', 'High', 'Only the course owner or an admin reviews a slip', 'Approve and reject as another instructor and as a student', 'HTTP 403 every time', async () => {
+    const [u, c] = await newStudentAndCourse();
+    await sendSlip(u, c.id);
+    const { _id } = await slipOf(u, c);
+    is(await api('PUT', `/purchase/${_id}/slip/approve`, { token: F.instr2.token }), 403, 'other instructor');
+    is(await api('PUT', `/purchase/${_id}/slip/reject`, { token: F.instr2.token }), 403, 'other instructor');
+    is(await api('PUT', `/purchase/${_id}/slip/approve`, { token: u.token }), 403, 'student');
+    ok(!(await api('GET', '/purchase/slips', { token: F.instr2.token })).json.some(s => s._id === _id.toString()), 'listed for another instructor');
+});
+tc('PAY-044', 'Payments', 'High', 'A slip file stays private', 'Read the slip as the student, the owner, a stranger, and through the public image route', 'HTTP 200, 200, 404 and 404', async () => {
+    const [u, c] = await newStudentAndCourse();
+    await sendSlip(u, c.id);
+    const p = await slipOf(u, c);
+    is(await api('GET', `/purchase/${p._id}/slip`, { token: u.token }), 200, 'student');
+    is(await api('GET', `/purchase/${p._id}/slip`, { token: F.instr.token }), 200, 'owner');
+    is(await api('GET', `/purchase/${p._id}/slip`, { token: F.s3.token }), 404, 'stranger');
+    is(await api('GET', `/uploads/${p.slip}`), 404, 'public route');
+});
+tc('PAY-045', 'Payments', 'Medium', 'Bad slips are refused', 'Send HTML named as an image, no file, and a slip for a free course', 'HTTP 400 each time', async () => {
+    const [u, c] = await newStudentAndCourse();
+    is(await api('POST', '/purchase/slip', { token: u.token, form: fileForm('slip', 'a.png', 'image/png', Buffer.from('<script>alert(1)</script>'), { courseId: c.id }) }), 400, 'html');
+    is(await api('POST', '/purchase/slip', { token: u.token, form: multipart({ courseId: c.id }) }), 400, 'no file');
+    const free = await mkCourse(F.instr, { price: 0 });
+    is(await sendSlip(u, free.id), 400, 'free course');
+    is(await api('POST', '/purchase/slip', { token: u.token, form: fileForm('slip', 's.pdf', 'application/pdf', MINIMAL_PDF, { courseId: c.id }) }), 201, 'pdf');
+});
+tc('PAY-046', 'Payments', 'Medium', 'A coupon works with a slip', 'Send a slip with a 10 percent coupon, then approve it', 'The amount is discounted and the coupon is used once', async () => {
+    const [u, c] = await newStudentAndCourse(1000);
+    const code = `SL${uid()}`.toUpperCase();
+    await api('POST', '/coupons', { token: F.instr.token, body: { code, courseId: c.id, discountType: 'percentage', discountValue: 10, validUntil: new Date(Date.now() + 864e5).toISOString() } });
+    is(await sendSlip(u, c.id, { couponCode: code }), 201);
+    const p = await slipOf(u, c);
+    eq(p.amount, 900, 'amount');
+    await api('PUT', `/purchase/${p._id}/slip/approve`, { token: F.instr.token });
+    eq((await models.Coupon.findOne({ code }).lean()).usedCount, 1, 'usedCount');
+});
+tc('RES-020', 'Resources', 'High', 'Images can be uploaded and shown', 'Upload a PNG, then open its URL as a guest', 'HTTP 201, then the image with an image type', async () => {
+    const r = await api('POST', '/uploads/image', { token: F.s1.token, form: fileForm('image', 'me.png', 'image/png', PNG) });
+    is(r, 201);
+    const img = await fetch(r.json.url);
+    eq(img.status, 200, 'status'); eq(img.headers.get('content-type'), 'image/png', 'type');
+});
+tc('RES-021', 'Resources', 'High', 'Only real images are accepted', 'Upload HTML and a PDF named as images, then a file over 2 MB, then as a guest', 'HTTP 400, 400, 413 and 401', async () => {
+    is(await api('POST', '/uploads/image', { token: F.s1.token, form: fileForm('image', 'a.png', 'image/png', Buffer.from('<svg onload=alert(1)>')) }), 400, 'html');
+    is(await api('POST', '/uploads/image', { token: F.s1.token, form: fileForm('image', 'a.png', 'image/png', MINIMAL_PDF) }), 400, 'pdf');
+    is(await api('POST', '/uploads/image', { token: F.s1.token, form: fileForm('image', 'a.png', 'image/png', Buffer.concat([PNG, Buffer.alloc(2 * 1024 * 1024)])) }), 413, 'size');
+    is(await api('POST', '/uploads/image', { form: fileForm('image', 'a.png', 'image/png', PNG) }), 401, 'guest');
 });
 
 const E = 'Error handling';

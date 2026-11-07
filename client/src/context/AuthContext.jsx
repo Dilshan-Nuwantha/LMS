@@ -4,12 +4,12 @@ import api from '../api/axios';
 
 const AuthContext = createContext();
 
-// Cache expiry time from env (default 7 days)
-const CACHE_EXPIRY_DAYS =
-    parseInt(import.meta.env.VITE_SESSION_EXPIRY_DAYS) || 7;
+// Cache expiry time from env (default 1 hour, matching the token)
+const CACHE_EXPIRY_HOURS =
+    parseInt(import.meta.env.VITE_SESSION_EXPIRY_HOURS) || 1;
 
 const CACHE_EXPIRY_MS =
-    CACHE_EXPIRY_DAYS * 24 * 60 * 60 * 1000;
+    CACHE_EXPIRY_HOURS * 60 * 60 * 1000;
 
 // Get cached user from localStorage
 const getCachedUser = () => {
@@ -109,7 +109,7 @@ export const AuthProvider = ({ children }) => {
 
     const getRolePath = (role) => {
         if (role === 'admin') return 'admin';
-        if (role === 'instructor') return 'teacher';
+        if (role === 'instructor') return 'instructor';
         return 'student';
     };
 

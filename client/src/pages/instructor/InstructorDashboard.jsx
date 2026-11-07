@@ -7,6 +7,7 @@ import {
     FaChartLine,
     FaEdit,
     FaEye,
+    FaTrash,
     FaCog,
     FaUser,
     FaRupeeSign
@@ -14,7 +15,9 @@ import {
 
 import api from '../../api/axios';
 import AuthContext from '../../context/AuthContext';
-import { showError } from '../../utils/toast';
+import { showError, showSuccess } from '../../utils/toast';
+import { formatMoney } from '../../utils/currency';
+import PaymentSlips from '../../components/instructor/PaymentSlips';
 
 
 // --------------------------------------------------
@@ -101,8 +104,18 @@ const InstructorDashboard = () => {
     // --------------------------------------------------
     // FORMAT CURRENCY
     // --------------------------------------------------
-    const formatCurrency = (amount) => {
-        return `LKR ${(amount || 0).toLocaleString('en-LK')} `;
+    const formatCurrency = (amount) => formatMoney(amount);
+
+    const handleDeleteCourse = async (course) => {
+        if (!window.confirm(`Delete "${course.title}"? This cannot be undone.`)) return;
+
+        try {
+            await api.delete(`/courses/${course._id}`);
+            showSuccess('Course deleted');
+            fetchDashboard();
+        } catch (error) {
+            showError(error, 'Failed to delete course');
+        }
     };
 
 
@@ -151,10 +164,10 @@ const InstructorDashboard = () => {
 
                             <div className="relative">
 
-                                {user?.profilePicture ? (
+                                {user?.profileImage ? (
 
                                     <img
-                                        src={user.profilePicture}
+                                        src={user.profileImage}
                                         alt={user.name || 'Instructor'}
                                         className="w-20 h-20 rounded-full object-cover border-4 border-white dark:border-slate-800 shadow-TenZe"
                                     />
@@ -229,6 +242,8 @@ const InstructorDashboard = () => {
                 2. MAIN CONTENT
             ================================================== */}
             <div className="container mx-auto px-4 lg:px-8 -mt-10">
+
+                <PaymentSlips onReviewed={fetchDashboard} />
 
 
                 {/* ==================================================
@@ -496,7 +511,7 @@ const InstructorDashboard = () => {
 
                                                 {course.price === 0
                                                     ? 'Free'
-                                                    : `Rs.${course.price} `
+                                                    : formatMoney(course.price)
                                                 }
 
                                             </td>
@@ -509,7 +524,7 @@ const InstructorDashboard = () => {
 
                                                     {/* Edit */}
                                                     <Link
-                                                        to={`/ instructor / course / ${course._id}/edit`}
+                                                        to={`/instructor/course/${course._id}/edit`}
                                                         className="p-2 rounded-lg bg-primary-light text-primary hover:bg-primary hover:text-white transition-colors"
                                                         title="Edit Course"
                                                     >
@@ -525,6 +540,17 @@ const InstructorDashboard = () => {
                                                     >
                                                         <FaEye className="text-xs" />
                                                     </Link >
+
+                                                    {!course.isAssigned && (
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => handleDeleteCourse(course)}
+                                                            className="p-2 rounded-lg bg-danger-light text-danger hover:bg-danger hover:text-white transition-colors"
+                                                            title="Delete Course"
+                                                        >
+                                                            <FaTrash className="text-xs" />
+                                                        </button>
+                                                    )}
 
                                                 </div >
 

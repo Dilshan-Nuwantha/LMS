@@ -10,6 +10,7 @@ import StarRating from '../../components/ui/StarRating';
 import PriceDisplay from '../../components/ui/PriceDisplay';
 import InstructorProfileCard from '../../components/review/InstructorProfileCard';
 import ReviewCard from '../../components/review/ReviewCard';
+import { site } from '../../config/site';
 import { showSuccess, showError } from '../../utils/toast';
 
 const CourseLanding = () => {
@@ -25,6 +26,11 @@ const CourseLanding = () => {
     const [couponApplied, setCouponApplied] = useState(null);
     const [expandedSections, setExpandedSections] = useState({});
     const [hasPurchased, setHasPurchased] = useState(false);
+    const [slipStatus, setSlipStatus] = useState(null);
+    const [rejectionReason, setRejectionReason] = useState('');
+    const [showSlipForm, setShowSlipForm] = useState(false);
+    const [slipFile, setSlipFile] = useState(null);
+    const [sendingSlip, setSendingSlip] = useState(false);
     const [showPreviewVideo, setShowPreviewVideo] = useState(false);
 
     // Review form state
@@ -51,6 +57,8 @@ const CourseLanding = () => {
         try {
             const res = await api.get(`/purchase/verify/${id}`);
             setHasPurchased(res.data.hasPurchased);
+            setSlipStatus(res.data.slipStatus || null);
+            setRejectionReason(res.data.rejectionReason || '');
         } catch (error) {
             console.error('Error checking purchase:', error);
         }
@@ -137,6 +145,36 @@ const CourseLanding = () => {
         } catch (error) {
             showError(error, 'Invalid coupon');
             setCouponApplied(null);
+        }
+    };
+
+    const handleSendSlip = async () => {
+        if (!user) {
+            navigate('/login', { state: { from: `/marketplace/course/${id}` } });
+            return;
+        }
+
+        if (!slipFile) {
+            showError('Please choose your payment slip');
+            return;
+        }
+
+        const form = new FormData();
+        form.append('slip', slipFile);
+        form.append('courseId', id);
+        if (couponApplied) form.append('couponCode', couponCode);
+
+        setSendingSlip(true);
+        try {
+            await api.post('/purchase/slip', form, { headers: { 'Content-Type': 'multipart/form-data' } });
+            setSlipStatus('pending');
+            setShowSlipForm(false);
+            setSlipFile(null);
+            showSuccess('Slip sent. You will get access once it is approved.');
+        } catch (error) {
+            showError(error, 'Failed to send the slip');
+        } finally {
+            setSendingSlip(false);
         }
     };
 
@@ -333,7 +371,7 @@ const CourseLanding = () => {
                                                 <span className="font-medium">Coupon applied!</span>
                                             </div>
                                             <p className="text-sm text-green-600 dark:text-green-400 mt-1">
-                                                You save {course.currency === 'USD' ? '$' : 'LKR '}{couponApplied.discountAmount}
+                                                You save {course.currency === 'USD' ? '$' : 'Rs. '}{couponApplied.discountAmount}
                                             </p>
                                         </div>
                                     )}
@@ -352,8 +390,54 @@ const CourseLanding = () => {
                                             disabled={purchasing}
                                             className="w-full py-3 bg-indigo-500 hover:bg-indigo-600 text-white font-semibold rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                                         >
-                                            {purchasing ? 'Processing...' : 'Buy Now'}
+                                            {purchasing ? 'Processing...' : course.price === 0 ? 'Enroll for Free' : 'Buy Now'}
                                         </button>
+                                    )}
+
+                                    {/* Pay by bank slip */}
+                                    {!hasPurchased && course.price > 0 && (
+                                        <div className="mt-3 text-sm">
+                                            {slipStatus === 'pending' ? (
+                                                <p className="p-3 rounded-lg bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-300">
+                                                    Your payment slip is waiting for the instructor to approve it.
+                                                </p>
+                                            ) : (
+                                                <>
+                                                    {slipStatus === 'failed' && (
+                                                        <p className="mb-2 p-3 rounded-lg bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300">
+                                                            Your slip was rejected{rejectionReason ? `: ${rejectionReason}` : ''}. You can send a new one.
+                                                        </p>
+                                                    )}
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setShowSlipForm(!showSlipForm)}
+                                                        className="w-full py-2.5 rounded-lg border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-200 font-semibold"
+                                                    >
+                                                        Pay by Bank Slip
+                                                    </button>
+                                                    {showSlipForm && (
+                                                        <div className="mt-3 space-y-2 text-slate-600 dark:text-slate-300">
+                                                            {site.bankDetails && <p className="whitespace-pre-line">{site.bankDetails}</p>}
+                                                            <p>Upload an image or PDF of your slip, up to 2 MB.</p>
+                                                            <input
+                                                                type="file"
+                                                                accept="image/png,image/jpeg,image/webp,application/pdf"
+                                                                onChange={(e) => setSlipFile(e.target.files?.[0] || null)}
+                                                                className="block w-full text-xs"
+                                                            />
+                                                            <button
+                                                                type="button"
+                                                                onClick={handleSendSlip}
+                                                                disabled={sendingSlip}
+                                                                className="w-full py-2.5 bg-indigo-500 hover:bg-indigo-600 text-white font-semibold rounded-lg disabled:opacity-50"
+                                                            >
+                                                                {sendingSlip ? 'Sending...' : 'Send Slip'}
+                                                            </button>
+                                                        </div>
+                                                    )}
+                                                </>
+                                            )}
+                                        </div>
                                     )}
 
                                     {/* Course includes */}

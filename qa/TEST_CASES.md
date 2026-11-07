@@ -2,7 +2,7 @@
 
 **Branch under test:** fix/payment-gateway  
 **Requirements source:** SRS.md v1.0  
-**Total cases:** 426 (Critical 53, High 209, Medium 139, Low 25)
+**Total cases:** 462 (Critical 57, High 228, Medium 152, Low 25)
 
 ## How to run
 
@@ -16,26 +16,26 @@ Run `npm install` in `server/` first. The run starts its own local MongoDB and t
 
 | Module | Cases |
 |---|---|
-| Authentication | 43 |
+| Authentication | 44 |
 | Course management | 28 |
-| Lecture progress | 12 |
-| Co-instructors | 15 |
-| Marketplace | 11 |
-| Payments | 33 |
+| Lecture progress | 13 |
+| Co-instructors | 16 |
+| Marketplace | 15 |
+| Payments | 40 |
 | Coupons | 25 |
 | Instructor tools | 8 |
 | Admin | 24 |
 | Quizzes | 29 |
 | AI features | 29 |
 | Broadcasts | 12 |
-| Resources | 16 |
+| Resources | 18 |
 | Reviews | 17 |
-| Notifications | 11 |
+| Notifications | 12 |
 | Activity log | 9 |
-| Security | 71 |
-| Error handling | 7 |
+| Security | 75 |
+| Error handling | 8 |
 | Build and dependencies | 7 |
-| User interface | 19 |
+| User interface | 33 |
 
 ## Authentication
 
@@ -48,7 +48,7 @@ Run `npm install` in `server/` first. The run starts its own local MongoDB and t
 | AUTH-005 | Critical | Log in with correct credentials | POST /auth/login | HTTP 200 with a token | PASS | - |
 | AUTH-006 | High | Reject a wrong password | Log in with a wrong password | HTTP 400 "Invalid credentials" | PASS | - |
 | AUTH-007 | High | Unknown email gets the same error as a wrong password | Log in with an unregistered email | HTTP 400 "Invalid credentials" | PASS | - |
-| AUTH-008 | Medium | Role-specific login rejects the wrong role | Log a student in through /auth/teacher/login | HTTP 400 | PASS | - |
+| AUTH-008 | Medium | Role-specific login rejects the wrong role | Log a student in through /auth/instructor/login | HTTP 400 | PASS | - |
 | AUTH-009 | High | Current user profile excludes the password | GET /auth/me | HTTP 200 and no password field | PASS | - |
 | AUTH-010 | Critical | Protected route without a token | GET /auth/me with no header | HTTP 401 | PASS | - |
 | AUTH-011 | Critical | Tampered token is rejected | Change one character of a valid token | HTTP 401 | PASS | - |
@@ -84,6 +84,7 @@ Run `npm install` in `server/` first. The run starts its own local MongoDB and t
 | AUTH-041 | Low | Login does not reveal Google-only accounts | Log in to a Google-only account with any password | Same "Invalid credentials" message as a wrong password | PASS | LMS-059 |
 | AUTH-042 | High | A new account cannot duplicate an existing capitalised email | Register the lowercase form of a stored Legacy.x@QA.test account | HTTP 400 | PASS | - |
 | AUTH-043 | High | Google login finds an existing capitalised account | Sign in with Google using the lowercase form of a stored Legacy.x@QA.test account | The existing account is used and no second account is created | PASS | - |
+| AUTH-044 | High | A login lasts one hour | Register and read the token expiry | exp minus iat is 3600 seconds | PASS | LMS-074 |
 
 ## Course management
 
@@ -134,26 +135,28 @@ Run `npm install` in `server/` first. The run starts its own local MongoDB and t
 | PRG-010 | High | Instructor views a student progress overlay | GET /courses/:id/progress/:studentId as the owner | HTTP 200 with section breakdown (FR-COURSE-10) | PASS | - |
 | PRG-011 | Medium | Peer progress is off by default | GET /courses/:id/peers | HTTP 403 | PASS | - |
 | PRG-012 | Medium | A status change still updates the completion time | Move a lecture to In Progress, then Completed | completedAt changes | PASS | - |
+| PRG-013 | Medium | Enrolled list includes progress | Complete one of two lectures, then GET /courses/my/enrolled | progressPercent is 50 | PASS | LMS-109 |
 
 ## Co-instructors
 
 | ID | Priority | Test case | Steps | Expected result | Result | Bug |
 |---|---|---|---|---|---|---|
-| TCH-001 | High | Owner adds a co-instructor | POST /courses/:id/teachers | HTTP 201 | PASS | - |
+| TCH-001 | High | Owner adds a co-instructor | POST /courses/:id/instructors | HTTP 201 | PASS | - |
 | TCH-002 | Medium | Reject a duplicate co-instructor | Add the same user twice | HTTP 400 | PASS | - |
 | TCH-003 | Low | Owner cannot add themselves | Add the owner email | HTTP 400 | PASS | - |
-| TCH-004 | High | Outsider cannot add a co-instructor | POST teachers as a different instructor | HTTP 403 | PASS | - |
+| TCH-004 | High | Outsider cannot add a co-instructor | POST instructors as a different instructor | HTTP 403 | PASS | - |
 | TCH-005 | High | manage_content can add sections | POST a section as the co-instructor | HTTP 201 | PASS | - |
 | TCH-006 | High | manage_content can edit lectures | PUT /courses/lectures/:id as the co-instructor | HTTP 200 (SRS 3.4: add, edit and delete lectures) | PASS | LMS-019 |
 | TCH-007 | High | manage_content can delete lectures | DELETE a lecture as the co-instructor | HTTP 200 | PASS | LMS-019 |
 | TCH-008 | High | manage_content alone cannot enroll students | POST enroll as the co-instructor | HTTP 403 | PASS | - |
-| TCH-009 | Medium | Update co-instructor permissions | PUT teachers/:id adding manage_students and manage_teachers | HTTP 200 with new permissions | PASS | - |
-| TCH-010 | High | manage_teachers cannot grant full_access | As the co-instructor, add a user with full_access | User is added without full_access | PASS | - |
-| TCH-011 | Medium | My permissions endpoint | GET /courses/:id/my-permissions for owner, teacher, outsider | Each role is reported correctly | PASS | - |
-| TCH-012 | Medium | Co-instructor leaves a course | DELETE teachers/leave | HTTP 200 | PASS | - |
-| TCH-013 | Medium | Owner removes a co-instructor | Add a user, then DELETE teachers/:id | HTTP 200 | PASS | - |
+| TCH-009 | Medium | Update co-instructor permissions | PUT instructors/:id adding manage_students | HTTP 200 with new permissions | PASS | - |
+| TCH-010 | High | A co-instructor cannot manage other instructors | As a co-instructor with full_access, add, change and remove instructors | HTTP 403 each time | PASS | LMS-103 |
+| TCH-011 | Medium | My permissions endpoint | GET /courses/:id/my-permissions for owner, instructor, outsider | Each role is reported correctly | PASS | - |
+| TCH-012 | Medium | Co-instructor leaves a course | DELETE instructors/leave | HTTP 200 | PASS | - |
+| TCH-013 | Medium | Owner removes a co-instructor | Add a user, then DELETE instructors/:id | HTTP 200 | PASS | - |
 | TCH-014 | Medium | A co-instructor cannot delete the course | Give full_access, then DELETE the course | HTTP 403 (SRS 3.4) | PASS | LMS-046 |
 | TCH-015 | High | A co-instructor without manage_content cannot edit lectures | PUT and DELETE a lecture as a co-instructor with no permissions | HTTP 403 | PASS | - |
+| TCH-020 | High | The Instructor Center lists assigned courses | Add an instructor to a course, then read their dashboard | The course is listed and marked as assigned | PASS | - |
 
 ## Marketplace
 
@@ -170,6 +173,10 @@ Run `npm install` in `server/` first. The run starts its own local MongoDB and t
 | MKT-009 | Medium | Categories list | GET /marketplace/categories | Contains Testing | PASS | - |
 | MKT-010 | Medium | Language is listed on course cards | GET /marketplace and read a course | language is present (FR-MKT-01) | PASS | LMS-047 |
 | MKT-011 | High | The language filter finds matching courses | Publish a Sinhala course, then filter by Sinhala | Only that course is returned | PASS | - |
+| MKT-012 | High | Search finds courses by instructor name | Search the marketplace for an instructor name | That instructor's course is returned | PASS | LMS-077 |
+| MKT-013 | High | Every category is listed | GET /marketplace/categories | Saved categories and those used by published courses are returned | PASS | LMS-097 |
+| MKT-014 | High | Admins manage categories | Add, repeat and delete a category as an admin | Added with HTTP 201, repeat refused, deleted with HTTP 200 | PASS | LMS-097 |
+| MKT-015 | High | Only admins change categories | POST /categories as a student, an instructor and a guest | HTTP 403, 403 and 401 | PASS | - |
 
 ## Payments
 
@@ -208,6 +215,13 @@ Run `npm install` in `server/` first. The run starts its own local MongoDB and t
 | PAY-031 | Medium | Bought course stays available after archiving | Buy a course, archive it, read /courses/my/enrolled | The buyer still sees the course | PASS | LMS-017 |
 | PAY-032 | Critical | A removed buyer gets access back without paying twice | Buy, get removed, check out again | enrolled true, no new Stripe session, count back to 1 | PASS | - |
 | PAY-033 | High | Refunding a removed buyer does not lower the count twice | Buy, get removed, send a full refund | enrollmentCount stays 0 | PASS | - |
+| PAY-040 | Critical | A slip gives access only after approval | Send a slip, then approve it as the course owner | No access while pending; access, a paid invoice and a notification after approval | PASS | LMS-090 |
+| PAY-041 | High | A rejected slip can be replaced | Reject a slip with a reason, then send a new one | The reason is shown and the new slip is accepted | PASS | LMS-090 |
+| PAY-042 | High | A pending slip cannot be paid twice | Send a slip, then send another and try card checkout | HTTP 400 for both | PASS | - |
+| PAY-043 | High | Only the course owner or an admin reviews a slip | Approve and reject as another instructor and as a student | HTTP 403 every time | PASS | - |
+| PAY-044 | High | A slip file stays private | Read the slip as the student, the owner, a stranger, and through the public image route | HTTP 200, 200, 404 and 404 | PASS | - |
+| PAY-045 | Medium | Bad slips are refused | Send HTML named as an image, no file, and a slip for a free course | HTTP 400 each time | PASS | - |
+| PAY-046 | Medium | A coupon works with a slip | Send a slip with a 10 percent coupon, then approve it | The amount is discounted and the coupon is used once | PASS | - |
 
 ## Coupons
 
@@ -298,7 +312,7 @@ Run `npm install` in `server/` first. The run starts its own local MongoDB and t
 | QZ-011 | High | Attempt limit is enforced | Use a quiz with attemptsAllowed 1 twice | Second start returns HTTP 400 | PASS | - |
 | QZ-012 | High | Time limit is enforced | Move startedAt 20 minutes back on a 5 minute quiz, then submit | HTTP 400 and status timed-out | PASS | - |
 | QZ-013 | Medium | Inactive quiz is unavailable | Set isActive false | Hidden from students; start returns HTTP 400 | PASS | - |
-| QZ-014 | High | Quiz analytics are for teachers | GET analytics as the owner and as a student | Owner HTTP 200; student HTTP 403 | PASS | - |
+| QZ-014 | High | Quiz analytics are for instructors | GET analytics as the owner and as a student | Owner HTTP 200; student HTTP 403 | PASS | - |
 | QZ-015 | Medium | Own attempts list | GET /quizzes/:id/my-attempts | The attempt is listed | PASS | - |
 | QZ-016 | High | Students cannot read each other's attempts | GET /quizzes/attempts/:id as another student | HTTP 403 | PASS | - |
 | QZ-017 | Medium | Delete a quiz and its attempts | DELETE /quizzes/:id | Quiz and attempts are gone | PASS | - |
@@ -386,6 +400,8 @@ Run `npm install` in `server/` first. The run starts its own local MongoDB and t
 | RES-014 | Medium | Admin can open course resources | GET /resources/:id as an admin | HTTP 200 (moderation needs this) | PASS | LMS-067 |
 | RES-016 | High | Common CSV and Excel types still upload | Upload a file as text/csv, application/vnd.ms-excel and the xlsx type | HTTP 201 for each | PASS | - |
 | RES-015 | High | Sinhala file names download correctly | Upload පාඩම.pdf, then download and view it | HTTP 200 with the real name in the header | PASS | - |
+| RES-020 | High | Images can be uploaded and shown | Upload a PNG, then open its URL as a guest | HTTP 201, then the image with an image type | PASS | LMS-091, LMS-096 |
+| RES-021 | High | Only real images are accepted | Upload HTML and a PDF named as images, then a file over 2 MB, then as a guest | HTTP 400, 400, 413 and 401 | PASS | - |
 
 ## Reviews
 
@@ -424,6 +440,7 @@ Run `npm install` in `server/` first. The run starts its own local MongoDB and t
 | NTF-009 | Low | Invalid page number | GET /notifications?page=0 | HTTP 200 or 400, never a 500 | PASS | LMS-032 |
 | NTF-010 | Medium | A co-instructor with manage_students can notify the course | POST /notifications/course/:id/send as that co-instructor | HTTP 200 | PASS | - |
 | NTF-011 | Medium | A milestone is sent once | Complete a lecture, set it back, complete it again on a course with two visible lectures and one hidden | One 50 percent notification in total, so re-ticking repeats nothing and hidden lectures do not count | PASS | - |
+| NTF-012 | Medium | A comment notifies the course owner | Comment as an enrolled student, then as the owner | One notification for the student comment, none for the owner's own | PASS | LMS-089 |
 
 ## Activity log
 
@@ -461,6 +478,7 @@ Run `npm install` in `server/` first. The run starts its own local MongoDB and t
 | SEC-016 | Medium | Rate limit cannot be dodged with a header | Production mode: 8 logins, changing X-Forwarded-For each time | Still limited (only valid if the app sits directly on the internet; see the bug note) | PASS | LMS-060 |
 | SEC-070 | High | Successful logins never trip the account limit | Production mode: 7 correct logins to one account from different addresses | All HTTP 200 | PASS | - |
 | SEC-071 | High | A blocked user with the right password sees the reason | Log in to a blocked account with the correct password | HTTP 403 with the block reason | PASS | - |
+| SEC-072 | High | Only instructors can be added to a course | As a course owner, add a student account by email with manage_content | HTTP 400, and the student gets no course access | PASS | LMS-111 |
 | SEC-017 | Medium | Marketplace course creation is rate limited | Production mode: 11 calls to POST /instructor/course | HTTP 429 at the limit (NFR-SEC-06 covers course creation) | PASS | LMS-060 |
 | SEC-018 | High | Production errors hide stack traces | Production mode: trigger an error | stack is null | PASS | - |
 | SEC-019 | Low | Production errors hide internals | Production mode: GET /marketplace/not-an-id | No database details in the message | PASS | LMS-061 |
@@ -483,7 +501,7 @@ Run `npm install` in `server/` first. The run starts its own local MongoDB and t
 | SEC-036 | Medium | Audit log cannot be evaded | Send a logged action with courseId "x" in the body | The action is still logged | PASS | LMS-033 |
 | SEC-037 | Medium | Impersonation sessions are short | Read the expiry of an impersonation token | One hour or less (SRS: temporary token) | PASS | LMS-011 |
 | SEC-038 | Medium | Impersonated actions stay out of the personal log | Act through the impersonation token, read /activities/me | The action is hidden and attributed to the admin (FR-AUTH-06) | PASS | LMS-029 |
-| SEC-039 | Medium | Student notes stay private from teachers | Read progress and analytics as the course owner | Personal notes are not returned (code comment: "Teachers should not see") | PASS | LMS-030 |
+| SEC-039 | Medium | Student notes stay private from instructors | Read progress and analytics as the course owner | Personal notes are not returned (code comment: "Instructors should not see") | PASS | LMS-030 |
 | SEC-040 | High | Peer progress is anonymous | Enable allowPeerProgress, GET /courses/:id/peers as a student | No names or emails (FR-COURSE-11) | PASS | LMS-013 |
 | SEC-041 | Medium | Bad regex in public search is handled | GET /marketplace/search?q=( | HTTP 200 or 400, not a 500 | PASS | LMS-032 |
 | SEC-042 | Medium | Page size is capped | GET /marketplace?limit=100000 | The returned limit is capped | PASS | LMS-032 |
@@ -512,13 +530,17 @@ Run `npm install` in `server/` first. The run starts its own local MongoDB and t
 | SEC-065 | Medium | The course list keeps what a user should see | GET /courses as the owner and as an enrolled student | The owner sees their own draft; the student sees their course | PASS | - |
 | SEC-066 | High | Impersonated actions are recorded against the admin | Act through an impersonation token, read the global log | The entry belongs to the admin and names the impersonated user | PASS | - |
 | SEC-067 | Medium | Course analytics hide private notes | Read recent activity as the course owner after a student saves a note | The note text is not returned | PASS | - |
-| SEC-068 | High | Teachers still see student progress status | GET progress detail and progress list as the owner | Lecture statuses are returned | PASS | - |
+| SEC-068 | High | Instructors still see student progress status | GET progress detail and progress list as the owner | Lecture statuses are returned | PASS | - |
 | SEC-069 | Medium | Admins can still block other users | Block a student as an admin | HTTP 200 | PASS | - |
+| SEC-073 | Critical | Students cannot reach instructor or admin routes | Call instructor and admin routes as a student | HTTP 403 every time | PASS | LMS-095 |
+| SEC-074 | Critical | Instructors cannot reach admin routes | Call admin routes as an instructor | HTTP 403 every time | PASS | LMS-095 |
+| SEC-075 | Critical | An instructor cannot change another instructor's course | Call course routes as an unrelated instructor | Refused every time | PASS | LMS-095 |
 
 ## Error handling
 
 | ID | Priority | Test case | Steps | Expected result | Result | Bug |
 |---|---|---|---|---|---|---|
+| ERR-010 | High | Start Teaching works with no request body | POST /instructor/become with an empty request | HTTP 200 and the role becomes instructor | PASS | LMS-084 |
 | ERR-001 | High | Health check | GET /health | HTTP 200 | PASS | - |
 | ERR-002 | Medium | Invalid id is a client error | GET /courses/not-an-id | HTTP 400 or 404 | PASS | LMS-036 |
 | ERR-003 | Medium | Malformed JSON is a client error | POST invalid JSON to /auth/login | HTTP 400 | PASS | LMS-035 |
@@ -558,7 +580,21 @@ Run `npm install` in `server/` first. The run starts its own local MongoDB and t
 | UI-013 | Medium | Page title uses the product name | Read the browser tab title | Title says Tenz Learn | PASS | LMS-057 |
 | UI-014 | Critical | My Learning lists enrolled courses | Log in as an enrolled student, open /my-learning, search, then click View Course Lectures | The course is listed with its category and level, search filters it, and the link opens the course | PASS | LMS-072 |
 | UI-015 | High | Marketplace language filter | Open Advanced Filters, choose Sinhala, apply | Only Sinhala courses are listed | PASS | - |
-| UI-016 | High | New lecture is announced once | As a teacher on a published course, save one lecture normally and one with a custom announcement | One broadcast each, with a direct link, and the chosen priority is kept | PASS | - |
-| UI-017 | High | Category lists show every category | Open the marketplace filter and the navbar Category menu, then pick a category that contains an ampersand | All category names show, the courses are filtered, and the filter box shows that category | PASS | - |
+| UI-016 | High | New lecture is announced once | As an instructor on a published course, save one lecture normally and one with a custom announcement | One broadcast each, with a direct link, and the chosen priority is kept | PASS | - |
+| UI-017 | High | Category list shows every category | Open the marketplace category filter | All saved categories show | PASS | - |
 | UI-018 | High | Admin pages load cleanly | As an admin, open every dashboard tab and the activity log | All render with no console errors | PASS | LMS-073 |
 | INT-001 | Critical | Full user journey | Register, log in, browse, enroll, open a lecture, complete it, then take a quiz | The whole journey works with no console or API errors | PASS | - |
+| UI-019 | High | Menu on narrow screens | Open the site at 375px and open the menu | All links for the role show, with no horizontal scroll | PASS | LMS-094 |
+| UI-020 | Medium | Footer has no dead links | Read the footer and click its links | Current year, X logo, and every link goes to a real place | PASS | LMS-075, LMS-078, LMS-082 |
+| UI-021 | High | Legal pages load | Open /terms and /privacy | Both pages show | PASS | - |
+| UI-022 | High | My Learning shows only enrolled courses | Open My Learning as a student and an instructor | Enrolled courses with progress and status, and no create or created courses | PASS | LMS-087, LMS-099, LMS-102, LMS-109 |
+| UI-023 | Medium | Enrolled courses are marked | Open the marketplace as an enrolled student and click a card | Enrolled badge and Go to Course, and the whole card is clickable | PASS | LMS-088, LMS-110 |
+| UI-024 | Medium | AI chat is removed | Look for the AI button, tabs and links, then open /ai-chat | None remain, and /ai-chat shows 404 | PASS | LMS-086, LMS-092 |
+| UI-025 | Medium | Instructor is the only name for the role | Read the login, register and course pages, then open /teacher/login | No Teacher wording, and the old link redirects | PASS | LMS-093 |
+| UI-026 | High | Bank slip payment | Send a slip as a student, then approve it as the instructor | The slip waits for approval, then the student gets access | PASS | LMS-090 |
+| UI-027 | Medium | Image uploads | Upload a profile picture and a course thumbnail | Both show, with no URL field | PASS | LMS-091, LMS-096 |
+| UI-028 | Medium | Categories come from the backend | Add a category as an admin and open the course form | The new category is offered, and the navbar has no Category menu | PASS | LMS-076, LMS-097, LMS-107 |
+| UI-029 | Medium | Coupon date can be changed | Edit a coupon in dark mode | The calendar icon shows and the date can be changed | PASS | LMS-098, LMS-108 |
+| UI-030 | High | Instructor Center links and prices | Click Edit on a course and read the prices | The course opens, and prices show Rs. | PASS | LMS-100, LMS-101 |
+| UI-031 | Medium | Course sections and filters | Use the status and importance filters on a course | Each filter works alone, sections show both labels, and Critical is not used | PASS | LMS-085, LMS-105, LMS-106 |
+| UI-032 | Medium | Discussion when not enrolled | Open a preview lecture discussion without enrolling | A message explains why, instead of the comment box | PASS | LMS-089 |

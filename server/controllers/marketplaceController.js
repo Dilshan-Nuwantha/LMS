@@ -3,6 +3,7 @@ const Course = require('../models/Course');
 const User = require('../models/User');
 const Review = require('../models/Review');
 const { getPaging, escapeRegex } = require('../utils/query');
+const { getCategoryNames } = require('./categoryController');
 
 // @desc    Get all marketplace courses
 // @route   GET /api/marketplace
@@ -157,6 +158,8 @@ const searchMarketplace = asyncHandler(async (req, res) => {
 
     const searchRegex = new RegExp(escapeRegex(q.trim()), 'i');
 
+    const instructors = await User.find({ name: searchRegex, role: { $in: ['instructor', 'admin'] } }).select('_id').limit(50).lean();
+
     const filter = {
         isMarketplace: true,
         status: 'Published',
@@ -165,7 +168,8 @@ const searchMarketplace = asyncHandler(async (req, res) => {
             { title: searchRegex },
             { description: searchRegex },
             { category: searchRegex },
-            { tags: searchRegex }
+            { tags: searchRegex },
+            { user: { $in: instructors.map(i => i._id) } }
         ]
     };
 
@@ -194,14 +198,7 @@ const searchMarketplace = asyncHandler(async (req, res) => {
 // @route   GET /api/marketplace/categories
 // @access  Public
 const getCategories = asyncHandler(async (req, res) => {
-    const categories = await Course.distinct('category', {
-        isMarketplace: true,
-        status: 'Published',
-        isAdminBlocked: { $ne: true },
-        category: { $ne: '' }
-    });
-
-    res.status(200).json(categories);
+    res.status(200).json(await getCategoryNames());
 });
 
 module.exports = {

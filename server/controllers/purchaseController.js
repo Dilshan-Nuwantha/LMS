@@ -4,6 +4,9 @@ const Course = require('../models/Course');
 const Purchase = require('../models/Purchase');
 const Progress = require('../models/Progress');
 const Coupon = require('../models/Coupon');
+const Upload = require('../models/Upload');
+const { notifyUser } = require('./notificationController');
+const { sniffFileType } = require('../utils/fileType');
 const { generateInvoicePDF } = require('../services/invoiceService');
 const {
     createPurchaseWithInvoice,
@@ -50,6 +53,39 @@ const grantCourseAccess = async ({ userId, courseId, couponId }) => {
             completedLectures: []
         });
     }
+};
+
+// Works out what the student pays. An invalid coupon is refused, never silently ignored.
+const priceWithCoupon = async (res, course, couponCode) => {
+    if (!couponCode) return { finalPrice: course.price, discountAmount: 0, couponApplied: null };
+
+    if (typeof couponCode !== 'string') {
+        res.status(400);
+        throw new Error('Invalid coupon code');
+    }
+
+    const coupon = await Coupon.findOne({
+        code: couponCode.toUpperCase(),
+        course: course._id
+    });
+
+    if (!coupon) {
+        res.status(400);
+        throw new Error('Invalid coupon code');
+    }
+
+    const validity = coupon.isValid();
+    if (!validity.valid) {
+        res.status(400);
+        throw new Error(validity.reason);
+    }
+
+    const discountAmount = coupon.calculateDiscount(course.price);
+    return {
+        finalPrice: Math.max(Math.round((course.price - discountAmount) * 100) / 100, 0),
+        discountAmount,
+        couponApplied: coupon._id
+    };
 };
 
 // @desc    Create Stripe checkout session
@@ -106,36 +142,12 @@ const createCheckoutSession = asyncHandler(async (req, res) => {
         throw new Error('You are already enrolled in this course');
     }
 
-    let finalPrice = course.price;
-    let discountAmount = 0;
-    let couponApplied = null;
+    const { finalPrice, discountAmount, couponApplied } = await priceWithCoupon(res, course, couponCode);
 
-    // Apply coupon if provided - reject instead of silently charging full price
-    if (couponCode) {
-        if (typeof couponCode !== 'string') {
-            res.status(400);
-            throw new Error('Invalid coupon code');
-        }
-
-        const coupon = await Coupon.findOne({
-            code: couponCode.toUpperCase(),
-            course: courseId
-        });
-
-        if (!coupon) {
-            res.status(400);
-            throw new Error('Invalid coupon code');
-        }
-
-        const validity = coupon.isValid();
-        if (!validity.valid) {
-            res.status(400);
-            throw new Error(validity.reason);
-        }
-
-        discountAmount = coupon.calculateDiscount(course.price);
-        finalPrice = Math.max(Math.round((course.price - discountAmount) * 100) / 100, 0);
-        couponApplied = coupon._id;
+    // A slip the instructor has not checked yet may already be paid for
+    if (await Purchase.exists({ user: req.user.id, course: courseId, status: 'pending', paymentMethod: 'slip' })) {
+        res.status(400);
+        throw new Error('Your payment slip for this course is waiting for approval');
     }
 
     // Remove any previous pending/failed purchase to avoid duplicate key error.
@@ -450,9 +462,17 @@ const verifyPurchase = asyncHandler(async (req, res) => {
         status: 'completed'
     });
 
+    const slip = purchase ? null : await Purchase.findOne({
+        user: req.user.id,
+        course: courseId,
+        paymentMethod: 'slip'
+    }).select('status rejectionReason');
+
     res.status(200).json({
         hasPurchased: !!purchase,
-        purchaseDate: purchase?.purchasedAt
+        purchaseDate: purchase?.purchasedAt,
+        slipStatus: slip?.status,
+        rejectionReason: slip?.rejectionReason
     });
 });
 
@@ -489,7 +509,8 @@ const getSessionStatus = asyncHandler(async (req, res) => {
 
     res.status(200).json({
         status: purchase.status,
-        course: purchase.course
+        course: purchase.course,
+        invoiceNumber: purchase.invoiceNumber
     });
 });
 
@@ -555,7 +576,225 @@ const downloadInvoicePDF = asyncHandler(async (req, res) => {
     generateInvoicePDF(purchase, res);
 });
 
+// @desc    Pay for a course with a bank slip, for the instructor to approve
+// @route   POST /api/purchase/slip
+// @access  Private
+const submitPaymentSlip = asyncHandler(async (req, res) => {
+    const { courseId, couponCode } = req.body;
+
+    if (!req.file) {
+        res.status(400);
+        throw new Error('Please attach an image or PDF of your payment slip');
+    }
+
+    const mimeType = sniffFileType(req.file.buffer);
+    if (!mimeType) {
+        res.status(400);
+        throw new Error('The slip must be a PNG, JPEG, WebP or PDF file');
+    }
+
+    const course = await Course.findOne({
+        _id: courseId,
+        isMarketplace: true,
+        status: 'Published',
+        isAdminBlocked: { $ne: true }
+    });
+
+    if (!course) {
+        res.status(404);
+        throw new Error('Course not found');
+    }
+
+    if (course.user.toString() === req.user.id) {
+        res.status(400);
+        throw new Error('You cannot purchase your own course');
+    }
+
+    if (await Progress.exists({ student: req.user.id, course: courseId })) {
+        res.status(400);
+        throw new Error('You are already enrolled in this course');
+    }
+
+    const existing = await Purchase.findOne({ user: req.user.id, course: courseId });
+
+    if (existing?.status === 'completed') {
+        res.status(400);
+        throw new Error('You have already purchased this course');
+    }
+
+    if (existing?.status === 'pending' && existing.paymentMethod === 'slip') {
+        res.status(400);
+        throw new Error('Your payment slip for this course is waiting for approval');
+    }
+
+    const { finalPrice, discountAmount, couponApplied } = await priceWithCoupon(res, course, couponCode);
+
+    if (finalPrice <= 0) {
+        res.status(400);
+        throw new Error('This course is free, so no payment slip is needed');
+    }
+
+    // A rejected slip can be replaced
+    if (existing && existing.status !== 'refunded') {
+        await Upload.deleteOne({ _id: existing.slip });
+        await existing.deleteOne();
+    }
+
+    const slip = await Upload.create({
+        owner: req.user.id,
+        kind: 'slip',
+        data: req.file.buffer,
+        mimeType,
+        size: req.file.size
+    });
+
+    const purchase = await createPurchaseWithInvoice({
+        user: req.user.id,
+        course: courseId,
+        instructor: course.user,
+        amount: finalPrice,
+        originalPrice: course.price,
+        currency: course.currency,
+        status: 'pending',
+        paymentMethod: 'slip',
+        slip: slip._id,
+        rejectionReason: '',
+        couponApplied,
+        discountAmount,
+        invoiceStatus: 'created'
+    });
+
+    await notifyUser(course.user, {
+        courseId,
+        title: 'Payment slip to review',
+        message: `${req.user.name} sent a payment slip for "${course.title}"`,
+        type: 'payment',
+        link: '/instructor/dashboard'
+    });
+
+    res.status(201).json({ message: 'Slip sent. You will get access once it is approved.', purchaseId: purchase._id });
+});
+
+// @desc    List slips waiting for approval
+// @route   GET /api/purchase/slips
+// @access  Private (Instructor, Admin)
+const getPendingSlips = asyncHandler(async (req, res) => {
+    const filter = { paymentMethod: 'slip', status: 'pending' };
+    if (req.user.role !== 'admin') filter.instructor = req.user.id;
+
+    const slips = await Purchase.find(filter)
+        .populate('user', 'name email')
+        .populate('course', 'title')
+        .sort({ createdAt: 1 });
+
+    res.status(200).json(slips);
+});
+
+// Only the instructor who sold the course, or an admin, can decide on a slip
+const findSlipToReview = async (req, res) => {
+    const purchase = await Purchase.findOne({ _id: req.params.id, paymentMethod: 'slip' }).populate('course', 'title');
+
+    if (!purchase) {
+        res.status(404);
+        throw new Error('Payment slip not found');
+    }
+
+    if (req.user.role !== 'admin' && purchase.instructor.toString() !== req.user.id) {
+        res.status(403);
+        throw new Error('Not authorized to review this payment slip');
+    }
+
+    return purchase;
+};
+
+// @desc    See a payment slip
+// @route   GET /api/purchase/:id/slip
+// @access  Private (the student, the course instructor or an admin)
+const getSlipFile = asyncHandler(async (req, res) => {
+    const purchase = await Purchase.findOne({ _id: req.params.id, paymentMethod: 'slip' });
+    const allowed = purchase && (
+        req.user.role === 'admin' ||
+        purchase.user.toString() === req.user.id ||
+        purchase.instructor.toString() === req.user.id
+    );
+    const slip = allowed && await Upload.findOne({ _id: purchase.slip, kind: 'slip' });
+
+    // The same answer for missing and forbidden, so purchases can't be probed
+    if (!slip) {
+        res.status(404);
+        throw new Error('Payment slip not found');
+    }
+
+    res.set({ 'Content-Type': slip.mimeType, 'Content-Length': slip.size, 'Cache-Control': 'private, no-store' });
+    res.send(slip.data);
+});
+
+// @desc    Approve a slip, which gives the student access
+// @route   PUT /api/purchase/:id/slip/approve
+// @access  Private (Course instructor, Admin)
+const approveSlip = asyncHandler(async (req, res) => {
+    const found = await findSlipToReview(req, res);
+
+    // Only the first approval gets through, so counters are bumped once
+    const purchase = await Purchase.findOneAndUpdate(
+        { _id: found._id, status: 'pending' },
+        { status: 'completed', invoiceStatus: 'paid', purchasedAt: new Date() },
+        { new: true }
+    );
+
+    if (!purchase) {
+        res.status(400);
+        throw new Error('This payment slip has already been reviewed');
+    }
+
+    await grantCourseAccess({ userId: purchase.user, courseId: purchase.course, couponId: purchase.couponApplied });
+
+    await notifyUser(purchase.user, {
+        courseId: purchase.course,
+        title: 'Payment approved',
+        message: `You now have access to "${found.course.title}"`,
+        type: 'payment',
+        link: `/course/${purchase.course}`
+    });
+
+    res.status(200).json({ message: 'Payment approved', invoiceNumber: purchase.invoiceNumber });
+});
+
+// @desc    Reject a slip. The student can send a new one.
+// @route   PUT /api/purchase/:id/slip/reject
+// @access  Private (Course instructor, Admin)
+const rejectSlip = asyncHandler(async (req, res) => {
+    const found = await findSlipToReview(req, res);
+    const reason = typeof req.body.reason === 'string' ? req.body.reason.trim().slice(0, 300) : '';
+
+    const purchase = await Purchase.findOneAndUpdate(
+        { _id: found._id, status: 'pending' },
+        { status: 'failed', rejectionReason: reason },
+        { new: true }
+    );
+
+    if (!purchase) {
+        res.status(400);
+        throw new Error('This payment slip has already been reviewed');
+    }
+
+    await notifyUser(purchase.user, {
+        courseId: purchase.course,
+        title: 'Payment slip rejected',
+        message: reason || `Your slip for "${found.course.title}" was not accepted. You can send a new one.`,
+        type: 'payment',
+        link: `/marketplace/course/${purchase.course}`
+    });
+
+    res.status(200).json({ message: 'Payment slip rejected' });
+});
+
 module.exports = {
+    submitPaymentSlip,
+    getPendingSlips,
+    getSlipFile,
+    approveSlip,
+    rejectSlip,
     createCheckoutSession,
     handleStripeWebhook,
     getMyPurchases,

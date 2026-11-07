@@ -13,14 +13,13 @@ require('./manual-cases');
 const { bugs, manualResults, retested } = require('./bugs');
 
 const RESULTS = path.resolve(__dirname, '../results');
-const RUN_DATE = '2026-11-06';
+const RUN_DATE = '2026-11-08';
 const VERIFIED_BY = 'Claude Code regression 2026-11-06';
-const firstBug = Number(process.argv[2]) || 5;
 const api = JSON.parse(fs.readFileSync(path.join(RESULTS, 'api-results.json'), 'utf8'));
 const result = Object.fromEntries(api.results.map(r => [r.id, [r.status, r.actual || '']]));
 Object.assign(result, manualResults);
 
-const sheetId = Object.fromEntries(bugs.map((b, i) => [b.id, `BUG-${String(firstBug + i).padStart(3, '0')}`]));
+const sheetId = Object.fromEntries(bugs.map(b => [b.id, b.sheetId]));
 const bugsFor = {};
 bugs.forEach(b => b.tests.forEach(t => { (bugsFor[t] = bugsFor[t] || []).push(sheetId[b.id]); }));
 
@@ -51,7 +50,7 @@ const bugRows = bugs.map(b => {
         sheetId[b.id], b.module || MODULE[test.module], `[${b.type}] ${b.title}`,
         test ? `${test.steps}. Failed tests: ${b.tests.map(t => `TC-REG-${t}`).join(', ')}. Location: ${b.where}` : `${b.steps}. Found in manual UI testing. Location: ${b.where}`,
         b.severity, b.severity, 'QA / Tester', b.status, developer(b.where), 'Local',
-        b.fix, b.problem, b.reported || RUN_DATE, '', b.status === 'Closed' ? VERIFIED_BY : '', '', '', '', ''
+        b.fix, b.problem, b.reported || RUN_DATE, '', b.status === 'Closed' ? (b.verified || VERIFIED_BY) : '', '', '', '', ''
     ].map(clean);
 });
 
@@ -62,8 +61,8 @@ const testRows = cases.map(c => [
     sheetTestId(c.id), c.title, MODULE[c.module],
     c.fn ? 'Local regression stack running' : 'Client and API running locally', c.steps, c.expected, actual(c.id),
     result[c.id][0] === 'PASS' ? 'Pass' : 'Fail', c.fn ? 'Automated' : 'Manual', c.priority,
-    'Claude Code', RUN_DATE, (bugsFor[c.id] || []).join(', '),
-    `Regression run on ${uiOnEarlierCommit.has(c.id) ? 'commit 4280b9e' : 'Beralidu b168822 plus the BUG-063 restore and BUG-075 fix'} (${c.id})`
+    'Claude Code', c.fn ? api.ranAt.slice(0, 10) : RUN_DATE, (bugsFor[c.id] || []).join(', '),
+    `Regression run on ${uiOnEarlierCommit.has(c.id) ? 'commit 4280b9e' : 'Beralidu 65fca1f plus the BUG-076 to BUG-113 fixes'} (${c.id})`
 ].map(clean));
 
 // The team's own fixes, covered by these passing cases: AUTH-004, AUTH-012, PAY-016, PAY-001

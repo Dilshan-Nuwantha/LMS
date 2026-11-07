@@ -74,11 +74,11 @@ const writeReports = () => {
     const pass = cases.filter(c => result[c.id][0] === 'PASS').length;
     const out = [
         '# Tenz Learn - Regression Bug Report', '',
-        `**Branch:** Beralidu at commit c16fb48  `,
+        `**Branch:** Beralidu at commit 65fca1f, plus the uncommitted fixes for LMS-074 to LMS-111  `,
         `**Run date:** ${api.ranAt.slice(0, 10)}  `,
         `**Result:** ${cases.length} test cases, ${pass} passed, ${cases.length - pass} failed  `,
         `**Open findings:** ${open.length} (${severities.map(s => `${n(b => b.severity === s)} ${s}`).join(', ')}). **Fixed:** ${fixed.length}`, '',
-        `**Status:** every automated and manual regression case passes, except TC-NOTIF-001, which was not run. The team's manual UI testing on 2026-11-07 added 36 findings, which have no automated case yet. Items marked "Please confirm" in their fix need the tester's input, because the note was unclear.`, '',
+        `**Status:** every automated and manual regression case passes, except TC-NOTIF-001, which was not run. The ${open.length} open items are built but need details from the team: social links, contact details, the portfolio URL and approved legal wording.`, '',
         '## Summary', '',
         '| Severity | Security issues | Vulnerabilities | Bugs | Enhancements | Total |', '|---|---|---|---|---|---|',
         ...severities.map(s => `| ${s} | ${types.map(t => n(b => b.severity === s && b.type === t)).join(' | ')} | ${n(b => b.severity === s)} |`),
@@ -95,7 +95,7 @@ const writeReports = () => {
             return `| ${m} | ${list.length} | ${p} | ${list.length - p} |`;
         }), '',
         '## How this was tested', '',
-        `- The API suite ran ${api.results.length} cases against the real server code at commit c16fb48 on Beralidu, using a temporary local MongoDB. The hosted lms-dev database was not used.`,
+        `- The API suite ran ${api.results.length} cases against the real server code at commit 65fca1f on Beralidu plus the fixes for LMS-074 to LMS-111, using a temporary local MongoDB. The hosted lms-dev database was not used.`,
         '- Stripe, email, Google sign-in and the AI providers were local stand-ins, so **no real payment, email or AI request was made**. Stripe webhook signatures were verified for real. Outbound calls blocked: ' + api.blockedOutbound.length + '.',
         '- Production-only behaviour (rate limits, stack traces, cron secret) ran against a second instance with NODE_ENV=production.',
         '- UI checks were repeated on this code. LMS-003 was confirmed in real Chrome with a temporary profile.', '',
@@ -103,7 +103,7 @@ const writeReports = () => {
         '- A real Stripe checkout page, real Google sign-in, real email delivery and real AI provider responses.',
         '- Load and performance targets (NFR-PERF), and uptime.',
         '- Browsers other than Chromium, and the deployed Render or Vercel setup.',
-        '- UI coverage was a smoke test of the main pages. Instructor and admin screens were tested through the API only.', ''
+        '- Browser checks covered the main pages for each role, not every screen.', ''
     ];
 
     severities.forEach(s => {
@@ -122,7 +122,8 @@ const writeReports = () => {
         'Run these from `server/`. Each script only reports until you add `--apply`, and none of them has been run on the hosted database.', '',
         '1. `node scripts/createAdmin.js --list`: check every admin. Anyone could create one before this fix, so remove any you do not recognise.',
         '2. `node scripts/purgeActivitySecrets.js --apply`: removes stored passwords, AI keys and bank details from old log records. Then ask affected users to change those passwords and AI keys.',
-        '3. `node scripts/normalizeUserEmails.js --apply`: lowercases old emails and lists any pairs that differ only by case for you to resolve. Login already works for these accounts without it.', ''
+        '3. `node scripts/migrateInstructorNames.js --apply`: run this straight after deploying. It moves stored teacher names to instructor. It reports only without `--apply`, and is safe to run twice.',
+        '4. `node scripts/normalizeUserEmails.js --apply`: lowercases old emails and lists any pairs that differ only by case for you to resolve. Login already works for these accounts without it.', ''
     );
 
     out.push(
@@ -171,9 +172,13 @@ const writeReports = () => {
         '- `server/.env` has no `EMAIL_USER` or `EMAIL_PASS`, so password reset emails cannot be sent with this configuration, and no `server/.env.example` exists.',
         '- `CRON_SECRET` is needed in production for the due date reminders; it is not in `server/.env`.',
         '- The SRS is out of date in places: FR-PAY-04 says invoices are public, but the code correctly protects them. It lists `canManageContent`-style permissions, while the code uses `manage_content`. Section 9.6 says no email service exists.',
-        '- SRS 3.3 says instructors apply and are granted the role, but `/auth/teacher/register` and `/instructor/become` grant it instantly. Please confirm which is intended.',
-        '- The footer has a placeholder phone number and empty social links, and its Terms and Privacy links open the marketplace because those pages do not exist.',
-        '- Free courses show a "Buy Now" button. It enrols correctly, but the wording is misleading.',
+        '- SRS 3.3 says instructors apply and are granted the role, but `/auth/instructor/register` and `/instructor/become` grant it instantly. Please confirm which is intended.',
+        '- Instructor renamed everywhere (LMS-093): run the migration below straight after deploying, or added instructors lose course access until it runs. It also lists any student accounts already added to a course, which need removing by hand (LMS-111).',
+        '- Sessions end after exactly 1 hour, even during a quiz (LMS-074). Renewing the session for active users would need a small addition.',
+        '- Bank slips (LMS-090): students need the account details, set in VITE_BANK_DETAILS. Approved slips count as instructor earnings, so please confirm who receives this money.',
+        '- Uploaded images and slips are stored in MongoDB with a 2 MB limit, because no file storage service is set up.',
+        '- The student AI server routes still exist but nothing in the app uses them. AI Notes, the quiz generator and instructor AI settings were kept (LMS-086).',
+        '- The team deleted BUG-106, which is why that number is skipped. Its request is covered: the marketplace filter now shows every category.',
         ''
     );
     fs.writeFileSync(path.join(QA, 'BUG_REPORT.md'), out.join('\n'));
@@ -216,7 +221,7 @@ const serve = async () => {
     await api('PUT', `/resources/${F.course.id}/toggle-student-uploads`, { token: F.instr.token });
     // Written straight to the database, as a link saved before the server check existed would be
     const xss = "javascript:document.title='XSS-'+localStorage.getItem('token').slice(0,12);window.opener&&(window.opener.document.title='XSS-'+localStorage.getItem('token').slice(0,12))";
-    await fixtures.models.Resource.create({ course: F.course.id, uploadedBy: F.instr.id, title: 'QA script link', fileType: 'link', url: xss, uploaderRole: 'teacher' });
+    await fixtures.models.Resource.create({ course: F.course.id, uploadedBy: F.instr.id, title: 'QA script link', fileType: 'link', url: xss, uploaderRole: 'instructor' });
     await fixtures.models.Lecture.updateOne({ _id: F.L2 }, { resourceUrl: xss });
     const quiz = await api('POST', '/quizzes', {
         token: F.instr.token,

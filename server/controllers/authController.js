@@ -17,7 +17,7 @@ const isBcryptHash = (str) => typeof str === 'string' && /^\$2[aby]\$\d{2}\$[./A
 // Generate JWT
 const generateToken = (user) => {
     return jwt.sign({ id: user._id, v: user.tokenVersion || 0 }, process.env.JWT_SECRET, {
-        expiresIn: '7d',
+        expiresIn: '1h',
     });
 };
 
@@ -155,7 +155,7 @@ const loginUser = asyncHandler(async (req, res) => {
 
     if (role && user.role !== role) {
         res.status(400);
-        throw new Error(`Account role is not ${role === 'instructor' ? 'teacher' : role}.`);
+        throw new Error(`Account role is not ${role}.`);
     }
 
     res.locals.user = user; // For Activity Logger
@@ -256,7 +256,7 @@ const googleLogin = asyncHandler(async (req, res) => {
 
         if (role && user.role !== role) {
             res.status(400);
-            throw new Error(`Account role is not ${role === 'instructor' ? 'teacher' : role}.`);
+            throw new Error(`Account role is not ${role}.`);
         }
     } else {
         // Admins are never created here, see scripts/createAdmin.js

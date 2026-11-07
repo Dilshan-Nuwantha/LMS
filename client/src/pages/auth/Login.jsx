@@ -6,6 +6,8 @@ import { showSuccess, showError, showWarning } from '../../utils/toast';
 import { FaShieldAlt, FaChalkboardTeacher, FaBookOpen, FaEye, FaEyeSlash, FaFacebook, FaYoutube } from 'react-icons/fa';
 import { SiTiktok } from 'react-icons/si';
 
+const CURRENT_YEAR = new Date().getFullYear();
+
 const GoogleIcon = () => (
     <svg viewBox="0 0 24 24" className="w-5 h-5 shrink-0" xmlns="http://www.w3.org/2000/svg">
         <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
@@ -79,17 +81,17 @@ const Login = () => {
     const { login, googleLogin } = useContext(AuthContext);
     const navigate = useNavigate();
     const location = useLocation();
-    const isTeacherLogin = location.pathname.startsWith('/teacher/login');
+    const isInstructorLogin = location.pathname.startsWith('/instructor/login');
     const isAdminLogin = location.pathname.startsWith('/admin/login');
-    const isStudentLogin = !isTeacherLogin && !isAdminLogin;
-    const targetRole = isAdminLogin ? 'admin' : (isTeacherLogin ? 'instructor' : 'student');
+    const isStudentLogin = !isInstructorLogin && !isAdminLogin;
+    const targetRole = isAdminLogin ? 'admin' : (isInstructorLogin ? 'instructor' : 'student');
 
     const { email, password } = formData;
     const onChange = (e) => setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
 
     const finishLogin = (user) => {
         if (targetRole && user.role !== targetRole) {
-            showError(`Account role is not ${targetRole === 'instructor' ? 'teacher' : targetRole}.`);
+            showError(`Account role is not ${targetRole === 'instructor' ? 'instructor' : targetRole}.`);
             return false;
         }
         if (user.role === 'admin') {
@@ -158,36 +160,36 @@ const Login = () => {
 
     const panelBg = isAdminLogin
         ? 'from-slate-800 to-slate-900'
-        : isTeacherLogin
+        : isInstructorLogin
             ? 'from-blue-700 to-blue-900'
             : 'from-blue-600 to-blue-800';
 
-    const accentColor = isAdminLogin ? 'bg-slate-700' : isTeacherLogin ? 'bg-blue-600' : 'bg-blue-500';
-    const accentHover = isAdminLogin ? 'hover:bg-slate-600' : isTeacherLogin ? 'hover:bg-blue-500' : 'hover:bg-blue-700';
-    const accentText = isAdminLogin ? 'text-slate-600' : isTeacherLogin ? 'text-blue-600' : 'text-blue-500';
-    const accentHoverText = isAdminLogin ? 'hover:text-slate-500' : isTeacherLogin ? 'hover:text-blue-500' : 'hover:text-blue-700';
+    const accentColor = isAdminLogin ? 'bg-slate-700' : isInstructorLogin ? 'bg-blue-600' : 'bg-blue-500';
+    const accentHover = isAdminLogin ? 'hover:bg-slate-600' : isInstructorLogin ? 'hover:bg-blue-500' : 'hover:bg-blue-700';
+    const accentText = isAdminLogin ? 'text-slate-600' : isInstructorLogin ? 'text-blue-600' : 'text-blue-500';
+    const accentHoverText = isAdminLogin ? 'hover:text-slate-500' : isInstructorLogin ? 'hover:text-blue-500' : 'hover:text-blue-700';
 
     const panelTitle = isAdminLogin
         ? 'Admin Portal'
-        : isTeacherLogin
-            ? 'Teacher Portal'
+        : isInstructorLogin
+            ? 'Instructor Portal'
             : 'Start Learning Today';
 
     const panelSubtitle = isAdminLogin
         ? 'Manage your platform with full administrative control'
-        : isTeacherLogin
+        : isInstructorLogin
             ? 'Create courses and inspire thousands of learners'
             : 'Join thousands of students on their learning journey';
 
     const formTitle = isAdminLogin
         ? 'Administrator Login'
-        : isTeacherLogin
-            ? 'Teacher Login'
+        : isInstructorLogin
+            ? 'Instructor Login'
             : 'Login';
 
     const formSubtitle = isAdminLogin
         ? 'Enter your admin credentials to access the dashboard'
-        : isTeacherLogin
+        : isInstructorLogin
             ? 'Sign in to manage your courses and students'
             : 'Enter your credentials to login to your account';
 
@@ -206,7 +208,7 @@ const Login = () => {
                     {/* Logo */}
                     <div className="flex items-center gap-2">
                         <div className="w-9 h-9 bg-white/20 rounded-lg flex items-center justify-center backdrop-blur-sm">
-                            {isAdminLogin ? <FaShieldAlt className="text-white text-base" /> : isTeacherLogin ? <FaChalkboardTeacher className="text-white text-base" /> : <FaBookOpen className="text-white text-base" />}
+                            {isAdminLogin ? <FaShieldAlt className="text-white text-base" /> : isInstructorLogin ? <FaChalkboardTeacher className="text-white text-base" /> : <FaBookOpen className="text-white text-base" />}
                         </div>
                         <span className="text-white font-bold text-xl tracking-tight">Tenz Learn</span>
                     </div>
@@ -236,7 +238,7 @@ const Login = () => {
 
                     {/* Footer */}
                     <div className="text-white/50 text-xs text-center">
-                        © 2024 All rights reserved <span className="text-white/80 font-medium">TenZe</span>
+                        © {CURRENT_YEAR} All rights reserved <span className="text-white/80 font-medium">TenZe</span>
                     </div>
                 </div>
             </div>
@@ -367,11 +369,11 @@ const Login = () => {
                                     </Link>
                                 </p>
                             )}
-                            {isTeacherLogin && (
+                            {isInstructorLogin && (
                                 <p>
                                     Don't have an account?{' '}
-                                    <Link to="/teacher/register" className={`font-semibold ${accentText} ${accentHoverText} transition-colors`}>
-                                        Sign Up as Teacher
+                                    <Link to="/instructor/register" className={`font-semibold ${accentText} ${accentHoverText} transition-colors`}>
+                                        Sign Up as Instructor
                                     </Link>
                                 </p>
                             )}
@@ -382,7 +384,7 @@ const Login = () => {
                 {/* Footer */}
                 <div className="flex items-center justify-between px-6 sm:px-12 lg:px-16 xl:px-24 py-4 border-t border-gray-100">
                     <p className="text-xs text-gray-400">
-                        © 2024 All rights reserved{' '}
+                        © {CURRENT_YEAR} All rights reserved{' '}
                         <span className={`font-semibold ${accentText}`}>TenZe</span>
                     </p>
                     <div className="flex items-center gap-3">

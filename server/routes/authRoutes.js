@@ -30,10 +30,10 @@ router.post('/student/register', registerLimiter, setRole('student'), registerUs
 router.post('/student/login', authLimiter, loginAccountLimiter, setRole('student'), loginUser);
 router.post('/student/google', authLimiter, setRole('student'), googleLogin);
 
-// Teacher API set
-router.post('/teacher/register', registerLimiter, setRole('instructor'), registerUser);
-router.post('/teacher/login', authLimiter, loginAccountLimiter, setRole('instructor'), loginUser);
-router.post('/teacher/google', authLimiter, setRole('instructor'), googleLogin);
+// Instructor API set
+router.post('/instructor/register', registerLimiter, setRole('instructor'), registerUser);
+router.post('/instructor/login', authLimiter, loginAccountLimiter, setRole('instructor'), loginUser);
+router.post('/instructor/google', authLimiter, setRole('instructor'), googleLogin);
 
 // Admin API set (no register route: admins are created with scripts/createAdmin.js)
 router.post('/admin/login', authLimiter, loginAccountLimiter, setRole('admin'), loginUser);

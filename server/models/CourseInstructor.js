@@ -1,19 +1,18 @@
 const mongoose = require('mongoose');
 
 /**
- * Permission levels for course teachers:
+ * Permission levels for course instructors:
  * - manage_content: Add/edit/delete lectures and sections
  * - manage_students: Enroll/remove students, view progress
  * - full_access: All permissions including course settings
- * - manage_teachers: Can add/remove other teachers (except course creator)
  */
-const courseTeacherSchema = new mongoose.Schema({
+const courseInstructorSchema = new mongoose.Schema({
     course: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Course',
         required: true
     },
-    teacher: {
+    instructor: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User',
         required: true
@@ -35,25 +34,20 @@ const courseTeacherSchema = new mongoose.Schema({
         full_access: {
             type: Boolean,
             default: false
-        },
-        manage_teachers: {
-            type: Boolean,
-            default: false
         }
     }
 }, {
     timestamps: true
 });
 
-// Compound index to ensure unique teacher per course
-courseTeacherSchema.index({ course: 1, teacher: 1 }, { unique: true });
+// Compound index to ensure unique instructor per course
+courseInstructorSchema.index({ course: 1, instructor: 1 }, { unique: true });
 
-// Virtual to check if teacher has any permission
-courseTeacherSchema.virtual('hasAnyPermission').get(function() {
+// Virtual to check if instructor has any permission
+courseInstructorSchema.virtual('hasAnyPermission').get(function() {
     return this.permissions.manage_content ||
            this.permissions.manage_students ||
-           this.permissions.full_access ||
-           this.permissions.manage_teachers;
+           this.permissions.full_access;
 });
 
-module.exports = mongoose.model('CourseTeacher', courseTeacherSchema);
+module.exports = mongoose.model('CourseInstructor', courseInstructorSchema);

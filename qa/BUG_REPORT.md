@@ -1,21 +1,21 @@
 # Tenz Learn - Regression Bug Report
 
-**Branch:** Beralidu at commit c16fb48  
-**Run date:** 2026-11-06  
-**Result:** 426 test cases, 426 passed, 0 failed  
-**Open findings:** 36 (0 Critical, 3 High, 16 Medium, 17 Low). **Fixed:** 71
+**Branch:** Beralidu at commit 65fca1f, plus the uncommitted fixes for LMS-074 to LMS-111  
+**Run date:** 2026-11-07  
+**Result:** 462 test cases, 462 passed, 0 failed  
+**Open findings:** 4 (0 Critical, 0 High, 2 Medium, 2 Low). **Fixed:** 104
 
-**Status:** every automated and manual regression case passes, except TC-NOTIF-001, which was not run. The team's manual UI testing on 2026-11-07 added 36 findings, which have no automated case yet. Items marked "Please confirm" in their fix need the tester's input, because the note was unclear.
+**Status:** every automated and manual regression case passes, except TC-NOTIF-001, which was not run. The 4 open items are built but need details from the team: social links, contact details, the portfolio URL and approved legal wording.
 
 ## Summary
 
 | Severity | Security issues | Vulnerabilities | Bugs | Enhancements | Total |
 |---|---|---|---|---|---|
 | Critical | 0 | 0 | 0 | 0 | 0 |
-| High | 0 | 0 | 3 | 0 | 3 |
-| Medium | 1 | 0 | 10 | 5 | 16 |
-| Low | 0 | 0 | 10 | 7 | 17 |
-| **Total** | **1** | **0** | **23** | **12** | **36** |
+| High | 0 | 0 | 0 | 0 | 0 |
+| Medium | 0 | 0 | 2 | 0 | 2 |
+| Low | 0 | 0 | 1 | 1 | 2 |
+| **Total** | **0** | **0** | **3** | **1** | **4** |
 
 - **Security issue:** a flaw in the app's own access control or data handling.
 - **Vulnerability:** an exploitable weakness, such as XSS, or a known flaw in a dependency.
@@ -26,30 +26,30 @@
 
 | Module | Cases | Passed | Failed |
 |---|---|---|---|
-| Authentication | 43 | 43 | 0 |
+| Authentication | 44 | 44 | 0 |
 | Course management | 28 | 28 | 0 |
-| Lecture progress | 12 | 12 | 0 |
-| Co-instructors | 15 | 15 | 0 |
-| Marketplace | 11 | 11 | 0 |
-| Payments | 33 | 33 | 0 |
+| Lecture progress | 13 | 13 | 0 |
+| Co-instructors | 16 | 16 | 0 |
+| Marketplace | 15 | 15 | 0 |
+| Payments | 40 | 40 | 0 |
 | Coupons | 25 | 25 | 0 |
 | Instructor tools | 8 | 8 | 0 |
 | Admin | 24 | 24 | 0 |
 | Quizzes | 29 | 29 | 0 |
 | AI features | 29 | 29 | 0 |
 | Broadcasts | 12 | 12 | 0 |
-| Resources | 16 | 16 | 0 |
+| Resources | 18 | 18 | 0 |
 | Reviews | 17 | 17 | 0 |
-| Notifications | 11 | 11 | 0 |
+| Notifications | 12 | 12 | 0 |
 | Activity log | 9 | 9 | 0 |
-| Security | 71 | 71 | 0 |
-| Error handling | 7 | 7 | 0 |
+| Security | 75 | 75 | 0 |
+| Error handling | 8 | 8 | 0 |
 | Build and dependencies | 7 | 7 | 0 |
-| User interface | 19 | 19 | 0 |
+| User interface | 33 | 33 | 0 |
 
 ## How this was tested
 
-- The API suite ran 400 cases against the real server code at commit c16fb48 on Beralidu, using a temporary local MongoDB. The hosted lms-dev database was not used.
+- The API suite ran 422 cases against the real server code at commit 65fca1f on Beralidu plus the fixes for LMS-074 to LMS-111, using a temporary local MongoDB. The hosted lms-dev database was not used.
 - Stripe, email, Google sign-in and the AI providers were local stand-ins, so **no real payment, email or AI request was made**. Stripe webhook signatures were verified for real. Outbound calls blocked: 0.
 - Production-only behaviour (rate limits, stack traces, cron secret) ran against a second instance with NODE_ENV=production.
 - UI checks were repeated on this code. LMS-003 was confirmed in real Chrome with a temporary profile.
@@ -59,63 +59,13 @@
 - A real Stripe checkout page, real Google sign-in, real email delivery and real AI provider responses.
 - Load and performance targets (NFR-PERF), and uptime.
 - Browsers other than Chromium, and the deployed Render or Vercel setup.
-- UI coverage was a smoke test of the main pages. Instructor and admin screens were tested through the API only.
+- Browser checks covered the main pages for each role, not every screen.
 
 ## Critical
 
 ## High
 
-### LMS-084: Start Teaching Today fails with a 500 error
-
-**Type:** Bug  
-**Where:** server/controllers/instructorController.js:14; client/src/pages/instructor/BecomeInstructor.jsx:16  
-**Failed tests:** None, found in manual UI testing on 2026-11-07
-
-The page posts with no body, so req.body is undefined in Express 5 and reading bio crashes. Reproduced: HTTP 500 with no body, HTTP 200 with an empty object.
-
-**Fix:** Read it safely with const { bio } = req.body || {}, and refresh the logged-in user so the new role shows.
-
-### LMS-094: Navigation disappears on narrow screens
-
-**Type:** Bug  
-**Where:** client/src/components/layout/Navbar.jsx:123, :154  
-**Failed tests:** None, found in manual UI testing on 2026-11-07
-
-The menu is hidden with no hamburger button. At 375px only the logo, bell, theme and profile buttons remain, so Marketplace and Instructor Center cannot be reached from the header.
-
-**Fix:** Add a hamburger menu below 1024px with all the links.
-
-### LMS-101: Instructor Center Edit button opens a 404 page
-
-**Type:** Bug  
-**Where:** client/src/pages/instructor/InstructorDashboard.jsx:512  
-**Failed tests:** None, found in manual UI testing on 2026-11-07
-
-The link has spaces in it: "/ instructor / course / id/edit". Reproduced: it opens 404, Page Not Found.
-
-**Fix:** Change the link to /instructor/course/${course._id}/edit.
-
 ## Medium
-
-### LMS-074: Login session lasts 7 days instead of 1 hour
-
-**Type:** Security  
-**Where:** server/controllers/authController.js:20; client/src/context/AuthContext.jsx:9; client/.env.production:2  
-**Failed tests:** None, found in manual UI testing on 2026-11-07
-
-The token is signed for 7 days and the client session limit is also 7 days. The team wants 1 hour.
-
-**Fix:** Set the token to 1 hour and change the client limit from days to hours. Decide if active users should be renewed so nobody is logged out during a quiz.
-
-### LMS-077: Marketplace search cannot find courses by instructor
-
-**Type:** Bug  
-**Where:** server/controllers/marketplaceController.js:164-169  
-**Failed tests:** None, found in manual UI testing on 2026-11-07
-
-The search box says "Search by title, topic, or instructor", but only title, description, category and tags are searched. Searching a real instructor name returned 0 courses.
-
-**Fix:** Find users whose name matches, then add their ids to the $or filter as { user: { $in: ids } }.
 
 ### LMS-080: Footer shows placeholder contact details
 
@@ -123,19 +73,9 @@ The search box says "Search by title, topic, or instructor", but only title, des
 **Where:** client/src/components/layout/Footer.jsx:91, :94  
 **Failed tests:** None, found in manual UI testing on 2026-11-07
 
-The phone is +123 456 7890 and the email is support@TenZe.com, and neither can be clicked.
+The placeholders are hidden, and clickable links show once the details are set. Waiting for the real phone and email.
 
-**Fix:** Use the real number and email, with tel: and mailto: links.
-
-### LMS-082: Company, Community and Teaching footer links go nowhere useful
-
-**Type:** Bug  
-**Where:** client/src/components/layout/Footer.jsx:54-82  
-**Failed tests:** None, found in manual UI testing on 2026-11-07
-
-About us, Contact us, News, Library, Career, Documentation, Faq, Forum, Sitemap and How to guide all open /marketplace.
-
-**Fix:** Create the pages that are needed and remove the rest.
+**Fix:** Set VITE_SUPPORT_PHONE and VITE_SUPPORT_EMAIL.
 
 ### LMS-083: Footer legal links have no pages
 
@@ -143,151 +83,11 @@ About us, Contact us, News, Library, Career, Documentation, Faq, Forum, Sitemap 
 **Where:** client/src/components/layout/Footer.jsx:81, :127-128  
 **Failed tests:** None, found in manual UI testing on 2026-11-07
 
-They all open /marketplace because the pages do not exist. Together with BUG-081 and BUG-084, most of the footer does not work.
+Terms and Privacy pages now exist with draft wording, and the links open them. Waiting for the wording to be approved.
 
-**Fix:** Add real Terms and Privacy pages and link them. These are needed before taking payments.
-
-### LMS-086: Remove the AI chatbot and AI Assistant
-
-**Type:** Enhancement  
-**Where:** client/src/components/ui/FloatingAIChatButton.jsx; client/src/App.jsx:272; client/src/pages/student/StudentDashboard.jsx:163; client/src/pages/student/AIChatPage.jsx  
-**Failed tests:** None, found in manual UI testing on 2026-11-07
-
-The floating chatbot and AI Assistant links show on every logged-in page.
-
-**Fix:** Remove the floating button, links and /ai-chat route. Confirm whether the course AI tabs, AI Notes and AI quiz generator also go.
-
-### LMS-087: Students are offered Create Course
-
-**Type:** Bug  
-**Where:** client/src/pages/student/StudentDashboard.jsx:237, :334, :345  
-**Failed tests:** None, found in manual UI testing on 2026-11-07
-
-The Created Courses tab and two Create Course buttons show. The server refuses with HTTP 403, so this is misleading rather than a security hole.
-
-**Fix:** Show the tab and buttons to instructors only, and redirect students away from /my-courses.
-
-### LMS-089: Comments give no reason when not enrolled, and no notification
-
-**Type:** Bug  
-**Where:** client/src/pages/course/CourseView.jsx:142; server/controllers/courseController.js:755  
-**Failed tests:** None, found in manual UI testing on 2026-11-07
-
-A non-enrolled user gets HTTP 403 and the page only logs it to the console. When an enrolled student comments, the instructor gets no notification.
-
-**Fix:** Show "Enroll to join the discussion" instead of the comment box, and notify the course owner of new comments. Please confirm this is what the note means.
-
-### LMS-090: Payment needs a receipt or screenshot option
-
-**Type:** Enhancement  
-**Where:** client/src/pages/marketplace/CheckoutSuccess.jsx; client/src/pages/marketplace/MyPurchases.jsx:125  
-**Failed tests:** None, found in manual UI testing on 2026-11-07
-
-The success page has no receipt link. Invoices are only in My Purchases, and there is no way to upload a payment slip.
-
-**Fix:** Add an invoice link to the success page. If manual bank payment is wanted, add slip upload with admin approval. Please confirm which is meant.
-
-### LMS-091: Users cannot upload a profile picture
-
-**Type:** Enhancement  
-**Where:** client/src/pages/Profile.jsx:9; server/models/User.js:57  
-**Failed tests:** None, found in manual UI testing on 2026-11-07
-
-Only preset DiceBear avatars can be chosen.
-
-**Fix:** Add an image upload with type and size limits, and save the URL in profileImage. Use file storage, not the database.
-
-### LMS-096: Course thumbnail should be an image upload
-
-**Type:** Enhancement  
-**Where:** client/src/pages/instructor/CreateMarketplaceCourse.jsx:335; client/src/pages/course/CourseSettings.jsx:287  
-**Failed tests:** None, found in manual UI testing on 2026-11-07
-
-Instructors must paste an image URL.
-
-**Fix:** Add a file picker with a preview, using the same upload as BUG-093.
-
-### LMS-097: Course categories are hard-coded in the frontend
-
-**Type:** Bug  
-**Where:** client/src/pages/course/CourseSettings.jsx:37; client/src/pages/instructor/CreateMarketplaceCourse.jsx:29  
-**Failed tests:** None, found in manual UI testing on 2026-11-07
-
-There are two different fixed lists, with 13 and 10 categories.
-
-**Fix:** Keep one list on the backend and serve it from an API, ideally managed by admins.
-
-### LMS-098: Coupon expiry date looks impossible to change
-
-**Type:** Bug  
-**Where:** client/src/pages/course/ManageCoupons.jsx:396-399  
-**Failed tests:** None, found in manual UI testing on 2026-11-07
-
-The API and keyboard entry both work and the new date saved. The calendar icon is almost invisible in dark mode (BUG-110), so the picker seems unavailable. The minimum date of today should also stop saving an expired coupon unless its date changes (read from the code, not tested).
-
-**Fix:** Fix BUG-110, and only apply the minimum date when the date is being changed.
-
-### LMS-099: Create Course exists in two places
-
-**Type:** Bug  
-**Where:** client/src/pages/student/StudentDashboard.jsx:390; client/src/pages/instructor/InstructorDashboard.jsx:212  
-**Failed tests:** None, found in manual UI testing on 2026-11-07
-
-The /my-courses popup makes a basic course, and Instructor Center has the full form.
-
-**Fix:** Keep only /instructor/create-course and remove the popup.
-
-### LMS-102: Instructor courses are mixed into My Learning
-
-**Type:** Bug  
-**Where:** client/src/pages/student/StudentDashboard.jsx:237; server/controllers/courseController.js:1161  
-**Failed tests:** None, found in manual UI testing on 2026-11-07
-
-A Created Courses tab repeats what Instructor Center shows. The Instructor Center edit error in the same note is BUG-103.
-
-**Fix:** Show only enrolled courses in My Learning, and keep created courses in Instructor Center.
-
-### LMS-103: Co-instructors should not manage other co-instructors
-
-**Type:** Enhancement  
-**Where:** client/src/components/course/TeacherManagement.jsx:19; client/src/pages/course/CourseManage.jsx:163; server/controllers/courseTeacherController.js:8, :52, :117  
-**Failed tests:** None, found in manual UI testing on 2026-11-07
-
-A co-instructor with manage_teachers or full_access can add and remove others. The team wants this removed.
-
-**Fix:** Remove manage_teachers from the UI and allow only the owner and admins on the server. Check that full_access no longer grants it.
+**Fix:** Review the draft in client/src/pages/legal/LegalPage.jsx before taking payments.
 
 ## Low
-
-### LMS-075: Login and register pages show copyright 2024
-
-**Type:** Bug  
-**Where:** client/src/pages/auth/Login.jsx:239, :385; client/src/pages/auth/Register.jsx:238, :390  
-**Failed tests:** None, found in manual UI testing on 2026-11-07
-
-Four copyright lines say 2024, while the site footer says 2026.
-
-**Fix:** Show the current year with new Date().getFullYear().
-
-### LMS-076: The same API calls are sent several times
-
-**Type:** Bug  
-**Where:** client/src/main.jsx:15; client/src/components/layout/Navbar.jsx:43; client/src/pages/marketplace/Marketplace.jsx  
-**Failed tests:** None, found in manual UI testing on 2026-11-07
-
-In development every call runs twice because of React StrictMode, and each has a CORS OPTIONS call. The doubling is development only, but /marketplace/categories is also fetched separately by the navbar and the marketplace, so it runs 4 times.
-
-**Fix:** Fetch categories once and share them. Do not remove StrictMode. The doubling and OPTIONS calls do not happen on a same-origin production build.
-
-### LMS-078: Footer still uses the old Twitter logo
-
-**Type:** Bug  
-**Where:** client/src/components/layout/Footer.jsx:2, :39  
-**Failed tests:** None, found in manual UI testing on 2026-11-07
-
-The footer shows the Twitter bird.
-
-**Fix:** Use FaXTwitter from react-icons/fa6.
 
 ### LMS-079: Facebook, Instagram and X buttons do nothing
 
@@ -295,9 +95,9 @@ The footer shows the Twitter bird.
 **Where:** client/src/components/layout/Footer.jsx:27, :33, :39  
 **Failed tests:** None, found in manual UI testing on 2026-11-07
 
-All three links use href="#", so the page only jumps.
+The dead buttons are gone, and each one comes back when its link is set. Waiting for the real links.
 
-**Fix:** Add the real company links with target="_blank" and rel="noopener noreferrer". Hide any account that does not exist.
+**Fix:** Hidden until real links are set in VITE_FACEBOOK_URL, VITE_INSTAGRAM_URL and VITE_X_URL.
 
 ### LMS-081: Footer Tenz Learn logo should open the company portfolio
 
@@ -305,129 +105,9 @@ All three links use href="#", so the page only jumps.
 **Where:** client/src/components/layout/Footer.jsx:12-19  
 **Failed tests:** None, found in manual UI testing on 2026-11-07
 
-The logo opens the home page. The team note asks for it to go to the portfolio.
+The logo goes to the portfolio once its URL is set. Waiting for the URL.
 
-**Fix:** Link it to the portfolio site once the URL is provided.
-
-### LMS-085: Progress ring colour is wrong at 100%
-
-**Type:** Bug  
-**Where:** client/src/pages/course/StudentCourseDetails.jsx:407  
-**Failed tests:** None, found in manual UI testing on 2026-11-07
-
-The stroke class is built at runtime, so Tailwind never creates it. In light mode the ring used the text colour (near black) instead of green. Dark mode showed green. The white outline in the report was not reproduced.
-
-**Fix:** Add a full stroke class to each colour in getProgressColor.
-
-### LMS-088: Make the whole course card clickable
-
-**Type:** Enhancement  
-**Where:** client/src/components/ui/CourseCard.jsx:88; client/src/pages/student/StudentDashboard.jsx  
-**Failed tests:** None, found in manual UI testing on 2026-11-07
-
-Only the title or the button opens the course.
-
-**Fix:** Wrap the card in a link, keeping inner buttons working.
-
-### LMS-092: Remove AI Assistant from the profile menu
-
-**Type:** Enhancement  
-**Where:** client/src/components/layout/Navbar.jsx:316  
-**Failed tests:** None, found in manual UI testing on 2026-11-07
-
-The menu links to /ai-chat.
-
-**Fix:** Remove the link. This is part of BUG-088.
-
-### LMS-093: Use Instructor instead of Teacher in the UI
-
-**Type:** Enhancement  
-**Where:** client/src/pages/course/CourseManage.jsx:177; client/src/components/course/TeacherManagement.jsx; client/src/pages/auth/Login.jsx; client/src/pages/auth/Register.jsx  
-**Failed tests:** None, found in manual UI testing on 2026-11-07
-
-Teacher and Instructor are both used for the same role.
-
-**Fix:** Change the visible labels only. Keep database fields and API routes as they are.
-
-### LMS-095: Remove Permission note needs clarifying
-
-**Type:** Bug  
-**Where:** client/src/components/course/TeacherManagement.jsx:108, :141  
-**Failed tests:** None, found in manual UI testing on 2026-11-07
-
-The note only says "Remove Permission (change)". The nearest behaviour found is that a co-instructor must keep at least one permission.
-
-**Fix:** Confirm the intended change with the tester, then update this bug.
-
-### LMS-100: Prices show LKR instead of Rs.
-
-**Type:** Bug  
-**Where:** client/src/pages/admin/AdminDashboard.jsx:23; client/src/pages/instructor/InstructorDashboard.jsx:499; client/src/pages/course/ManageCoupons.jsx:356; client/src/pages/course/CourseSettings.jsx:350  
-**Failed tests:** None, found in manual UI testing on 2026-11-07
-
-The marketplace shows Rs. through PriceDisplay, while other pages show LKR.
-
-**Fix:** Use one shared formatter for display. Keep LKR as the stored currency code.
-
-### LMS-104: Marketplace category list is incomplete
-
-**Type:** Bug  
-**Where:** server/controllers/marketplaceController.js:196  
-**Failed tests:** None, found in manual UI testing on 2026-11-07
-
-Part of this note is unreadable. The filter only lists categories that have a published course, so the team saw 2.
-
-**Fix:** Confirm the note, then use the shared list from BUG-099 if every category should show.
-
-### LMS-105: Show status and importance on course sections
-
-**Type:** Enhancement  
-**Where:** client/src/components/course/CurriculumTab.jsx:313; client/src/pages/course/StudentCourseDetails.jsx:607; server/models/Course.js:65  
-**Failed tests:** None, found in manual UI testing on 2026-11-07
-
-Importance only shows when it is set, and sections have no status at all.
-
-**Fix:** Always show importance, and work out section status from its lectures.
-
-### LMS-106: Very Important and Critical are the same level with two names
-
-**Type:** Bug  
-**Where:** client/src/components/course/CurriculumTab.jsx:263; client/src/pages/course/StudentCourseDetails.jsx:547; client/src/pages/course/CourseManage.jsx:955  
-**Failed tests:** None, found in manual UI testing on 2026-11-07
-
-The value is saved as Very Important, but the filter calls it Critical.
-
-**Fix:** Use one label everywhere. Changing only the label avoids a database update.
-
-### LMS-107: Remove Category from the navbar
-
-**Type:** Enhancement  
-**Where:** client/src/components/layout/Navbar.jsx:122-150  
-**Failed tests:** None, found in manual UI testing on 2026-11-07
-
-The team wants this menu removed. The marketplace filter already covers it.
-
-**Fix:** Remove the menu and its API call, which also reduces BUG-078.
-
-### LMS-108: Calendar icon is almost invisible in dark mode
-
-**Type:** Bug  
-**Where:** client/src/index.css; client/src/pages/course/ManageCoupons.jsx:396; client/src/pages/course/CourseManage.jsx:1076; client/src/components/activity/ActivityFilters.jsx:169  
-**Failed tests:** None, found in manual UI testing on 2026-11-07
-
-No dark color-scheme is set, so the browser draws a dark icon on a dark field. Checked: the computed value is normal.
-
-**Fix:** Add .dark { color-scheme: dark; } to index.css.
-
-### LMS-109: Show course status on My Learning
-
-**Type:** Enhancement  
-**Where:** client/src/pages/student/StudentDashboard.jsx:277; server/controllers/courseController.js:478  
-**Failed tests:** None, found in manual UI testing on 2026-11-07
-
-Cards show only category and level.
-
-**Fix:** Return progress from the API and show a percent and Not Started, In Progress or Completed.
+**Fix:** Set VITE_PORTFOLIO_URL.
 
 ## Fixed
 
@@ -1143,13 +823,344 @@ Each row in the user list sits inside an empty fragment with no key, which logs 
 
 **Fix:** Use a keyed Fragment.
 
+### LMS-074: Login session lasts 7 days instead of 1 hour
+
+**Type:** Security  
+**Status:** Closed  
+**Tests now passing:** AUTH-044
+
+The token is signed for 7 days and the client session limit is also 7 days. The team wants 1 hour.
+
+**Fix:** Set the token to 1 hour and change the client limit from days to hours. Decide if active users should be renewed so nobody is logged out during a quiz.
+
+### LMS-075: Login and register pages show copyright 2024
+
+**Type:** Bug  
+**Status:** Closed  
+**Tests now passing:** UI-020
+
+Four copyright lines say 2024, while the site footer says 2026.
+
+**Fix:** Show the current year with new Date().getFullYear().
+
+### LMS-076: The same API calls are sent several times
+
+**Type:** Bug  
+**Status:** Closed  
+**Tests now passing:** UI-028
+
+In development every call runs twice because of React StrictMode, and each has a CORS OPTIONS call. The doubling is development only, but /marketplace/categories is also fetched separately by the navbar and the marketplace, so it runs 4 times.
+
+**Fix:** Fetch categories once and share them. Do not remove StrictMode. The doubling and OPTIONS calls do not happen on a same-origin production build.
+
+### LMS-077: Marketplace search cannot find courses by instructor
+
+**Type:** Bug  
+**Status:** Closed  
+**Tests now passing:** MKT-012
+
+The search box says "Search by title, topic, or instructor", but only title, description, category and tags are searched. Searching a real instructor name returned 0 courses.
+
+**Fix:** Find users whose name matches, then add their ids to the $or filter as { user: { $in: ids } }.
+
+### LMS-078: Footer still uses the old Twitter logo
+
+**Type:** Bug  
+**Status:** Closed  
+**Tests now passing:** UI-020
+
+The footer shows the Twitter bird.
+
+**Fix:** Use FaXTwitter from react-icons/fa6.
+
+### LMS-082: Company, Community and Teaching footer links go nowhere useful
+
+**Type:** Bug  
+**Status:** Closed  
+**Tests now passing:** UI-020
+
+About us, Contact us, News, Library, Career, Documentation, Faq, Forum, Sitemap and How to guide all open /marketplace.
+
+**Fix:** Create the pages that are needed and remove the rest.
+
+### LMS-084: Start Teaching Today fails with a 500 error
+
+**Type:** Bug  
+**Status:** Closed  
+**Tests now passing:** ERR-010
+
+The page posts with no body, so req.body is undefined in Express 5 and reading bio crashes. Reproduced: HTTP 500 with no body, HTTP 200 with an empty object.
+
+**Fix:** Read it safely with const { bio } = req.body || {}, and refresh the logged-in user so the new role shows.
+
+### LMS-085: Progress ring colour is wrong at 100%
+
+**Type:** Bug  
+**Status:** Closed  
+**Tests now passing:** UI-031
+
+The stroke class is built at runtime, so Tailwind never creates it. In light mode the ring used the text colour (near black) instead of green. Dark mode showed green. The white outline in the report was not reproduced.
+
+**Fix:** Add a full stroke class to each colour in getProgressColor.
+
+### LMS-086: Remove the AI chatbot and AI Assistant
+
+**Type:** Enhancement  
+**Status:** Closed  
+**Tests now passing:** UI-024
+
+The floating chatbot and AI Assistant links show on every logged-in page.
+
+**Fix:** Remove the floating button, links and /ai-chat route. Confirm whether the course AI tabs, AI Notes and AI quiz generator also go.
+
+### LMS-087: Students are offered Create Course
+
+**Type:** Bug  
+**Status:** Closed  
+**Tests now passing:** UI-022
+
+The Created Courses tab and two Create Course buttons show. The server refuses with HTTP 403, so this is misleading rather than a security hole.
+
+**Fix:** Show the tab and buttons to instructors only, and redirect students away from /my-courses.
+
+### LMS-088: Make the whole course card clickable
+
+**Type:** Enhancement  
+**Status:** Closed  
+**Tests now passing:** UI-023
+
+Only the title or the button opens the course.
+
+**Fix:** Wrap the card in a link, keeping inner buttons working.
+
+### LMS-089: Comments, and other things in discussiuon area of a cource what not enrolled give no reason when not enrolled, and no notification
+
+**Type:** Bug  
+**Status:** Closed  
+**Tests now passing:** NTF-012, UI-032
+
+A non-enrolled user gets HTTP 403 and the page only logs it to the console. When an enrolled student comments, the instructor gets no notification.
+
+**Fix:** Show "Enroll to join the discussion" instead of the comment box and other discussion features, and notify the course owner of new comments.
+
+### LMS-090: Payment needs a receipt or screenshot option and instructore must approve that and then give access to course.
+
+**Type:** Enhancement  
+**Status:** Closed  
+**Tests now passing:** PAY-040, PAY-041, UI-026
+
+The success page has no receipt link. Invoices are only in My Purchases, and there is no way to upload a payment slip.
+
+**Fix:** Add slip or screenshot upload at checkout, with an instructor approval step that then gives course access. Also add an invoice link to the success page.
+
+### LMS-091: Users cannot upload a profile picture, not to add an url
+
+**Type:** Enhancement  
+**Status:** Closed  
+**Tests now passing:** RES-020, UI-027
+
+Only preset DiceBear avatars can be chosen.
+
+**Fix:** Add an image upload with type and size limits, and save the URL in profileImage. Use file storage, not the database.
+
+### LMS-092: Remove AI Assistant from the profile menu
+
+**Type:** Enhancement  
+**Status:** Closed  
+**Tests now passing:** UI-024
+
+The menu links to /ai-chat.
+
+**Fix:** Remove the link. This is part of BUG-088.
+
+### LMS-093: Teacher and Instructor are two names for one role in all places front end and backend
+
+**Type:** Bug  
+**Status:** Closed  
+**Tests now passing:** UI-025
+
+The app has one role, stored as instructor, but it is also called Teacher in the UI, error messages, URLs, API routes and data. The word appears 221 times in 14 client files and 426 times in 16 server files.
+
+**Fix:** Use Instructor everywhere. First change all visible text and error messages. Then rename the URLs and API routes, keeping the old /teacher/login and /teacher/register links as redirects. Finally rename the code and stored data (CourseTeacher, TeacherAIConfig, uploaderRole teacher, userRole teacher, Teacher activity names) with a tested database migration. Do BUG-105 first so manage_teachers does not need renaming.
+
+### LMS-094: Navigation disappears on narrow screens
+
+**Type:** Bug  
+**Status:** Closed  
+**Tests now passing:** UI-019
+
+The menu is hidden with no hamburger button. At 375px only the logo, bell, theme and profile buttons remain, so Marketplace and Instructor Center cannot be reached from the header.
+
+**Fix:** Add a hamburger menu below 1024px with all the links.
+
+### LMS-095: CHeck Permission for roles if they are correct and fix them. Hirachy is admin -> instructor-> student
+
+**Type:** Bug  
+**Status:** Closed  
+**Tests now passing:** SEC-073, SEC-074, SEC-075
+
+Every route was reviewed against admin, instructor, student. The problems found were BUG-105 and BUG-113, now fixed. SEC-073 to SEC-075 now check these rules.
+
+**Fix:** Review every route and page against the hierarchy admin, instructor, student, then fix what is wrong.
+
+### LMS-096: Course thumbnail should be an image upload instead of url
+
+**Type:** Enhancement  
+**Status:** Closed  
+**Tests now passing:** RES-020, UI-027
+
+Instructors must paste an image URL.
+
+**Fix:** Add a file picker with a preview, using the same upload as BUG-093.
+
+### LMS-097: Course categories are hard-coded in the frontend
+
+**Type:** Bug  
+**Status:** Closed  
+**Tests now passing:** MKT-013, MKT-014, UI-028
+
+There are two different fixed lists, with 13 and 10 categories. Make them in db and get them. And create a way in admin panel to add new catogeries. And existing ones must save in a new document
+
+**Fix:** Keep one list on the backend and serve it from an API, ideally managed by admins.
+
+### LMS-098: Coupon expiry date looks impossible to change
+
+**Type:** Bug  
+**Status:** Closed  
+**Tests now passing:** UI-029
+
+The API and keyboard entry both work and the new date saved. The calendar icon is almost invisible in dark mode (BUG-110), so the picker seems unavailable. The minimum date of today should also stop saving an expired coupon unless its date changes (read from the code, not tested).
+
+**Fix:** Fix BUG-110, and only apply the minimum date when the date is being changed.
+
+### LMS-099: Create Course exists in two places, keep create flow in instructor panels one. No need in my learning
+
+**Type:** Bug  
+**Status:** Closed  
+**Tests now passing:** UI-022
+
+The /my-courses popup makes a basic course, and Instructor Center has the full form.
+
+**Fix:** Keep only /instructor/create-course and remove the popup.
+
+### LMS-100: Prices show LKR instead of Rs.
+
+**Type:** Bug  
+**Status:** Closed  
+**Tests now passing:** UI-030
+
+The marketplace shows Rs. through PriceDisplay, while other pages show LKR.
+
+**Fix:** Use one shared formatter for display. Keep LKR as the stored currency code.
+
+### LMS-101: Instructor Center Edit button opens a 404 page
+
+**Type:** Bug  
+**Status:** Closed  
+**Tests now passing:** UI-030
+
+The link has spaces in it: "/ instructor / course / id/edit". Reproduced: it opens 404, Page Not Found.
+
+**Fix:** Change the link to /instructor/course/${course._id}/edit.
+
+### LMS-102: Instructor courses are mixed into My Learning
+
+**Type:** Bug  
+**Status:** Closed  
+**Tests now passing:** UI-022
+
+A Created Courses tab repeats what Instructor Center shows. The Instructor Center edit error in the same note is BUG-103.
+
+**Fix:** Show only enrolled courses in My Learning, and keep created courses in Instructor Center.
+
+### LMS-103: instructors should not manage other instructors
+
+**Type:** Enhancement  
+**Status:** Closed  
+**Tests now passing:** TCH-010
+
+A instructor with manage_teachers or full_access can add and remove others. The team wants this removed.
+
+**Fix:** Remove manage_teachers from the UI and allow only the owner and admins on the server. Check that full_access no longer grants it.
+
+### LMS-105: Show status and importance on course sections sepearately, it only show the component if only both ststus and importance is matches, not separate ly show
+
+**Type:** Enhancement  
+**Status:** Closed  
+**Tests now passing:** UI-031
+
+The status and importance filters were combined, so a section only showed when it matched both.
+
+**Fix:** Make each filter work on its own, and show status and importance on every section.
+
+### LMS-106: Very Important and Critical are the same level with two names, so make critical as very inportant
+
+**Type:** Bug  
+**Status:** Closed  
+**Tests now passing:** UI-031
+
+The value is saved as Very Important, but the filter calls it Critical.
+
+**Fix:** Show Very Important everywhere.
+
+### LMS-107: Remove Category from the navbar
+
+**Type:** Enhancement  
+**Status:** Closed  
+**Tests now passing:** UI-028
+
+The team wants this menu removed. The marketplace filter already covers it.
+
+**Fix:** Remove the menu and its API call, which also reduces BUG-078.
+
+### LMS-108: Calendar icon is almost invisible in dark mode
+
+**Type:** Bug  
+**Status:** Closed  
+**Tests now passing:** UI-029
+
+No dark color-scheme is set, so the browser draws a dark icon on a dark field. Checked: the computed value is normal.
+
+**Fix:** Add .dark { color-scheme: dark; } to index.css.
+
+### LMS-109: Show course status on My Learning
+
+**Type:** Enhancement  
+**Status:** Closed  
+**Tests now passing:** PRG-013, UI-022
+
+Cards show only category and level.
+
+**Fix:** Return progress from the API and show a percent and Not Started, In Progress or Completed.
+
+### LMS-110: Marketplace mark courses the user already enrolled in
+
+**Type:** Enhancement  
+**Status:** Closed  
+**Tests now passing:** UI-023
+
+Enrolled courses look the same as all other courses, with the price showing. The user only finds out after opening the course page, which shows Go to Course.
+
+**Fix:** For logged-in users, load /courses/my/enrolled once, then show an Enrolled badge on matching cards, replace the price area with Go to Course, and link the card to /course/:id. Guests see no change.
+
+### LMS-111: A student account can be added as a course instructor
+
+**Type:** Security  
+**Status:** Closed  
+**Tests now passing:** SEC-072
+
+The add route finds the user by email and never checks the role, so a student account can be given course permissions such as manage_content.
+
+**Fix:** Reject the request unless the account role is instructor, with a clear message. Then check existing CourseTeacher records for student accounts.
+
 ### Database steps to run after deploying
 
 Run these from `server/`. Each script only reports until you add `--apply`, and none of them has been run on the hosted database.
 
 1. `node scripts/createAdmin.js --list`: check every admin. Anyone could create one before this fix, so remove any you do not recognise.
 2. `node scripts/purgeActivitySecrets.js --apply`: removes stored passwords, AI keys and bank details from old log records. Then ask affected users to change those passwords and AI keys.
-3. `node scripts/normalizeUserEmails.js --apply`: lowercases old emails and lists any pairs that differ only by case for you to resolve. Login already works for these accounts without it.
+3. `node scripts/migrateInstructorNames.js --apply`: run this straight after deploying. It moves stored teacher names to instructor. It reports only without `--apply`, and is safe to run twice.
+4. `node scripts/normalizeUserEmails.js --apply`: lowercases old emails and lists any pairs that differ only by case for you to resolve. Login already works for these accounts without it.
 
 ## Workbook test cases replaced
 
@@ -1201,6 +1212,10 @@ These are not counted as bugs.
 - `server/.env` has no `EMAIL_USER` or `EMAIL_PASS`, so password reset emails cannot be sent with this configuration, and no `server/.env.example` exists.
 - `CRON_SECRET` is needed in production for the due date reminders; it is not in `server/.env`.
 - The SRS is out of date in places: FR-PAY-04 says invoices are public, but the code correctly protects them. It lists `canManageContent`-style permissions, while the code uses `manage_content`. Section 9.6 says no email service exists.
-- SRS 3.3 says instructors apply and are granted the role, but `/auth/teacher/register` and `/instructor/become` grant it instantly. Please confirm which is intended.
-- The footer has a placeholder phone number and empty social links, and its Terms and Privacy links open the marketplace because those pages do not exist.
-- Free courses show a "Buy Now" button. It enrols correctly, but the wording is misleading.
+- SRS 3.3 says instructors apply and are granted the role, but `/auth/instructor/register` and `/instructor/become` grant it instantly. Please confirm which is intended.
+- Instructor renamed everywhere (LMS-093): run the migration below straight after deploying, or added instructors lose course access until it runs. It also lists any student accounts already added to a course, which need removing by hand (LMS-111).
+- Sessions end after exactly 1 hour, even during a quiz (LMS-074). Renewing the session for active users would need a small addition.
+- Bank slips (LMS-090): students need the account details, set in VITE_BANK_DETAILS. Approved slips count as instructor earnings, so please confirm who receives this money.
+- Uploaded images and slips are stored in MongoDB with a 2 MB limit, because no file storage service is set up.
+- The student AI server routes still exist but nothing in the app uses them. AI Notes, the quiz generator and instructor AI settings were kept (LMS-086).
+- The team deleted BUG-106, which is why that number is skipped. Its request is covered: the marketplace filter now shows every category.
