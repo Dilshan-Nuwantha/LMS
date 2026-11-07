@@ -48,10 +48,10 @@ const developer = (where) => (/^client\//.test(where) ? 'Frontend Developer' : '
 const bugRows = bugs.map(b => {
     const test = cases.find(c => c.id === b.tests[0]);
     return [
-        sheetId[b.id], MODULE[test.module], `[${b.type}] ${b.title}`,
-        `${test.steps}. Failed tests: ${b.tests.map(t => `TC-REG-${t}`).join(', ')}. Location: ${b.where}`,
+        sheetId[b.id], b.module || MODULE[test.module], `[${b.type}] ${b.title}`,
+        test ? `${test.steps}. Failed tests: ${b.tests.map(t => `TC-REG-${t}`).join(', ')}. Location: ${b.where}` : `${b.steps}. Found in manual UI testing. Location: ${b.where}`,
         b.severity, b.severity, 'QA / Tester', b.status, developer(b.where), 'Local',
-        b.fix, b.problem, RUN_DATE, '', b.status === 'Closed' ? VERIFIED_BY : '', '', '', '', ''
+        b.fix, b.problem, b.reported || RUN_DATE, '', b.status === 'Closed' ? VERIFIED_BY : '', '', '', '', ''
     ].map(clean);
 });
 

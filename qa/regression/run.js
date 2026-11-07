@@ -68,24 +68,25 @@ const writeReports = () => {
     writeCaseDocument((c) => [result[c.id][0], (bugFor[c.id] || []).join(', ') || '-']);
 
     const severities = ['Critical', 'High', 'Medium', 'Low'];
-    const types = ['Security', 'Vulnerability', 'Bug'];
+    const types = ['Security', 'Vulnerability', 'Bug', 'Enhancement'];
     const typeName = { Security: 'Security issues', Vulnerability: 'Vulnerabilities', Bug: 'Bugs' };
     const n = (f) => open.filter(f).length;
     const pass = cases.filter(c => result[c.id][0] === 'PASS').length;
     const out = [
         '# Tenz Learn - Regression Bug Report', '',
-        `**Branch:** Beralidu at commit b168822, plus the uncommitted restore of LMS-059 and the LMS-073 fix  `,
+        `**Branch:** Beralidu at commit c16fb48  `,
         `**Run date:** ${api.ranAt.slice(0, 10)}  `,
         `**Result:** ${cases.length} test cases, ${pass} passed, ${cases.length - pass} failed  `,
         `**Open findings:** ${open.length} (${severities.map(s => `${n(b => b.severity === s)} ${s}`).join(', ')}). **Fixed:** ${fixed.length}`, '',
-        `**Status:** no Critical or High findings remain open, and nothing that passed before now fails. ${open.length} Medium and Low findings are still open, and every failed test below belongs to one of them. Commit the latest fixes and run the database steps listed under Fixed before release.`, '',
+        `**Status:** every automated and manual regression case passes, except TC-NOTIF-001, which was not run. The team's manual UI testing on 2026-11-07 added 36 findings, which have no automated case yet. Items marked "Please confirm" in their fix need the tester's input, because the note was unclear.`, '',
         '## Summary', '',
-        '| Severity | Security issues | Vulnerabilities | Bugs | Total |', '|---|---|---|---|---|',
+        '| Severity | Security issues | Vulnerabilities | Bugs | Enhancements | Total |', '|---|---|---|---|---|---|',
         ...severities.map(s => `| ${s} | ${types.map(t => n(b => b.severity === s && b.type === t)).join(' | ')} | ${n(b => b.severity === s)} |`),
         `| **Total** | ${types.map(t => `**${n(b => b.type === t)}**`).join(' | ')} | **${open.length}** |`, '',
         '- **Security issue:** a flaw in the app\'s own access control or data handling.',
         '- **Vulnerability:** an exploitable weakness, such as XSS, or a known flaw in a dependency.',
-        '- **Bug:** the app does not behave as the SRS or the user would expect.', '',
+        '- **Bug:** the app does not behave as the SRS or the user would expect.',
+        '- **Enhancement:** a change the team asked for, where the current behaviour is not a fault.', '',
         '## Test results by module', '',
         '| Module | Cases | Passed | Failed |', '|---|---|---|---|',
         ...[...new Set(cases.map(c => c.module))].map(m => {
@@ -94,7 +95,7 @@ const writeReports = () => {
             return `| ${m} | ${list.length} | ${p} | ${list.length - p} |`;
         }), '',
         '## How this was tested', '',
-        `- The API suite ran ${api.results.length} cases against the real server code at commit b168822 on Beralidu plus the LMS-059 restore, using a temporary local MongoDB. The hosted lms-dev database was not used.`,
+        `- The API suite ran ${api.results.length} cases against the real server code at commit c16fb48 on Beralidu, using a temporary local MongoDB. The hosted lms-dev database was not used.`,
         '- Stripe, email, Google sign-in and the AI providers were local stand-ins, so **no real payment, email or AI request was made**. Stripe webhook signatures were verified for real. Outbound calls blocked: ' + api.blockedOutbound.length + '.',
         '- Production-only behaviour (rate limits, stack traces, cron secret) ran against a second instance with NODE_ENV=production.',
         '- UI checks were repeated on this code. LMS-003 was confirmed in real Chrome with a temporary profile.', '',
@@ -108,7 +109,7 @@ const writeReports = () => {
     severities.forEach(s => {
         out.push(`## ${s}`, '');
         open.filter(b => b.severity === s).forEach(b => {
-            out.push(`### ${b.id}: ${b.title}`, '', `**Type:** ${b.type}  `, `**Where:** ${b.where}  `, `**Failed tests:** ${b.tests.join(', ')}`, '', b.problem, '', `**Fix:** ${b.fix}`, '');
+            out.push(`### ${b.id}: ${b.title}`, '', `**Type:** ${b.type}  `, `**Where:** ${b.where}  `, `**Failed tests:** ${b.tests.join(', ') || 'None, found in manual UI testing on 2026-11-07'}`, '', b.problem, '', `**Fix:** ${b.fix}`, '');
         });
     });
 
