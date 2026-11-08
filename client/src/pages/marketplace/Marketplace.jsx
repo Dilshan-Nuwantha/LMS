@@ -2,8 +2,9 @@ import { useState, useEffect, useContext } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import {
     FaSearch, FaTimes, FaChevronDown, FaStore, FaBookOpen,
-    FaChalkboardTeacher, FaCheckCircle, FaGraduationCap, FaStar, FaUsers, FaArrowRight
+    FaChalkboardTeacher, FaGraduationCap, FaStar, FaUsers, FaArrowRight
 } from 'react-icons/fa';
+import heroStudents from '../../assets/hero-students.webp';
 import api from '../../api/axios';
 import AuthContext from '../../context/AuthContext';
 import CourseCard from '../../components/ui/CourseCard';
@@ -155,35 +156,18 @@ const Marketplace = () => {
                 <div className="container mx-auto px-4 lg:px-8">
                     <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
 
-                        {/* Hero Text Left */}
-                        <div className="lg:col-span-7 space-y-5">
-                            <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-danger-light text-danger text-xs font-bold uppercase tracking-wide">
-                                🚀 LEARNING MANAGEMENT SYSTEM
-                            </span>
-
-                            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black text-slate-900 dark:text-white leading-[1.18] tracking-tight">
-                                Limitless learning at your <span className="hero-underline text-primary">fingertips</span>
-                            </h1>
-
-                            <p className="text-sm sm:text-base text-slate-600 dark:text-slate-300 max-w-xl font-medium leading-relaxed">
-                                Access high quality courses taught by top instructors. Master new skills, earn certificates, and advance your career.
-                            </p>
-
-                            {/* Features Row */}
-                            <div className="flex flex-wrap items-center gap-5 text-xs font-semibold text-slate-700 dark:text-slate-200">
-                                <div className="flex items-center gap-1.5">
-                                    <FaCheckCircle className="text-primary" />
-                                    <span>Learn with experts</span>
-                                </div>
-                                {/* <div className="flex items-center gap-1.5">
-                                    <FaCheckCircle className="text-primary" />
-                                    <span>Get certificate</span>
-                                </div> */}
-                                {/* <div className="flex items-center gap-1.5">
-                                    <FaCheckCircle className="text-primary" />
-                                    <span>Flexible schedule</span>
-                                </div> */}
-                            </div>
+                        {/* Hero Image Left */}
+                        <div className="lg:col-span-7">
+                            {/* Kept for search engines and screen readers, the image says the rest */}
+                            <h1 className="sr-only">Tenz Learn: limitless learning at your fingertips</h1>
+                            <img
+                                src={heroStudents}
+                                alt="Three students learning together on a laptop"
+                                width="1400"
+                                height="700"
+                                fetchPriority="high"
+                                className="w-full h-auto"
+                            />
                         </div>
 
                         {/* Search Card Right */}
