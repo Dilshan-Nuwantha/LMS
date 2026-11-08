@@ -53,6 +53,9 @@ const startApi = (port, nodeEnv, dbName) => {
             GOOGLE_CLIENT_SECRET: 'qa-google-secret',
             EMAIL_USER: 'qa@example.test',
             EMAIL_PASS: 'qa',
+            // Set empty so a real key in server/.env cannot switch email to Brevo during tests
+            BREVO_API_KEY: '',
+            EMAIL_FROM: '',
             CRON_SECRET: 'qa-cron-secret',
             QA_OUT: out
         }

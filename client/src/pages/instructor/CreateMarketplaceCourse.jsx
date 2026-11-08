@@ -76,8 +76,13 @@ const CreateMarketplaceCourse = () => {
                 }
                 return true;
             case 2:
-                if (!formData.price || formData.price <= 0) {
-                    showError('Please enter a valid price');
+                // 0 is a valid price: it makes the course free
+                if (formData.price === '' || !(Number(formData.price) >= 0)) {
+                    showError('Please enter a valid price, or 0 for a free course');
+                    return false;
+                }
+                if (formData.originalPrice !== '' && !(Number(formData.originalPrice) >= 0)) {
+                    showError('Original price cannot be negative');
                     return false;
                 }
                 return true;
@@ -104,7 +109,7 @@ const CreateMarketplaceCourse = () => {
             const payload = {
                 ...formData,
                 price: Number(formData.price),
-                originalPrice: formData.originalPrice ? Number(formData.originalPrice) : Number(formData.price),
+                originalPrice: formData.originalPrice !== '' ? Number(formData.originalPrice) : Number(formData.price),
                 requirements: formData.requirements.filter(r => r.trim()),
                 whatYouWillLearn: formData.whatYouWillLearn.filter(w => w.trim()),
                 tags: formData.tags.split(','),
@@ -290,7 +295,8 @@ const CreateMarketplaceCourse = () => {
                                             name="price"
                                             value={formData.price}
                                             onChange={handleChange}
-                                            placeholder="499"
+                                            min="0"
+                                            placeholder="0 for free"
                                             className="w-full px-4 py-3 pl-12 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg focus:outline-none focus:border-indigo-500"
                                         />
                                     </div>
@@ -309,6 +315,7 @@ const CreateMarketplaceCourse = () => {
                                             name="originalPrice"
                                             value={formData.originalPrice}
                                             onChange={handleChange}
+                                            min="0"
                                             placeholder="999"
                                             className="w-full px-4 py-3 pl-12 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg focus:outline-none focus:border-indigo-500"
                                         />

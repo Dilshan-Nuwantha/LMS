@@ -11,6 +11,7 @@ import PriceDisplay from '../../components/ui/PriceDisplay';
 import InstructorProfileCard from '../../components/review/InstructorProfileCard';
 import ReviewCard from '../../components/review/ReviewCard';
 import { showSuccess, showError } from '../../utils/toast';
+import { site } from '../../config/site';
 
 const CourseLanding = () => {
     const { id } = useParams();
@@ -399,19 +400,20 @@ const CourseLanding = () => {
                                         >
                                             <FaCheck /> Go to Course
                                         </button>
-                                    ) : (
+                                    ) : (finalPrice <= 0 || site.cardPayments) && (
+                                        // Card payments are hidden for now, so this shows only when nothing is left to pay
                                         <button
                                             onClick={handlePurchase}
                                             disabled={purchasing}
                                             className="w-full py-3 bg-indigo-500 hover:bg-indigo-600 text-white font-semibold rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                                         >
-                                            {purchasing ? 'Processing...' : course.price === 0 ? 'Enroll for Free' : 'Buy Now'}
+                                            {purchasing ? 'Processing...' : finalPrice <= 0 ? 'Enroll for Free' : 'Buy Now'}
                                         </button>
                                     )}
 
                                     {/* Pay by bank slip */}
-                                    {!hasPurchased && course.price > 0 && (
-                                        <div className="mt-3 text-sm">
+                                    {!hasPurchased && finalPrice > 0 && (
+                                        <div className={`${site.cardPayments ? 'mt-3' : ''} text-sm`}>
                                             {slipStatus === 'pending' ? (
                                                 <p className="p-3 rounded-lg bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-300">
                                                     Your payment slip is waiting for the instructor to approve it.
@@ -426,7 +428,9 @@ const CourseLanding = () => {
                                                     <button
                                                         type="button"
                                                         onClick={toggleSlipForm}
-                                                        className="w-full py-2.5 rounded-lg border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-200 font-semibold"
+                                                        className={site.cardPayments
+                                                            ? 'w-full py-2.5 rounded-lg border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-200 font-semibold'
+                                                            : 'w-full py-3 bg-indigo-500 hover:bg-indigo-600 text-white font-semibold rounded-lg transition-colors'}
                                                     >
                                                         Pay by Bank Slip
                                                     </button>

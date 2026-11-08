@@ -212,7 +212,7 @@ tc('CPN-002', C, 'Medium', 'Reject a duplicate code', 'Create the same code agai
 tc('CPN-003', C, 'High', 'Non-owner cannot create a coupon', 'POST /coupons as another instructor', 'HTTP 403', async () => is(await coupon({}, F.instr2), 403));
 tc('CPN-004', C, 'High', 'Students cannot create coupons', 'POST /coupons as a student', 'Denied', async () => ok((await coupon({}, F.s1)).status >= 400, 'allowed'));
 tc('CPN-005', C, 'Medium', 'Reject a percentage above 100', 'discountValue 150', 'HTTP 400', async () => is(await coupon({ discountValue: 150 }), 400));
-tc('CPN-006', C, 'Medium', 'Reject a fixed discount at or above the price', 'Fixed discount 1000 on a 1000 course', 'HTTP 400', async () => is(await coupon({ discountType: 'fixed', discountValue: 1000 }), 400));
+tc('CPN-006', C, 'Medium', 'Reject a fixed discount above the price', 'Fixed discount 1001 on a 1000 course', 'HTTP 400', async () => is(await coupon({ discountType: 'fixed', discountValue: 1001 }), 400));
 tc('CPN-007', C, 'High', 'Validate a coupon', 'POST /coupons/validate in lowercase', 'discountAmount 100, finalPrice 900', async () => {
     const r = await validate('save10');
     is(r, 200); eq(r.json.discountAmount, 100, 'discount'); eq(r.json.finalPrice, 900, 'final');
@@ -271,6 +271,33 @@ tc('CPN-019', C, 'Medium', 'maxUses 0 does not mean unlimited', 'Create a coupon
 });
 tc('CPN-020', C, 'Low', 'Reject a coupon that is already expired', 'Create with validUntil in the past', 'HTTP 400', async () => {
     is(await coupon({ validUntil: new Date(Date.now() - 864e5).toISOString() }), 400);
+});
+tc('CPN-026', C, 'High', 'A fixed coupon can equal the full price', 'Create a fixed 1000 coupon on a 1000 course, validate it and check out with it', 'HTTP 201, finalPrice 0, enrolled without Stripe and the coupon counted once', async () => {
+    const c = await mkCourse(F.instr, { price: 1000 });
+    const r = await coupon({ discountType: 'fixed', discountValue: 1000 }, F.instr, c.id);
+    is(r, 201);
+    const v = await validate(r.json.code, c.id);
+    is(v, 200); eq(v.json.discountAmount, 1000, 'discount'); eq(v.json.finalPrice, 0, 'final');
+    const u = await newUser('student', 'fullcpn');
+    const before = lines('stripe.jsonl').length;
+    const p = await checkout(u, c.id, r.json.code);
+    is(p, 200); eq(p.json.enrolled, true, 'enrolled');
+    eq(lines('stripe.jsonl').length, before, 'Stripe calls');
+    ok(await enrolled(u, c.id), 'not enrolled');
+    eq((await models.Coupon.findById(r.json._id)).usedCount, 1, 'usedCount');
+});
+tc('CPN-027', C, 'Medium', 'A 100 percent coupon is allowed', 'Create a 100 percent coupon and validate it', 'HTTP 201 and finalPrice 0', async () => {
+    const r = await coupon({ discountValue: 100 });
+    is(r, 201);
+    const v = await validate(r.json.code);
+    is(v, 200); eq(v.json.finalPrice, 0, 'final');
+});
+tc('PAY-047', M, 'High', 'An instructor can create a free course', 'POST /instructor/course with price 0 and originalPrice 0', 'HTTP 201 with price 0 and originalPrice 0', async () => {
+    const r = await api('POST', '/instructor/course', {
+        token: F.instr.token,
+        body: { title: 'Free QA ' + uid(), description: 'QA description', price: 0, originalPrice: 0, category: 'Testing', level: 'Beginner' }
+    });
+    is(r, 201); eq(r.json.price, 0, 'price'); eq(r.json.originalPrice, 0, 'originalPrice');
 });
 tc('CPN-021', C, 'High', 'Usage limit holds under parallel use', 'Two students use a maxUses 1 free coupon together', 'Only one succeeds', async () => {
     const c = await mkCourse(F.instr, { price: 1000 });

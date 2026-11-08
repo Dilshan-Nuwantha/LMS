@@ -7,5 +7,7 @@ export const site = {
     supportPhone: import.meta.env.VITE_SUPPORT_PHONE || '',
     supportEmail: import.meta.env.VITE_SUPPORT_EMAIL || '',
     portfolioUrl: import.meta.env.VITE_PORTFOLIO_URL || '',
-    bankDetails: import.meta.env.VITE_BANK_DETAILS || ''
+    bankDetails: import.meta.env.VITE_BANK_DETAILS || '',
+    // Card payments (Buy Now through Stripe) stay hidden unless this is 'true'
+    cardPayments: import.meta.env.VITE_CARD_PAYMENTS === 'true'
 };
