@@ -1,5 +1,7 @@
 const nodemailer = require('nodemailer');
 
+const SENDER_NAME = 'Tenz Learn';
+
 /**
  * Creates a reusable nodemailer transporter using Gmail SMTP.
  * Requires EMAIL_USER and EMAIL_PASS environment variables.
@@ -15,13 +17,51 @@ const createTransporter = () => {
 };
 
 /**
+ * Sends one email. With BREVO_API_KEY set it goes through Brevo's HTTP API,
+ * because hosts such as Render's free plan block the SMTP ports.
+ * Without it, Gmail SMTP is used as before.
+ * EMAIL_FROM is the sender address (it must be a verified sender in Brevo).
+ */
+const sendMail = async ({ to, subject, html }) => {
+    const from = process.env.EMAIL_FROM || process.env.EMAIL_USER;
+
+    if (process.env.BREVO_API_KEY) {
+        const response = await fetch('https://api.brevo.com/v3/smtp/email', {
+            method: 'POST',
+            headers: {
+                'api-key': process.env.BREVO_API_KEY,
+                'content-type': 'application/json',
+                accept: 'application/json',
+            },
+            body: JSON.stringify({
+                sender: { name: SENDER_NAME, email: from },
+                to: [{ email: to }],
+                subject,
+                htmlContent: html,
+            }),
+            signal: AbortSignal.timeout(15000),
+        });
+        if (!response.ok) {
+            const detail = await response.text().catch(() => '');
+            throw new Error(`Email service returned ${response.status}: ${detail.slice(0, 200)}`);
+        }
+        return;
+    }
+
+    await createTransporter().sendMail({
+        from: `"${SENDER_NAME}" <${from}>`,
+        to,
+        subject,
+        html,
+    });
+};
+
+/**
  * Sends a password recovery OTP email.
  * @param {string} to - Recipient email address
  * @param {string} otp - The plaintext 6-digit OTP code
  */
 const sendOTPEmail = async (to, otp) => {
-    const transporter = createTransporter();
-
     const html = `
     <!DOCTYPE html>
     <html lang="en">
@@ -82,8 +122,7 @@ const sendOTPEmail = async (to, otp) => {
     </html>
     `;
 
-    await transporter.sendMail({
-        from: `"Tenz Learn" <${process.env.EMAIL_USER}>`,
+    await sendMail({
         to,
         subject: `Your password reset code is ${otp}`,
         html,
