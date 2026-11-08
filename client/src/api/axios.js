@@ -28,7 +28,18 @@ let isRedirecting = false;
 
 // Response interceptor
 api.interceptors.response.use(
-    (response) => response,
+    (response) => {
+        // An HTML page here means VITE_API_URL points at the website instead of the API
+        const type = String(response.headers?.['content-type'] || '');
+        if (type.includes('text/html')) {
+            showError('Unable to reach the server. Please try again later.');
+            const error = new Error(`Expected JSON from ${response.config?.url} but received an HTML page. Check VITE_API_URL.`);
+            error.response = response;
+            error.handled = true;
+            return Promise.reject(error);
+        }
+        return response;
+    },
 
     (error) => {
         const status = error.response?.status;

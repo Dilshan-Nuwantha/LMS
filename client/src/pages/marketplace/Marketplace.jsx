@@ -58,7 +58,7 @@ const Marketplace = () => {
     const fetchCategories = async () => {
         try {
             const res = await api.get('/marketplace/categories');
-            setCategories(res.data || []);
+            setCategories(Array.isArray(res.data) ? res.data : []);
         } catch (error) {
             console.error('Error fetching categories:', error);
         }
