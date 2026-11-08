@@ -235,14 +235,26 @@ const Marketplace = () => {
                                             ))}
                                         </select>
 
-                                        <input
-                                            type="text"
-                                            aria-label="Tag"
-                                            placeholder="Tag"
-                                            value={filters.tag}
-                                            onChange={(e) => setFilters({ ...filters, tag: e.target.value })}
-                                            className="bg-slate-100 dark:bg-slate-800 text-xs font-medium rounded-xl p-3 text-slate-900 dark:text-white border border-transparent focus:outline-none w-full col-span-2"
-                                        />
+                                        {/* Tags are searched from the search box. A tag clicked on a course card shows here */}
+                                        {filters.tag && (
+                                            <span className="col-span-2 inline-flex items-center justify-between gap-2 bg-primary-light text-primary text-xs font-bold rounded-xl px-3 py-2">
+                                                Tag: #{filters.tag}
+                                                <button
+                                                    type="button"
+                                                    aria-label="Remove tag filter"
+                                                    onClick={() => {
+                                                        setFilters({ ...filters, tag: '' });
+                                                        const next = new URLSearchParams(searchParams);
+                                                        next.delete('tag');
+                                                        next.set('page', '1');
+                                                        setSearchParams(next);
+                                                    }}
+                                                    className="text-sm leading-none"
+                                                >
+                                                    ×
+                                                </button>
+                                            </span>
+                                        )}
 
                                         <input
                                             type="number"

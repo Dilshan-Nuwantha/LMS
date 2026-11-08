@@ -109,7 +109,8 @@ const CreateMarketplaceCourse = () => {
             const payload = {
                 ...formData,
                 price: Number(formData.price),
-                originalPrice: formData.originalPrice !== '' ? Number(formData.originalPrice) : Number(formData.price),
+                // Only an original price above the price is a discount. Empty or lower means no discount
+                originalPrice: Math.max(Number(formData.originalPrice) || 0, Number(formData.price)),
                 requirements: formData.requirements.filter(r => r.trim()),
                 whatYouWillLearn: formData.whatYouWillLearn.filter(w => w.trim()),
                 tags: formData.tags.split(','),
