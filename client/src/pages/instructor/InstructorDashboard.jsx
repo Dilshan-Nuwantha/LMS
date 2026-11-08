@@ -219,15 +219,6 @@ const InstructorDashboard = () => {
                                 <span>Payment Settings</span>
                             </Link>
 
-
-                            <Link
-                                to="/instructor/create-course"
-                                className="px-5 py-2.5 rounded-xl bg-success text-white font-bold text-xs hover:bg-emerald-600 transition-all shadow-sm flex items-center gap-2"
-                            >
-                                <FaPlus className="text-xs" />
-                                <span>Create Course</span>
-                            </Link>
-
                         </div>
 
                     </div>

@@ -888,7 +888,7 @@ const CourseView = () => {
                                                 <div className="absolute inset-0 flex items-center justify-center bg-slate-900">
                                                     <a href={selectedLecture.resourceUrl} target="_blank" rel="noreferrer" className="text-white hover:text-blue-400 flex flex-col items-center gap-3 transition-colors p-4">
                                                         <FaPlayCircle className="text-5xl" />
-                                                        <span className="text-base font-medium text-center">Open External Resource</span>
+                                                        <span className="text-base font-medium text-center">Click here</span>
                                                     </a>
                                                 </div>
                                             )

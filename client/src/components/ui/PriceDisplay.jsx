@@ -10,7 +10,8 @@ const PriceDisplay = ({ price, originalPrice, currency = 'LKR', size = 'md' }) =
         xl: { price: 'text-4xl', original: 'text-xl' }
     };
 
-    const hasDiscount = originalPrice && originalPrice > price;
+    // A boolean, so an original price of 0 never prints a stray "0" next to the price
+    const hasDiscount = Number(originalPrice) > Number(price);
     const discountPercent = hasDiscount
         ? Math.round(((originalPrice - price) / originalPrice) * 100)
         : 0;

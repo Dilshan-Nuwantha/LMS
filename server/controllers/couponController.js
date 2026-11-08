@@ -9,7 +9,8 @@ const couponProblem = ({ discountType, discountValue, maxUses }, price) => {
 
     if (!Number.isFinite(value) || value <= 0) return 'Discount value must be greater than 0';
     if (discountType === 'percentage' && (value < 1 || value > 100)) return 'Percentage discount must be between 1 and 100';
-    if (discountType === 'fixed' && value >= price) return 'Fixed discount cannot be greater than or equal to course price';
+    // A discount equal to the price is allowed: it makes the course free
+    if (discountType === 'fixed' && value > price) return 'Fixed discount cannot be more than the course price';
     if (maxUses !== undefined && maxUses !== null && maxUses !== '' && (!Number.isInteger(Number(maxUses)) || Number(maxUses) < 1)) {
         return 'Usage limit must be at least 1, or empty for unlimited';
     }
